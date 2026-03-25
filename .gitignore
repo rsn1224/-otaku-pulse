@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+target/
+
+# Build output
+dist/
+dist-ssr/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Debug
+npm-debug.log*
+
+# SQLite (dev)
+*.db
+*.db-shm
+*.db-wal
+
+# Tauri
+src-tauri/gen/

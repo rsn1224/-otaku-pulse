@@ -1,0 +1,50 @@
+query ($season: MediaSeason!, $year: Int!, $page: Int) {
+  Page(page: $page, perPage: 50) {
+    pageInfo {
+      total
+      perPage
+      currentPage
+      lastPage
+      hasNextPage
+    }
+    media(type: ANIME, season: $season, seasonYear: $year, sort: POPULARITY_DESC) {
+      id
+      title {
+        romaji
+        english
+        native
+        userPreferred
+      }
+      type
+      format
+      status
+      description(asHtml: false)
+      startDate {
+        year
+        month
+        day
+      }
+      endDate {
+        year
+        month
+        day
+      }
+      episodes
+      coverImage {
+        large
+        medium
+        color
+      }
+      bannerImage
+      genres
+      synonyms
+      averageScore
+      popularity
+      trending
+      externalLinks {
+        site
+        url
+      }
+    }
+  }
+}

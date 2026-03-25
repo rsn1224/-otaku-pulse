@@ -1,0 +1,103 @@
+# Minimal AniList GraphQL schema subset for our use case
+# This is a simplified version focusing on seasonal anime and trending manga
+
+type Query {
+  # Seasonal anime
+  Page(page: Int, perPage: Int): Page
+  Media(id: Int, type: MediaType, isAdult: Boolean): Media
+}
+
+type Page {
+  pageInfo: PageInfo!
+  media: [Media]!
+}
+
+type PageInfo {
+  total: Int!
+  perPage: Int!
+  currentPage: Int!
+  lastPage: Int!
+  hasNextPage: Boolean!
+}
+
+type Media {
+  id: Int!
+  title: MediaTitle!
+  type: MediaType!
+  format: MediaFormat
+  status: MediaStatus
+  description(asHtml: Boolean): String
+  startDate: FuzzyDate
+  endDate: FuzzyDate
+  season: MediaSeason
+  seasonYear: Int
+  episodes: Int
+  chapters: Int
+  volumes: Int
+  coverImage: MediaCoverImage
+  bannerImage: String
+  genres: [String]
+  synonyms: [String]
+  averageScore: Int
+  popularity: Int
+  trending: Int
+  externalLinks: [ExternalLink]
+}
+
+type MediaTitle {
+  romaji: String
+  english: String
+  native: String
+  userPreferred: String
+}
+
+type MediaCoverImage {
+  extraLarge: String
+  large: String
+  medium: String
+  color: String
+}
+
+type ExternalLink {
+  site: String
+  url: String
+}
+
+enum MediaType {
+  ANIME
+  MANGA
+}
+
+enum MediaFormat {
+  TV
+  TV_SHORT
+  MOVIE
+  SPECIAL
+  OVA
+  ONA
+  MUSIC
+  MANGA
+  NOVEL
+  ONE_SHOT
+}
+
+enum MediaStatus {
+  FINISHED
+  RELEASING
+  NOT_YET_RELEASED
+  CANCELLED
+  HIATUS
+}
+
+enum MediaSeason {
+  WINTER
+  SPRING
+  SUMMER
+  FALL
+}
+
+type FuzzyDate {
+  year: Int
+  month: Int
+  day: Int
+}

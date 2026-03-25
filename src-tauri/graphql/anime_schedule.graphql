@@ -1,0 +1,48 @@
+query GetAnimeSchedule($season: MediaSeason!, $year: Int!) {
+  Page(page: 1, perPage: 50) {
+    pageInfo {
+      hasNextPage
+    }
+    media(season: $season, seasonYear: $year, type: ANIME, sort: START_DATE_DESC) {
+      id
+      title {
+        romaji
+        english
+        native
+      }
+      format
+      status
+      episodes
+      duration
+      coverImage {
+        large
+        medium
+      }
+      startDate {
+        year
+        month
+        day
+      }
+      endDate {
+        year
+        month
+        day
+      }
+      season
+      seasonYear
+      genres {
+        name
+      }
+      studios {
+        nodes {
+          name
+        }
+      }
+      nextAiringEpisode {
+        airingAt
+        timeUntilAiring
+        episode
+      }
+    }
+  }
+}
