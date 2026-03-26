@@ -55,7 +55,9 @@ pub async fn run_collect_now(
 
     tracing::info!(
         "Collection completed: fetched={}, saved={}, errors={}",
-        fetched, saved, errors.len()
+        fetched,
+        saved,
+        errors.len()
     );
 
     Ok(CollectResult {
@@ -106,7 +108,9 @@ pub async fn init_default_feeds(db: State<'_, SqlitePool>) -> CmdResult<u32> {
         if updated.rows_affected() > 0 {
             tracing::info!(
                 "Fixed category for feeds matching '{}' -> '{}' ({} updated)",
-                domain, correct_category, updated.rows_affected()
+                domain,
+                correct_category,
+                updated.rows_affected()
             );
         }
     }

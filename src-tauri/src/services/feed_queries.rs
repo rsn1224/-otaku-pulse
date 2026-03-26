@@ -4,9 +4,7 @@ use crate::models::{ArticleDetailDto, Feed, FeedDto};
 use sqlx::{Row, SqlitePool};
 
 // Re-export article_queries for backward compatibility
-pub use super::article_queries::{
-    recent_articles_for_dedup, toggle_bookmark, upsert_articles,
-};
+pub use super::article_queries::{recent_articles_for_dedup, toggle_bookmark, upsert_articles};
 
 pub async fn list_feeds(db: &SqlitePool) -> Result<Vec<FeedDto>, AppError> {
     let rows = sqlx::query_as::<_, Feed>(

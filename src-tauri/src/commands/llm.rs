@@ -24,12 +24,16 @@ pub(super) fn clone_llm_settings(state: &AppState) -> CmdResult<LlmSettings> {
     Ok(guard.clone())
 }
 
-pub(super) fn build_llm_client(settings: &LlmSettings, http: &reqwest::Client) -> CmdResult<LlmBox> {
+pub(super) fn build_llm_client(
+    settings: &LlmSettings,
+    http: &reqwest::Client,
+) -> CmdResult<LlmBox> {
     match settings.provider {
         LlmProvider::PerplexitySonar => {
-            let api_key = settings.perplexity_api_key.clone().ok_or_else(|| {
-                AppError::Llm("Perplexity API キーが未設定です".into())
-            })?;
+            let api_key = settings
+                .perplexity_api_key
+                .clone()
+                .ok_or_else(|| AppError::Llm("Perplexity API キーが未設定です".into()))?;
             Ok(LlmBox::Perplexity(PerplexitySonarClient::new(
                 api_key,
                 http.clone(),
@@ -165,4 +169,3 @@ pub async fn check_ollama_status(
     };
     crate::infra::ollama_client::check_status(&http, &base_url).await
 }
-

@@ -171,9 +171,9 @@ pub async fn get_trending_keywords(db: &SqlitePool) -> Result<Vec<TrendKeyword>,
 }
 
 const STOP_WORDS: &[&str] = &[
-    "the", "and", "for", "that", "this", "with", "from", "your", "have", "are",
-    "was", "will", "can", "has", "more", "about", "into", "than", "its", "been",
-    "most", "just", "over", "also", "after", "http", "https", "www", "html", "nbsp",
+    "the", "and", "for", "that", "this", "with", "from", "your", "have", "are", "was", "will",
+    "can", "has", "more", "about", "into", "than", "its", "been", "most", "just", "over", "also",
+    "after", "http", "https", "www", "html", "nbsp",
 ];
 
 fn is_stop_word(word: &str) -> bool {

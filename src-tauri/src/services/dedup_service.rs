@@ -42,7 +42,7 @@ pub fn normalize_url(url: &str) -> String {
             .split('&')
             .filter(|p| {
                 p.split_once('=')
-                    .map_or(true, |(k, _)| !tracking_params.contains(&k))
+                    .is_none_or(|(k, _)| !tracking_params.contains(&k))
             })
             .collect();
         filtered_params.sort();
@@ -81,7 +81,10 @@ pub fn normalize_title(title: &str) -> String {
         '「', '」', '『', '』', '【', '】', '（', '）', '(', ')', '[', ']', '<', '>', '・', '、',
         '。', ',', '.', '!', '?', '！', '？', '　',
     ];
-    let mut result: String = normalized.chars().filter(|c| !symbols.contains(c)).collect();
+    let mut result: String = normalized
+        .chars()
+        .filter(|c| !symbols.contains(c))
+        .collect();
     result = result.to_lowercase();
     while result.contains("  ") {
         result = result.replace("  ", " ");

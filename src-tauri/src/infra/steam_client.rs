@@ -278,9 +278,10 @@ mod tests {
                 .send()
                 .await?;
 
-            let json: Value = response.json().await.map_err(|e| {
-                AppError::Parse(format!("Failed to parse Steam response: {}", e))
-            })?;
+            let json: Value = response
+                .json()
+                .await
+                .map_err(|e| AppError::Parse(format!("Failed to parse Steam response: {}", e)))?;
 
             let news_items = json["appnews"]["newsitems"]
                 .as_array()

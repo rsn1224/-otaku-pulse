@@ -376,13 +376,14 @@ mod tests {
                 )));
             }
 
-            let json: Value = response.json().await.map_err(|e| {
-                AppError::Parse(format!("Failed to parse Reddit response: {}", e))
-            })?;
+            let json: Value = response
+                .json()
+                .await
+                .map_err(|e| AppError::Parse(format!("Failed to parse Reddit response: {}", e)))?;
 
-            let posts = json["data"]["children"].as_array().ok_or_else(|| {
-                AppError::Parse("Invalid Reddit response format".to_string())
-            })?;
+            let posts = json["data"]["children"]
+                .as_array()
+                .ok_or_else(|| AppError::Parse("Invalid Reddit response format".to_string()))?;
 
             let mut articles = Vec::new();
 

@@ -5,7 +5,11 @@ use sqlx::{Row, SqlitePool};
 
 fn row_to_digest_dto(row: sqlx::sqlite::SqliteRow) -> DigestDto {
     let article_ids: String = row.get("article_ids");
-    let article_count = if article_ids.is_empty() { 0 } else { article_ids.split(',').count() };
+    let article_count = if article_ids.is_empty() {
+        0
+    } else {
+        article_ids.split(',').count()
+    };
     DigestDto {
         id: row.get("id"),
         category: row.get("category"),
@@ -23,12 +27,10 @@ pub async fn list_digests(
     category: Option<&str>,
 ) -> Result<Vec<DigestDto>, AppError> {
     let rows = if let Some(cat) = category {
-        sqlx::query(
-            "SELECT * FROM digests WHERE category = ? ORDER BY generated_at DESC",
-        )
-        .bind(cat)
-        .fetch_all(db)
-        .await?
+        sqlx::query("SELECT * FROM digests WHERE category = ? ORDER BY generated_at DESC")
+            .bind(cat)
+            .fetch_all(db)
+            .await?
     } else {
         sqlx::query("SELECT * FROM digests ORDER BY generated_at DESC")
             .fetch_all(db)
@@ -100,12 +102,11 @@ pub async fn get_latest_digest(
     db: &SqlitePool,
     category: &str,
 ) -> Result<Option<DigestDto>, AppError> {
-    let row = sqlx::query(
-        "SELECT * FROM digests WHERE category = ? ORDER BY generated_at DESC LIMIT 1",
-    )
-    .bind(category)
-    .fetch_optional(db)
-    .await?;
+    let row =
+        sqlx::query("SELECT * FROM digests WHERE category = ? ORDER BY generated_at DESC LIMIT 1")
+            .bind(category)
+            .fetch_optional(db)
+            .await?;
 
     Ok(row.map(row_to_digest_dto))
 }

@@ -4,8 +4,7 @@ use sqlx::SqlitePool;
 
 const PAGE_SIZE: i64 = 30;
 
-const DISCOVER_COLS: &str =
-    "a.id, a.feed_id, a.title, a.url, a.summary, a.author, \
+const DISCOVER_COLS: &str = "a.id, a.feed_id, a.title, a.url, a.summary, a.author, \
      a.published_at, a.is_read, a.is_bookmarked, a.language, \
      a.thumbnail_url, a.ai_summary, f.name AS feed_name, f.category AS category";
 
@@ -52,7 +51,10 @@ async fn get_for_you(
          LIMIT ?1 OFFSET ?2"
     );
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(&sql)
-        .bind(limit).bind(offset).fetch_all(db).await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(db)
+        .await?;
     Ok((articles, count_all(db).await?))
 }
 
@@ -76,7 +78,10 @@ async fn get_trending(
          LIMIT ?1 OFFSET ?2"
     );
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(&sql)
-        .bind(limit).bind(offset).fetch_all(db).await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(db)
+        .await?;
 
     let total: (i64,) = sqlx::query_as(
         "SELECT COUNT(*) FROM articles
@@ -103,7 +108,11 @@ async fn get_by_category(
          LIMIT ?2 OFFSET ?3"
     );
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(&sql)
-        .bind(category).bind(limit).bind(offset).fetch_all(db).await?;
+        .bind(category)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(db)
+        .await?;
 
     let total: (i64,) = sqlx::query_as(
         "SELECT COUNT(*) FROM articles a
@@ -142,7 +151,10 @@ async fn get_popular(
          LIMIT ?1 OFFSET ?2"
     );
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(&sql)
-        .bind(limit).bind(offset).fetch_all(db).await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(db)
+        .await?;
     Ok((articles, count_all(db).await?))
 }
 
@@ -161,7 +173,10 @@ async fn get_most_viewed(
          LIMIT ?1 OFFSET ?2"
     );
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(&sql)
-        .bind(limit).bind(offset).fetch_all(db).await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(db)
+        .await?;
     Ok((articles, count_all(db).await?))
 }
 
@@ -197,7 +212,10 @@ pub async fn get_library_articles(
          ORDER BY a.published_at DESC LIMIT ?1 OFFSET ?2"
     );
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(&sql)
-        .bind(limit).bind(offset).fetch_all(db).await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(db)
+        .await?;
 
     let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM articles WHERE is_bookmarked = 1")
         .fetch_one(db)

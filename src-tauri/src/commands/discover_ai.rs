@@ -104,7 +104,8 @@ pub async fn ai_search(
             vec![]
         });
 
-    let is_question = query.contains('\u{FF1F}') || query.contains('?') || query.ends_with("\u{3068}\u{306F}");
+    let is_question =
+        query.contains('\u{FF1F}') || query.contains('?') || query.ends_with("\u{3068}\u{306F}");
     let needs_ai = local.len() < 3 || is_question;
 
     if needs_ai {

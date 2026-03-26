@@ -9,8 +9,7 @@ use chrono::Datelike;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-const FEED_SELECT: &str =
-    "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes, \
+const FEED_SELECT: &str = "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes, \
      last_fetched_at, consecutive_errors, disabled_reason, last_error, \
      etag, last_modified, created_at, updated_at FROM feeds";
 
@@ -158,7 +157,10 @@ pub async fn refresh_one(
     feed_id: i64,
 ) -> Result<u32, AppError> {
     let sql = format!("{FEED_SELECT} WHERE id = ?");
-    let feed: Feed = sqlx::query_as::<_, Feed>(&sql).bind(feed_id).fetch_one(db).await?;
+    let feed: Feed = sqlx::query_as::<_, Feed>(&sql)
+        .bind(feed_id)
+        .fetch_one(db)
+        .await?;
 
     collect_feed(db, http, &feed).await
 }
