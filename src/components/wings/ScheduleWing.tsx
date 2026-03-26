@@ -42,12 +42,11 @@ export const ScheduleWing: React.FC = () => {
     setIsLoading(true);
     try {
       const weekStart = getWeekStart(offset);
-      const now = new Date();
-      const startTimestamp = Math.floor(Math.max(weekStart.getTime(), now.getTime()) / 1000);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 7);
-      const daysAhead = Math.max(1, Math.ceil((weekEnd.getTime() / 1000 - startTimestamp) / 86400));
-      const result = await invoke<AiringEntry[]>('get_airing_schedule', { daysAhead });
+      const startTimestamp = Math.floor(weekStart.getTime() / 1000);
+      const result = await invoke<AiringEntry[]>('get_airing_schedule', {
+        startTimestamp,
+        daysAhead: 7,
+      });
       setEntries(result);
     } catch (_) {
       setEntries([]);

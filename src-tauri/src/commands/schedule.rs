@@ -89,14 +89,17 @@ fn parse_airing_response(json: &str) -> Result<Vec<AiringEntry>, String> {
 }
 
 #[tauri::command]
-pub async fn get_airing_schedule(days_ahead: Option<i64>) -> CmdResult<Vec<AiringEntry>> {
-    let now = chrono::Utc::now().timestamp();
+pub async fn get_airing_schedule(
+    start_timestamp: Option<i64>,
+    days_ahead: Option<i64>,
+) -> CmdResult<Vec<AiringEntry>> {
+    let start = start_timestamp.unwrap_or_else(|| chrono::Utc::now().timestamp());
     let days = days_ahead.unwrap_or(7);
-    let end = now + days * 86400;
+    let end = start + days * 86400;
 
     let query = include_str!("../../graphql/airing_schedule.graphql");
     let variables = serde_json::json!({
-        "airingAtGreater": now,
+        "airingAtGreater": start,
         "airingAtLesser": end,
         "page": 1
     });
