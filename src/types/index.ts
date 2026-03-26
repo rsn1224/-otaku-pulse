@@ -76,7 +76,15 @@ export interface AppError {
 // ---------------------------------------------------------------------------
 // v2 Discover types
 // ---------------------------------------------------------------------------
-export type DiscoverTab = 'for_you' | 'trending' | 'popular' | 'most_viewed' | 'anime' | 'game' | 'manga' | 'hardware';
+export type DiscoverTab =
+  | 'for_you'
+  | 'trending'
+  | 'popular'
+  | 'most_viewed'
+  | 'anime'
+  | 'game'
+  | 'manga'
+  | 'hardware';
 
 export type WingIdV2 = 'discover' | 'library' | 'profile' | 'saved' | 'schedule';
 
@@ -150,3 +158,6 @@ export interface AiringEntry {
   totalEpisodes: number | null;
   siteUrl: string | null;
 }
+
+export type ScheduleViewMode = 'day' | 'week' | 'month';
+export type ScheduleTab = 'anime' | 'game';

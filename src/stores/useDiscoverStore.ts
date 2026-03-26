@@ -99,7 +99,15 @@ export const useDiscoverStore = create<DiscoverState>((set, get) => ({
   searchMode: false,
 
   setTab: (tab: DiscoverTab) => {
-    set({ tab, offset: 0, hasMore: true, searchMode: false, searchQuery: '', focusedIndex: -1, error: null });
+    set({
+      tab,
+      offset: 0,
+      hasMore: true,
+      searchMode: false,
+      searchQuery: '',
+      focusedIndex: -1,
+      error: null,
+    });
     get().fetchFeed(true);
   },
 

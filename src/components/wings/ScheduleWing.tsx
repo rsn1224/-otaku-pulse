@@ -1,125 +1,188 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AiringEntry } from '../../types';
-import { AiringCard } from '../schedule/AiringCard';
-
-const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+import type {
+  AiringEntry,
+  DiscoverArticleDto,
+  DiscoverFeedResult,
+  ScheduleViewMode,
+} from '../../types';
+import { GameArticleCard } from '../schedule/GameArticleCard';
+import { ScheduleDayView, ScheduleGridView } from '../schedule/ScheduleGridView';
 
 const getWeekStart = (offset: number): Date => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const dayOfWeek = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + offset * 7);
-  return monday;
+  const d = now.getDay();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - ((d + 6) % 7) + offset * 7);
+  return mon;
 };
 
-const formatShortDate = (date: Date): string => {
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  return `${m}/${d}`;
+const getMonthStart = (offset: number): Date => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + offset, 1);
 };
+
+const getDayStart = (offset: number): Date => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  now.setDate(now.getDate() + offset);
+  return now;
+};
+
+const dateKey = (d: Date): string => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const fmtDate = (d: Date): string => `${d.getMonth() + 1}/${d.getDate()}`;
 
 const groupByDate = (entries: AiringEntry[]): Map<string, AiringEntry[]> => {
   const map = new Map<string, AiringEntry[]>();
-  for (const entry of entries) {
-    const date = new Date(entry.airingAt * 1000);
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    const list = map.get(key) ?? [];
-    list.push(entry);
-    map.set(key, list);
+  for (const e of entries) {
+    const k = dateKey(new Date(e.airingAt * 1000));
+    map.set(k, [...(map.get(k) ?? []), e]);
   }
   return map;
 };
 
-export const ScheduleWing: React.FC = () => {
-  const [entries, setEntries] = useState<AiringEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
+const DAYS_MAP: Record<ScheduleViewMode, number> = { day: 1, week: 7, month: 31 };
 
-  const fetchSchedule = useCallback(async (offset: number): Promise<void> => {
+type TabId = 'anime' | 'game';
+
+export const ScheduleWing: React.FC = () => {
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>('week');
+  const [tab, setTab] = useState<TabId>('anime');
+  const [offset, setOffset] = useState(0);
+  const [entries, setEntries] = useState<AiringEntry[]>([]);
+  const [gameArticles, setGameArticles] = useState<DiscoverArticleDto[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const startDate = useMemo(() => {
+    if (viewMode === 'day') return getDayStart(offset);
+    if (viewMode === 'month') return getMonthStart(offset);
+    return getWeekStart(offset);
+  }, [viewMode, offset]);
+
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const weekStart = getWeekStart(offset);
-      const startTimestamp = Math.floor(weekStart.getTime() / 1000);
-      const result = await invoke<AiringEntry[]>('get_airing_schedule', {
-        startTimestamp,
-        daysAhead: 7,
-      });
-      setEntries(result);
+      if (tab === 'anime') {
+        const ts = Math.floor(startDate.getTime() / 1000);
+        const result = await invoke<AiringEntry[]>('get_airing_schedule', {
+          startTimestamp: ts,
+          daysAhead: DAYS_MAP[viewMode],
+        });
+        setEntries(result);
+      } else {
+        const result = await invoke<DiscoverFeedResult>('get_discover_feed', {
+          tab: 'game',
+          limit: 50,
+          offset: 0,
+        });
+        setGameArticles(result.articles);
+      }
     } catch (_) {
       setEntries([]);
+      setGameArticles([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [tab, startDate, viewMode]);
 
   useEffect(() => {
-    fetchSchedule(weekOffset);
-  }, [weekOffset, fetchSchedule]);
+    fetchData();
+  }, [fetchData]);
 
-  const weekStart = getWeekStart(weekOffset);
   const grouped = useMemo(() => groupByDate(entries), [entries]);
-
-  const weekDays = useMemo(
+  const dates = useMemo(
     () =>
-      Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + i);
-        return date;
+      Array.from({ length: DAYS_MAP[viewMode] }, (_, i) => {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        return d;
       }),
-    [weekStart],
+    [startDate, viewMode],
   );
+
+  const headerText = useMemo(() => {
+    if (viewMode === 'day')
+      return startDate.toLocaleDateString('ja-JP', {
+        month: 'long',
+        day: 'numeric',
+        weekday: 'short',
+      });
+    if (viewMode === 'month')
+      return startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
+    return `${fmtDate(dates[0])} — ${fmtDate(dates[dates.length - 1])}`;
+  }, [viewMode, startDate, dates]);
 
   return (
     <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <div className="px-6 py-5 flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Weekly Schedule
+      <div className="px-6 py-4 flex items-center justify-between flex-shrink-0 gap-4">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Schedule
           </h1>
-          <p
-            className="text-xs font-medium tracking-wide mt-0.5"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            SEASONAL BROADCASTS
-          </p>
+          <ToggleGroup
+            items={[
+              { id: 'anime', label: 'Anime' },
+              { id: 'game', label: 'Games' },
+            ]}
+            active={tab}
+            onSelect={(t) => {
+              setTab(t as TabId);
+              setOffset(0);
+            }}
+            accent
+          />
         </div>
         <div className="flex items-center gap-2">
+          {tab === 'anime' && (
+            <ToggleGroup
+              items={[
+                { id: 'day', label: 'Day' },
+                { id: 'week', label: 'Week' },
+                { id: 'month', label: 'Month' },
+              ]}
+              active={viewMode}
+              onSelect={(m) => {
+                setViewMode(m as ScheduleViewMode);
+                setOffset(0);
+              }}
+            />
+          )}
           <button
             type="button"
-            onClick={() => setWeekOffset((w) => w - 1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:opacity-70 transition-opacity"
+            onClick={() => setOffset((o) => o - 1)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg"
             style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
           >
             {'←'}
           </button>
           <button
             type="button"
-            onClick={() => setWeekOffset(0)}
-            className="px-3 h-8 text-xs rounded-lg hover:opacity-70 transition-opacity"
-            style={{ background: 'var(--accent)', color: '#0e0e13', fontWeight: 600 }}
+            onClick={() => setOffset(0)}
+            className="px-2.5 h-7 text-[11px] rounded-lg font-semibold"
+            style={{ background: 'var(--accent)', color: '#0e0e13' }}
           >
             Today
           </button>
           <button
             type="button"
-            onClick={() => setWeekOffset((w) => w + 1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:opacity-70 transition-opacity"
+            onClick={() => setOffset((o) => o + 1)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg"
             style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
           >
             {'→'}
           </button>
         </div>
       </div>
+      <p
+        className="px-6 text-xs font-medium tracking-wide mb-2"
+        style={{ color: 'var(--text-secondary)' }}
+      >
+        {headerText}
+      </p>
 
-      {/* Calendar Grid */}
-      <div className="flex-1 overflow-x-auto px-4 pb-4">
+      <div className="flex-1 overflow-auto px-4 pb-4">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <div
@@ -127,62 +190,57 @@ export const ScheduleWing: React.FC = () => {
               style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
             />
           </div>
-        ) : (
-          <div className="flex gap-3 min-w-[900px] h-full">
-            {weekDays.map((date) => {
-              const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-              const dayEntries = grouped.get(key) ?? [];
-              const isToday = new Date().toDateString() === date.toDateString();
-
-              return (
-                <div key={key} className="flex-1 min-w-[140px] flex flex-col">
-                  <div
-                    className="py-3 mb-3"
-                    style={{
-                      borderBottom: isToday
-                        ? '2px solid var(--accent)'
-                        : '1px solid rgba(72,71,77,0.1)',
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3
-                        className="text-sm font-bold"
-                        style={{ color: isToday ? 'var(--accent)' : 'var(--text-secondary)' }}
-                      >
-                        {DAY_LABELS[date.getDay()]}
-                      </h3>
-                      {isToday && (
-                        <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: 'var(--accent)', color: '#0e0e13' }}
-                        >
-                          TODAY
-                        </span>
-                      )}
-                    </div>
-                    <p
-                      className="text-xs font-bold uppercase tracking-tight mt-0.5"
-                      style={{ color: isToday ? 'rgba(189,157,255,0.8)' : 'rgba(172,170,177,0.6)' }}
-                    >
-                      {formatShortDate(date)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {dayEntries.map((entry) => (
-                      <AiringCard key={entry.id} entry={entry} />
-                    ))}
-                    {dayEntries.length === 0 && (
-                      <p className="text-xs py-2" style={{ color: 'var(--text-tertiary)' }}>
-                        —
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+        ) : tab === 'game' ? (
+          <div className="max-w-2xl mx-auto space-y-2">
+            {gameArticles.length === 0 && (
+              <p className="text-sm py-8 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                ゲーム記事がありません
+              </p>
+            )}
+            {gameArticles.map((a) => (
+              <GameArticleCard key={a.id} article={a} />
+            ))}
           </div>
+        ) : viewMode === 'day' ? (
+          <ScheduleDayView date={dates[0]} entries={grouped.get(dateKey(dates[0])) ?? []} />
+        ) : (
+          <ScheduleGridView dates={dates} grouped={grouped} viewMode={viewMode} />
         )}
       </div>
     </div>
   );
 };
+
+const ToggleGroup: React.FC<{
+  items: { id: string; label: string }[];
+  active: string;
+  onSelect: (id: string) => void;
+  accent?: boolean;
+}> = ({ items, active, onSelect, accent }) => (
+  <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+    {items.map((item) => (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => onSelect(item.id)}
+        className="px-2.5 py-1 text-[11px] font-semibold uppercase transition-colors"
+        style={{
+          background:
+            active === item.id
+              ? accent
+                ? 'var(--accent)'
+                : 'var(--bg-card-hover)'
+              : 'transparent',
+          color:
+            active === item.id
+              ? accent
+                ? '#0e0e13'
+                : 'var(--text-primary)'
+              : 'var(--text-tertiary)',
+        }}
+      >
+        {item.label}
+      </button>
+    ))}
+  </div>
+);
