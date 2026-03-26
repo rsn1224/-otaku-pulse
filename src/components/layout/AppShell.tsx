@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useFilterStore } from '../../stores/useFilterStore';
 import { initTheme } from '../../stores/useThemeStore';
 import type { WingIdV2 } from '../../types';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -56,6 +57,7 @@ export const AppShell: React.FC = () => {
 
   useEffect(() => {
     initTheme();
+    useFilterStore.getState().fetchFilters();
   }, []);
   useKeyboardShortcuts();
 

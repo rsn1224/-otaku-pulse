@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { AiringEntry } from '../../types';
 import { AiringCard } from '../schedule/AiringCard';
 
@@ -38,12 +38,18 @@ export const ScheduleWing: React.FC = () => {
   const [entries, setEntries] = useState<AiringEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
-  const initializedRef = useRef(false);
 
-  const fetchSchedule = useCallback(async (): Promise<void> => {
+  const fetchSchedule = useCallback(async (offset: number): Promise<void> => {
     setIsLoading(true);
     try {
-      const result = await invoke<AiringEntry[]>('get_airing_schedule', { daysAhead: 7 });
+      const weekStart = getWeekStart(offset);
+      const now = new Date();
+      const startTimestamp = Math.floor(Math.max(weekStart.getTime(), now.getTime()) / 1000);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const daysAhead = Math.max(1, Math.ceil((weekEnd.getTime() / 1000 - startTimestamp) / 86400));
+
+      const result = await invoke<AiringEntry[]>('get_airing_schedule', { daysAhead });
       setEntries(result);
     } catch (_) {
       setEntries([]);
@@ -53,11 +59,8 @@ export const ScheduleWing: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      fetchSchedule();
-    }
-  }, [fetchSchedule]);
+    fetchSchedule(weekOffset);
+  }, [weekOffset, fetchSchedule]);
 
   const weekStart = getWeekStart(weekOffset);
   const grouped = groupByDate(entries);
@@ -91,7 +94,7 @@ export const ScheduleWing: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={fetchSchedule}
+            onClick={() => fetchSchedule(weekOffset)}
             className="px-2 py-1 rounded hover:opacity-70 text-xs"
             style={{ color: 'var(--text-secondary)' }}
           >
@@ -117,7 +120,7 @@ export const ScheduleWing: React.FC = () => {
               <p className="text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
                 放送スケジュールがありません
               </p>
-              <p className="text-sm">AniList から今週の放送予定を取得します</p>
+              <p className="text-sm">AniList から放送予定を取得します</p>
             </div>
           )}
 

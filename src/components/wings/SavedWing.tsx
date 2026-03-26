@@ -28,18 +28,18 @@ export const SavedWing: React.FC = () => {
     }
   }, [fetchBookmarks]);
 
-  const handleUnbookmark = async (id: number): Promise<void> => {
+  const handleUnbookmark = useCallback(async (id: number): Promise<void> => {
     try {
       await invoke('toggle_bookmark', { articleId: id });
       setArticles((prev) => prev.filter((a) => a.id !== id));
     } catch (_) {
       /* silent */
     }
-  };
+  }, []);
 
-  const handleOpen = (url: string | null): void => {
+  const handleOpen = useCallback((url: string | null): void => {
     if (url) openUrl(url).catch(() => {});
-  };
+  }, []);
 
   return (
     <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>

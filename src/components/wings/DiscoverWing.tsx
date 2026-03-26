@@ -1,8 +1,8 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { applyMuteFilters } from '../../lib/articleFilter';
 import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useFilterStore } from '../../stores/useFilterStore';
 import { ArticleReader } from '../common/ArticleReader';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
 import { CitationFooter } from '../discover/CitationFooter';
@@ -35,15 +35,7 @@ export const DiscoverWing: React.FC = () => {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // P5-C: キーワードフィルタ
-  const [muteKeywords, setMuteKeywords] = useState<string[]>([]);
-  useEffect(() => {
-    invoke<{ keyword: string; filter_type: string }[]>('get_keyword_filters')
-      .then((filters) =>
-        setMuteKeywords(filters.filter((f) => f.filter_type === 'mute').map((f) => f.keyword)),
-      )
-      .catch(() => {});
-  }, []);
+  const { muteKeywords } = useFilterStore();
   const filteredArticles = useMemo(
     () => applyMuteFilters(articles, muteKeywords),
     [articles, muteKeywords],
