@@ -9,7 +9,7 @@ mod state;
 pub use error::AppError;
 
 use tauri::Manager;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 /// Application entry point. Called from main.rs.
 pub fn run() {

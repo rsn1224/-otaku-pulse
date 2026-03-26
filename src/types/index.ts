@@ -76,7 +76,7 @@ export interface AppError {
 // ---------------------------------------------------------------------------
 // v2 Discover types
 // ---------------------------------------------------------------------------
-export type DiscoverTab = 'for_you' | 'trending' | 'anime' | 'game' | 'manga' | 'hardware';
+export type DiscoverTab = 'for_you' | 'trending' | 'popular' | 'most_viewed' | 'anime' | 'game' | 'manga' | 'hardware';
 
 export type WingIdV2 = 'discover' | 'library' | 'profile' | 'saved' | 'schedule';
 

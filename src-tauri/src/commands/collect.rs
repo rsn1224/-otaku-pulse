@@ -1,11 +1,11 @@
 #![allow(dead_code)]
-use tauri::State;
+use crate::error::{AppError, CmdResult};
+use crate::models::Feed;
+use crate::services::collector;
 use serde::Serialize;
 use sqlx::SqlitePool;
 use std::sync::Arc;
-use crate::error::{AppError, CmdResult};
-use crate::services::collector;
-use crate::models::Feed;
+use tauri::State;
 
 #[derive(Serialize)]
 pub struct CollectResult {
@@ -57,8 +57,13 @@ pub async fn run_collect_now(
         }
     }
 
-    tracing::info!("Collection completed: fetched={}, saved={}, deduped={}, errors={}", 
-        fetched, saved, deduped, errors.len());
+    tracing::info!(
+        "Collection completed: fetched={}, saved={}, deduped={}, errors={}",
+        fetched,
+        saved,
+        deduped,
+        errors.len()
+    );
 
     Ok(CollectResult {
         fetched,
@@ -70,23 +75,80 @@ pub async fn run_collect_now(
 
 /// 初期フィードをデータベースに追加する（開発用）
 #[tauri::command]
-pub async fn init_default_feeds(
-    db: State<'_, SqlitePool>,
-) -> CmdResult<u32> {
+pub async fn init_default_feeds(db: State<'_, SqlitePool>) -> CmdResult<u32> {
     let feeds = vec![
         // アニメ
-        ("AnimeNewsNetwork JP", "https://www.animenewsnetwork.com/all/rss.xml?ann-edition=jp", "anime", "rss"),
-        ("アニメ!アニメ!", "https://animeanime.jp/rss/index.rdf", "anime", "rss"),
-        ("MyAnimeList News", "https://myanimelist.net/rss/news.xml", "anime", "rss"),
+        (
+            "AnimeNewsNetwork JP",
+            "https://www.animenewsnetwork.com/all/rss.xml?ann-edition=jp",
+            "anime",
+            "rss",
+        ),
+        (
+            "アニメ!アニメ!",
+            "https://animeanime.jp/rss/index.rdf",
+            "anime",
+            "rss",
+        ),
+        (
+            "MyAnimeList News",
+            "https://myanimelist.net/rss/news.xml",
+            "anime",
+            "rss",
+        ),
+        (
+            "Anime Corner",
+            "https://animecorner.me/feed",
+            "anime",
+            "rss",
+        ),
+        (
+            "Crunchyroll News",
+            "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss",
+            "anime",
+            "rss",
+        ),
         // 漫画
-        ("コミックナタリー", "https://natalie.mu/comic/feed/news", "manga", "rss"),
+        (
+            "コミックナタリー",
+            "https://natalie.mu/comic/feed/news",
+            "manga",
+            "rss",
+        ),
+        (
+            "Otaku USA",
+            "https://otakuusamagazine.com/anime/feed",
+            "manga",
+            "rss",
+        ),
         // ゲーム
-        ("4Gamer", "https://www.4gamer.net/rss/index.xml", "game", "rss"),
+        (
+            "4Gamer",
+            "https://www.4gamer.net/rss/index.xml",
+            "game",
+            "rss",
+        ),
         ("Gematsu", "https://www.gematsu.com/feed", "game", "rss"),
         ("PC Gamer", "https://www.pcgamer.com/rss/", "game", "rss"),
         // PC ハードウェア
-        ("PC Watch", "https://pc.watch.impress.co.jp/data/rss/1.0/pcw/feed.rdf", "pc", "rss"),
-        ("Tom's Hardware", "https://www.tomshardware.com/feeds/all", "pc", "rss"),
+        (
+            "PC Watch",
+            "https://pc.watch.impress.co.jp/data/rss/1.0/pcw/feed.rdf",
+            "pc",
+            "rss",
+        ),
+        (
+            "Tom's Hardware",
+            "https://www.tomshardware.com/feeds/all",
+            "pc",
+            "rss",
+        ),
+        (
+            "ITmedia",
+            "https://rss.itmedia.co.jp/rss/2.0/topstory.xml",
+            "pc",
+            "rss",
+        ),
     ];
 
     let mut added = 0;
@@ -141,16 +203,19 @@ pub async fn init_default_feeds(
         ("reddit.com/r/pcgaming", "game"),
         ("reddit.com/r/steam", "game"),
         ("reddit.com/r/hardware", "pc"),
+        ("animecorner.me", "anime"),
+        ("crunchyrollsvc.com", "anime"),
+        ("otakuusamagazine.com", "manga"),
+        ("itmedia.co.jp", "pc"),
     ];
 
     for (domain, correct_category) in &corrections {
-        let updated = sqlx::query(
-            "UPDATE feeds SET category = ?1 WHERE url LIKE ?2 AND category != ?1",
-        )
-        .bind(correct_category)
-        .bind(format!("%{}%", domain))
-        .execute(&*db)
-        .await?;
+        let updated =
+            sqlx::query("UPDATE feeds SET category = ?1 WHERE url LIKE ?2 AND category != ?1")
+                .bind(correct_category)
+                .bind(format!("%{}%", domain))
+                .execute(&*db)
+                .await?;
 
         if updated.rows_affected() > 0 {
             tracing::info!(
@@ -181,7 +246,7 @@ pub async fn generate_digest(
     hours: Option<i64>,
 ) -> Result<DigestResult, AppError> {
     let hours = hours.unwrap_or(24);
-    
+
     let articles: Vec<String> = if category == "all" {
         let query = format!(
             "SELECT title FROM articles 
@@ -198,7 +263,10 @@ pub async fn generate_digest(
              ORDER BY a.published_at DESC LIMIT 20",
             hours
         );
-        sqlx::query_scalar(&query).bind(&category).fetch_all(&*db).await?
+        sqlx::query_scalar(&query)
+            .bind(&category)
+            .fetch_all(&*db)
+            .await?
     };
 
     let summary = if articles.is_empty() {
