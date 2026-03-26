@@ -161,3 +161,12 @@ export interface AiringEntry {
 
 export type ScheduleViewMode = 'day' | 'week' | 'month';
 export type ScheduleTab = 'anime' | 'game';
+
+export interface GameReleaseEntry {
+  id: number;
+  name: string;
+  released: string;
+  platforms: string[];
+  backgroundImage: string | null;
+  slug: string;
+}

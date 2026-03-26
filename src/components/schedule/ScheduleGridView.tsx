@@ -13,9 +13,7 @@ interface Props {
 }
 
 export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) => (
-  <div
-    className={viewMode === 'month' ? 'grid grid-cols-7 gap-1' : 'flex gap-3 min-w-[900px]'}
-  >
+  <div className={viewMode === 'month' ? 'grid grid-cols-7 gap-1' : 'flex gap-3 min-w-[900px]'}>
     {dates.map((date) => {
       const k = dateKey(date);
       const dayEntries = grouped.get(k) ?? [];

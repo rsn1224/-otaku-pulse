@@ -1,6 +1,9 @@
 use crate::error::CmdResult;
-use crate::infra::anilist_client;
+use crate::infra::{anilist_client, rawg_client};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tauri::State;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -128,4 +131,13 @@ pub async fn get_airing_schedule(
     }
 
     Ok(all_entries)
+}
+
+#[tauri::command]
+pub async fn get_game_releases(
+    http: State<'_, Arc<Client>>,
+    start_date: String,
+    end_date: String,
+) -> CmdResult<Vec<rawg_client::GameReleaseEntry>> {
+    rawg_client::fetch_game_releases(&http, &start_date, &end_date).await
 }

@@ -92,6 +92,7 @@ pub fn run() {
             commands::scheduler::set_scheduler_config,
             // Schedule
             commands::schedule::get_airing_schedule,
+            commands::schedule::get_game_releases,
             // Filters
             commands::filters::get_keyword_filters,
             commands::filters::add_keyword_filter,
