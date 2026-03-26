@@ -183,7 +183,7 @@ async fn get_most_viewed(
         "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author,
                 a.published_at, a.is_read, a.is_bookmarked, a.language, a.thumbnail_url, a.ai_summary,
                 f.name AS feed_name, f.category AS category,
-                COALESCE(ai.vc, 0) AS total_score
+                CAST(COALESCE(ai.vc, 0) AS REAL) AS total_score
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN (SELECT article_id, COUNT(*) AS vc FROM article_interactions
              WHERE action = 'open' GROUP BY article_id) ai ON ai.article_id = a.id
