@@ -166,7 +166,9 @@ async fn get_popular(
              WHEN action='deepdive' THEN 2.5 WHEN action='open' THEN 1.0 ELSE 0 END) AS eng
              FROM article_interactions GROUP BY article_id) ai ON ai.article_id = a.id
          WHERE a.is_duplicate = 0
-         ORDER BY total_score DESC, a.published_at DESC LIMIT ?1 OFFSET ?2",
+         ORDER BY (COALESCE(s.total_score, a.importance_score) + COALESCE(ai.eng, 0)) DESC,
+                  a.published_at DESC
+         LIMIT ?1 OFFSET ?2",
     ).bind(limit).bind(offset).fetch_all(db).await?;
     Ok((articles, count_all(db).await?))
 }
@@ -186,7 +188,8 @@ async fn get_most_viewed(
          LEFT JOIN (SELECT article_id, COUNT(*) AS vc FROM article_interactions
              WHERE action = 'open' GROUP BY article_id) ai ON ai.article_id = a.id
          WHERE a.is_duplicate = 0
-         ORDER BY total_score DESC, a.published_at DESC LIMIT ?1 OFFSET ?2",
+         ORDER BY COALESCE(ai.vc, 0) DESC, a.published_at DESC
+         LIMIT ?1 OFFSET ?2",
     ).bind(limit).bind(offset).fetch_all(db).await?;
     Ok((articles, count_all(db).await?))
 }
