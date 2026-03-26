@@ -3,7 +3,6 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 const RAWG_API_URL: &str = "https://api.rawg.io/api/games";
-const RAWG_API_KEY: &str = "dc83232e41084700ab12d805cfbc6aed";
 
 #[derive(Debug, Deserialize)]
 struct RawgResponse {
@@ -44,12 +43,13 @@ pub struct GameReleaseEntry {
 /// RAWG API からゲーム発売日を取得
 pub async fn fetch_game_releases(
     client: &Arc<reqwest::Client>,
+    api_key: &str,
     start_date: &str,
     end_date: &str,
 ) -> Result<Vec<GameReleaseEntry>, AppError> {
     let url = format!(
         "{}?key={}&dates={},{}&ordering=released&page_size=40",
-        RAWG_API_URL, RAWG_API_KEY, start_date, end_date
+        RAWG_API_URL, api_key, start_date, end_date
     );
 
     let response = client

@@ -139,5 +139,7 @@ pub async fn get_game_releases(
     start_date: String,
     end_date: String,
 ) -> CmdResult<Vec<rawg_client::GameReleaseEntry>> {
-    rawg_client::fetch_game_releases(&http, &start_date, &end_date).await
+    let api_key = std::env::var("RAWG_API_KEY")
+        .unwrap_or_else(|_| "dc83232e41084700ab12d805cfbc6aed".to_string());
+    rawg_client::fetch_game_releases(&http, &api_key, &start_date, &end_date).await
 }

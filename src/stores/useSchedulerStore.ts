@@ -75,7 +75,6 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
 
   startListening: async () => {
     const unlistenCollect = await listen<CollectResult>('collect-completed', async (event) => {
-      console.log('Collect completed:', event.payload);
       set({
         lastCollectedAt: new Date().toISOString(),
         lastCollectResult: event.payload,
@@ -92,9 +91,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
       set({ collectError: event.payload });
     });
 
-    const unlistenDigest = await listen<DigestReadyPayload>('digest-ready', async (event) => {
-      console.log('Digest ready:', event.payload);
-
+    const unlistenDigest = await listen<DigestReadyPayload>('digest-ready', async (_event) => {
       // ダイジェスト完了（ストア更新は DigestWing 側の useEffect で自動再取得）
     });
 
