@@ -1,6 +1,7 @@
 // services/ — Business logic layer.
 // Orchestration, summarization, scoring, dedup.
 
+pub mod article_queries;
 pub mod collector;
 pub mod dedup_service;
 pub mod deepdive_service;
