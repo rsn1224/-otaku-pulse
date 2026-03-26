@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use tauri::State;
 use sqlx::{SqlitePool, Row};
 use std::sync::Arc;

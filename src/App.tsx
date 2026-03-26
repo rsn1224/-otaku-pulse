@@ -64,6 +64,37 @@ function AppContent(): React.JSX.Element {
     };
   }, [showToast]);
 
+  // マイルストーン祝福
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+
+    const setup = async (): Promise<void> => {
+      const { listen } = await import('@tauri-apps/api/event');
+      const { invoke } = await import('@tauri-apps/api/core');
+
+      unlistenFn = await listen('collect-completed', async () => {
+        try {
+          const p = await invoke<{ totalRead: number }>('get_user_profile');
+          const milestones: Record<number, string> = {
+            10: '10 記事読了！ いい調子です',
+            50: '50 記事！ あなたの好みを学習しました',
+            100: '100 記事達成！ エキスパートですね',
+            500: '500 記事！ 真のオタクです',
+          };
+          const msg = milestones[p.totalRead];
+          if (msg) showToast('success', msg, 5000);
+        } catch (_) {
+          /* silent */
+        }
+      });
+    };
+
+    setup();
+    return () => {
+      unlistenFn?.();
+    };
+  }, [showToast]);
+
   return <AppShell />;
 }
 

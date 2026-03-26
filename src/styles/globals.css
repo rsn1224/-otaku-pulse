@@ -1,11 +1,9 @@
 @import "tailwindcss";
+@import "./discover.css";
 
-html, body, #root {
+html,
+body,
+#root {
   min-height: 100vh;
-  background-color: #030712; /* gray-950 */
+  background-color: #0f1117;
 }
-
-.dark html, .dark body, .dark #root {
-  background-color: #030712;
-}
-

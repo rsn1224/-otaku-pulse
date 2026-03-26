@@ -1,0 +1,139 @@
+import { invoke } from '@tauri-apps/api/core';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { useProfileStore } from '../../stores/useProfileStore';
+
+interface Suggestion {
+  suggestedTitles: string[];
+  suggestedGenres: string[];
+  suggestedCreators: string[];
+  reason: string;
+}
+
+interface PreferenceSuggestionProps {
+  onClose: () => void;
+}
+
+export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onClose }) => {
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { profile, updateProfile } = useProfileStore();
+
+  useEffect(() => {
+    invoke<Suggestion>('suggest_preferences')
+      .then(setSuggestion)
+      .catch(() => onClose())
+      .finally(() => setLoading(false));
+  }, [onClose]);
+
+  const handleAccept = async (): Promise<void> => {
+    if (!suggestion || !profile) return;
+    setSaving(true);
+
+    const merged = {
+      ...profile,
+      favoriteTitles: [...new Set([...profile.favoriteTitles, ...suggestion.suggestedTitles])],
+      favoriteGenres: [...new Set([...profile.favoriteGenres, ...suggestion.suggestedGenres])],
+      favoriteCreators: [
+        ...new Set([...profile.favoriteCreators, ...suggestion.suggestedCreators]),
+      ],
+    };
+
+    await updateProfile(merged);
+    try {
+      await invoke('rescore_articles');
+    } catch (_) {
+      /* silent */
+    }
+    setSaving(false);
+    onClose();
+  };
+
+  if (loading) return null;
+  if (
+    !suggestion ||
+    (suggestion.suggestedTitles.length === 0 && suggestion.suggestedGenres.length === 0)
+  ) {
+    onClose();
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="fixed inset-0"
+        style={{ background: 'rgba(0, 0, 0, 0.6)' }}
+        role="presentation"
+        onClick={onClose}
+        onKeyDown={() => {}}
+      />
+
+      <div
+        className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          animation: 'fadeSlideIn 0.3s ease-out',
+        }}
+      >
+        <div className="px-6 pt-5 pb-3">
+          <div className="ai-summary-label mb-2">
+            <svg aria-hidden="true" className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            AI Suggestion
+          </div>
+          <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+            好みが更新されたかもしれません
+          </h2>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {suggestion.reason}
+          </p>
+        </div>
+
+        <div className="px-6 pb-4 space-y-3">
+          {suggestion.suggestedTitles.length > 0 && (
+            <SuggestionGroup label="作品" items={suggestion.suggestedTitles} />
+          )}
+          {suggestion.suggestedGenres.length > 0 && (
+            <SuggestionGroup label="ジャンル" items={suggestion.suggestedGenres} />
+          )}
+          {suggestion.suggestedCreators.length > 0 && (
+            <SuggestionGroup label="クリエイター" items={suggestion.suggestedCreators} />
+          )}
+        </div>
+
+        <div className="px-6 pb-5 flex items-center justify-between">
+          <button type="button" onClick={onClose} className="card-action-btn secondary">
+            スキップ
+          </button>
+          <button
+            type="button"
+            onClick={handleAccept}
+            disabled={saving}
+            className="card-action-btn primary"
+            style={{ opacity: saving ? 0.5 : 1 }}
+          >
+            {saving ? '更新中...' : 'プロフィールに追加'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SuggestionGroup: React.FC<{ label: string; items: string[] }> = ({ label, items }) => (
+  <div>
+    <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
+      {label}
+    </span>
+    <div className="flex flex-wrap gap-1.5 mt-1">
+      {items.map((item) => (
+        <span key={item} className="source-badge cat-badge">
+          {item}
+        </span>
+      ))}
+    </div>
+  </div>
+);

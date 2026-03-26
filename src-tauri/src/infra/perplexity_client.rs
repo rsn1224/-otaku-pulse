@@ -2,18 +2,20 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use crate::error::AppError;
-use crate::infra::llm_client::{LlmClient, LlmRequest, LlmResponse, LlmProvider};
+use crate::infra::llm_client::{Citation, LlmClient, LlmRequest, LlmResponse, LlmProvider};
 
 #[derive(Serialize)]
 struct PerplexityRequest {
     model: String,
-    messages: Vec<ChatMessage>,
+    messages: Vec<ApiMessage>,
     max_tokens: u32,
     temperature: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    search_recency_filter: Option<String>,
 }
 
 #[derive(Serialize)]
-struct ChatMessage {
+struct ApiMessage {
     role: String,
     content: String,
 }
@@ -22,6 +24,8 @@ struct ChatMessage {
 struct PerplexityResponse {
     choices: Vec<Choice>,
     model: String,
+    #[serde(default)]
+    citations: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -48,20 +52,38 @@ impl PerplexitySonarClient {
 #[async_trait]
 impl LlmClient for PerplexitySonarClient {
     async fn complete(&self, req: LlmRequest) -> Result<LlmResponse, AppError> {
+        // メッセージ構築: 会話履歴があればそれを使う
+        let mut messages = vec![
+            ApiMessage {
+                role: "system".to_string(),
+                content: req.system_prompt,
+            },
+        ];
+
+        if let Some(conversation) = &req.conversation {
+            for msg in conversation {
+                messages.push(ApiMessage {
+                    role: msg.role.clone(),
+                    content: msg.content.clone(),
+                });
+            }
+        }
+
+        messages.push(ApiMessage {
+            role: "user".to_string(),
+            content: req.user_prompt,
+        });
+
         let request_body = PerplexityRequest {
             model: "sonar".to_string(),
-            messages: vec![
-                ChatMessage {
-                    role: "system".to_string(),
-                    content: req.system_prompt,
-                },
-                ChatMessage {
-                    role: "user".to_string(),
-                    content: req.user_prompt,
-                },
-            ],
+            messages,
             max_tokens: req.max_tokens,
             temperature: 0.2,
+            search_recency_filter: if req.web_search {
+                Some("week".to_string())
+            } else {
+                None
+            },
         };
 
         let response = self.http
@@ -80,9 +102,7 @@ impl LlmClient for PerplexitySonarClient {
             429 => {
                 return Err(AppError::RateLimit("レート制限中です。しばらく待ってください".to_string()));
             }
-            200..=299 => {
-                // 成功
-            }
+            200..=299 => {}
             _ => {
                 return Err(AppError::Network(format!("HTTP {}: {}", status, response.text().await?)));
             }
@@ -97,10 +117,18 @@ impl LlmClient for PerplexitySonarClient {
 
         let content = perplexity_response.choices[0].message.content.clone();
 
+        // citations を構造化
+        let citations: Vec<Citation> = perplexity_response
+            .citations
+            .into_iter()
+            .map(|url| Citation { url, title: None })
+            .collect();
+
         Ok(LlmResponse {
             content,
             provider: LlmProvider::PerplexitySonar,
             model: perplexity_response.model,
+            citations,
         })
     }
 

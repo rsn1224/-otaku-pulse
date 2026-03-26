@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use tauri::State;
 use serde::Serialize;
 use sqlx::SqlitePool;
@@ -73,12 +74,19 @@ pub async fn init_default_feeds(
     db: State<'_, SqlitePool>,
 ) -> CmdResult<u32> {
     let feeds = vec![
-        // アニメ・漫画系 RSS
+        // アニメ
         ("AnimeNewsNetwork JP", "https://www.animenewsnetwork.com/all/rss.xml?ann-edition=jp", "anime", "rss"),
-        ("電撃オンライン", "https://dengekionline.com/rss/", "anime", "rss"),
-        ("Famitsu", "https://www.famitsu.com/feed/", "game", "rss"),
-        ("4Gamer", "https://www.4gamer.net/rss/index.xml", "game", "rss"),
+        ("アニメ!アニメ!", "https://animeanime.jp/rss/index.rdf", "anime", "rss"),
         ("MyAnimeList News", "https://myanimelist.net/rss/news.xml", "anime", "rss"),
+        // 漫画
+        ("コミックナタリー", "https://natalie.mu/comic/feed/news", "manga", "rss"),
+        // ゲーム
+        ("4Gamer", "https://www.4gamer.net/rss/index.xml", "game", "rss"),
+        ("Gematsu", "https://www.gematsu.com/feed", "game", "rss"),
+        ("PC Gamer", "https://www.pcgamer.com/rss/", "game", "rss"),
+        // PC ハードウェア
+        ("PC Watch", "https://pc.watch.impress.co.jp/data/rss/1.0/pcw/feed.rdf", "pc", "rss"),
+        ("Tom's Hardware", "https://www.tomshardware.com/feeds/all", "pc", "rss"),
     ];
 
     let mut added = 0;
@@ -108,6 +116,52 @@ pub async fn init_default_feeds(
     }
 
     tracing::info!("Initialized {} default feeds", added);
+
+    // カテゴリ不整合の自動修正（URL ドメインからカテゴリを推定）
+    let corrections: Vec<(&str, &str)> = vec![
+        // PC/テック系
+        ("gigazine.net", "pc"),
+        ("pc.watch.impress.co.jp", "pc"),
+        ("tomshardware.com", "pc"),
+        ("gamersnexus.net", "pc"),
+        ("igorslab.de", "pc"),
+        ("pcgamer.com", "game"),
+        // アニメ
+        ("animenewsnetwork.com", "anime"),
+        ("animeanime.jp", "anime"),
+        ("myanimelist.net", "anime"),
+        // 漫画
+        ("natalie.mu/comic", "manga"),
+        // ゲーム
+        ("4gamer.net", "game"),
+        ("gematsu.com", "game"),
+        // Reddit — URL で判別
+        ("reddit.com/r/anime", "anime"),
+        ("reddit.com/r/manga", "manga"),
+        ("reddit.com/r/pcgaming", "game"),
+        ("reddit.com/r/steam", "game"),
+        ("reddit.com/r/hardware", "pc"),
+    ];
+
+    for (domain, correct_category) in &corrections {
+        let updated = sqlx::query(
+            "UPDATE feeds SET category = ?1 WHERE url LIKE ?2 AND category != ?1",
+        )
+        .bind(correct_category)
+        .bind(format!("%{}%", domain))
+        .execute(&*db)
+        .await?;
+
+        if updated.rows_affected() > 0 {
+            tracing::info!(
+                "Fixed category for feeds matching '{}' → '{}'  ({} updated)",
+                domain,
+                correct_category,
+                updated.rows_affected()
+            );
+        }
+    }
+
     Ok(added)
 }
 

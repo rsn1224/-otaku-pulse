@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::infra::llm_client::{LlmClient, LlmRequest};
@@ -34,11 +35,11 @@ pub async fn generate(
     let system_prompt = build_system_prompt(category);
     let user_prompt = build_user_prompt(&articles);
     
-    let request = LlmRequest {
+    let request = LlmRequest::simple(
         system_prompt,
         user_prompt,
-        max_tokens: 1000,
-    };
+        1000,
+    );
     
     match client.complete(request).await {
         Ok(response) => {

@@ -93,6 +93,7 @@ impl LlmClient for OllamaClient {
             content: ollama_response.response,
             provider: LlmProvider::Ollama,
             model: ollama_response.model,
+            citations: vec![],
         })
     }
 

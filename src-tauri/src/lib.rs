@@ -65,48 +65,53 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Collection
             commands::collect::run_collect_now,
             commands::collect::init_default_feeds,
-            commands::collect::generate_digest,
-            commands::articles::get_articles,
+            // Articles
             commands::articles::mark_read,
-            commands::articles::mark_all_read,
-            commands::feed::refresh_feeds,
+            // Feeds
             commands::feed::refresh_feed,
             commands::feed::get_feeds,
-            commands::feed::get_articles_legacy,
             commands::feed::reenable_feed,
-            commands::feed::mark_as_read,
-            commands::feed::mark_all_as_read,
             commands::feed::toggle_bookmark,
-            commands::feed::search_articles,
             commands::feed::export_opml,
             commands::feed::import_opml,
             commands::feed::get_article_detail,
-            commands::feed::add_feed,
-            commands::feed::update_feed,
             commands::feed::delete_feed,
-            commands::feed::get_unread_count,
             commands::feed::cleanup_old_articles,
-            commands::feed::get_bookmarked_articles,
-            commands::digest::get_digests,
-            commands::digest::get_latest_digest,
-            commands::digest::delete_digest,
-            commands::settings::get_settings,
-            commands::settings::update_setting,
+            // LLM
             commands::llm::get_llm_settings,
             commands::llm::set_llm_provider,
             commands::llm::set_perplexity_api_key,
             commands::llm::set_ollama_settings,
             commands::llm::check_ollama_status,
-            commands::llm::generate_llm_digest,
+            // Scheduler
             commands::scheduler::get_scheduler_config,
             commands::scheduler::set_scheduler_config,
-            commands::scheduler::run_digest_now,
+            // Filters
             commands::filters::get_keyword_filters,
             commands::filters::add_keyword_filter,
             commands::filters::remove_keyword_filter,
-            commands::schedule::get_anime_schedule,
+            // Discover
+            commands::discover::get_user_profile,
+            commands::discover::update_user_profile,
+            commands::discover::reset_learning_data,
+            commands::discover::get_discover_feed,
+            commands::discover::get_library_articles,
+            commands::discover::record_interaction,
+            commands::discover::rescore_articles,
+            commands::discover::get_or_generate_summary,
+            commands::discover::get_deepdive_questions,
+            commands::discover::ask_deepdive,
+            commands::discover::get_daily_highlights,
+            commands::discover::batch_generate_summaries,
+            commands::discover::get_unread_counts,
+            commands::discover::mark_all_read_category,
+            commands::discover::get_related_articles,
+            commands::discover::adjust_feed_preference,
+            commands::discover::ai_search,
+            commands::discover::suggest_preferences,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run OtakuPulse");

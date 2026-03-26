@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use crate::error::AppError;

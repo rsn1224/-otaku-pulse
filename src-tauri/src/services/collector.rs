@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use async_trait::async_trait;
 use sqlx::SqlitePool;
 use std::sync::Arc;

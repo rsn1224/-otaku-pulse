@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use sqlx::{Row, SqlitePool};
 use crate::error::AppError;
 use crate::models::{Feed, FeedDto, Article, ArticleDto, ArticleDetailDto};

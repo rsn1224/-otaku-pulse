@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use tauri::{State, AppHandle};
 use serde::{Deserialize, Serialize};
 use crate::state::AppState;

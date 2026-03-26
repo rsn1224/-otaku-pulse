@@ -135,3 +135,78 @@ pub struct DigestDto {
     pub model_used: Option<String>,
     pub generated_at: String,
 }
+
+// ---------------------------------------------------------------------------
+// v2 Discover types
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
+pub struct UserProfile {
+    pub id: i64,
+    pub display_name: String,
+    pub favorite_titles: String,
+    pub favorite_genres: String,
+    pub favorite_creators: String,
+    pub total_read: i64,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserProfileDto {
+    pub display_name: String,
+    pub favorite_titles: Vec<String>,
+    pub favorite_genres: Vec<String>,
+    pub favorite_creators: Vec<String>,
+    pub total_read: i64,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
+pub struct ArticleInteraction {
+    pub id: i64,
+    pub article_id: i64,
+    pub action: String,
+    pub dwell_seconds: i64,
+    pub created_at: String,
+}
+
+/// Discover フィード用の拡張 ArticleDto（AI サマリー + スコア付き）
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverArticleDto {
+    pub id: i64,
+    pub feed_id: i64,
+    pub title: String,
+    pub url: Option<String>,
+    pub summary: Option<String>,
+    pub author: Option<String>,
+    pub published_at: Option<String>,
+    pub is_read: bool,
+    pub is_bookmarked: bool,
+    pub language: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub feed_name: Option<String>,
+    pub ai_summary: Option<String>,
+    pub total_score: Option<f64>,
+    pub category: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverFeedResult {
+    pub articles: Vec<DiscoverArticleDto>,
+    pub total: i64,
+    pub has_more: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeepDiveResult {
+    pub question: String,
+    pub answer: String,
+    pub follow_up_questions: Vec<String>,
+    pub provider: String,
+    pub citations: Vec<crate::infra::llm_client::Citation>,
+}

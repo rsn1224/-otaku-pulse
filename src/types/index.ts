@@ -1,9 +1,4 @@
 // ---------------------------------------------------------------------------
-// Wing IDs
-// ---------------------------------------------------------------------------
-export type WingId = 'dashboard' | 'feed' | 'digest' | 'saved' | 'schedule' | 'settings';
-
-// ---------------------------------------------------------------------------
 // Category
 // ---------------------------------------------------------------------------
 export type Category = 'anime' | 'manga' | 'game' | 'pc' | 'all';
@@ -76,4 +71,67 @@ export interface DigestDto {
 export interface AppError {
   kind: string;
   message: string;
+}
+
+// ---------------------------------------------------------------------------
+// v2 Discover types
+// ---------------------------------------------------------------------------
+export type DiscoverTab = 'for_you' | 'trending' | 'anime' | 'game' | 'manga' | 'hardware';
+
+export type WingIdV2 = 'discover' | 'library' | 'profile';
+
+export interface DiscoverArticleDto {
+  id: number;
+  feedId: number;
+  title: string;
+  url: string | null;
+  summary: string | null;
+  author: string | null;
+  publishedAt: string | null;
+  isRead: boolean;
+  isBookmarked: boolean;
+  language: string | null;
+  thumbnailUrl: string | null;
+  feedName: string | null;
+  aiSummary: string | null;
+  totalScore: number | null;
+  category: string | null;
+}
+
+export interface DiscoverFeedResult {
+  articles: DiscoverArticleDto[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface UserProfileDto {
+  displayName: string;
+  favoriteTitles: string[];
+  favoriteGenres: string[];
+  favoriteCreators: string[];
+  totalRead: number;
+}
+
+export interface Citation {
+  url: string;
+  title: string | null;
+}
+
+export interface DeepDiveResult {
+  question: string;
+  answer: string;
+  followUpQuestions: string[];
+  provider: string;
+  citations: Citation[];
+}
+
+export interface AiSearchResult {
+  localArticles: ArticleDto[];
+  aiAnswer: string | null;
+  citations: Citation[];
+}
+
+export interface HighlightEntry {
+  article: DiscoverArticleDto;
+  reason: string;
 }
