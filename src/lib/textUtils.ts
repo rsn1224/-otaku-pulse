@@ -51,6 +51,18 @@ const ALLOWED_TAGS = new Set([
 
 const ALLOWED_ATTRS = new Set(['href', 'src', 'alt', 'title', 'class', 'width', 'height']);
 
+/** URL 属性 (href/src) に許可するプロトコルのみ通す */
+const URL_ATTRS = new Set(['href', 'src']);
+const isSafeUrl = (value: string): boolean => {
+  const t = value.trim().toLowerCase();
+  return (
+    t.startsWith('https://') ||
+    t.startsWith('http://') ||
+    t.startsWith('/') ||
+    t.startsWith('#')
+  );
+};
+
 /** HTML を許可タグ・属性のみに制限するシンプルなサニタイザ */
 export const sanitizeHtml = (html: string): string =>
   html
@@ -61,18 +73,16 @@ export const sanitizeHtml = (html: string): string =>
     .replace(/<\/?([a-z][a-z0-9]*)\b[^>]*\/?>/gi, (match, tag: string) => {
       const lower = tag.toLowerCase();
       if (!ALLOWED_TAGS.has(lower)) return '';
-      // 自己閉じタグ or 閉じタグ
       if (match.startsWith('</')) return `</${lower}>`;
-      // 属性をフィルタ
       const attrs: string[] = [];
       const attrRe = /([a-z][a-z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
       let m: RegExpExecArray | null;
       while ((m = attrRe.exec(match)) !== null) {
         const name = m[1].toLowerCase();
         const value = m[2] ?? m[3];
-        if (ALLOWED_ATTRS.has(name) && !value.startsWith('javascript')) {
-          attrs.push(`${name}="${value}"`);
-        }
+        if (!ALLOWED_ATTRS.has(name)) continue;
+        if (URL_ATTRS.has(name) && !isSafeUrl(value)) continue;
+        attrs.push(`${name}="${value}"`);
       }
       const attrStr = attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
       const selfClose = match.endsWith('/>') ? ' /' : '';
