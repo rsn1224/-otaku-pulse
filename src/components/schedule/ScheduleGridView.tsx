@@ -14,7 +14,7 @@ interface Props {
 
 export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) => (
   <div
-    className={viewMode === 'month' ? 'grid grid-cols-7 gap-1' : 'flex gap-3 min-w-[900px] h-full'}
+    className={viewMode === 'month' ? 'grid grid-cols-7 gap-1' : 'flex gap-3 min-w-[900px]'}
   >
     {dates.map((date) => {
       const k = dateKey(date);
@@ -26,7 +26,9 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
         <div
           key={k}
           className={
-            viewMode === 'month' ? 'min-h-[80px] p-1 rounded' : 'flex-1 min-w-[130px] flex flex-col'
+            viewMode === 'month'
+              ? 'min-h-[80px] p-1 rounded overflow-hidden'
+              : 'flex-1 min-w-[130px] flex flex-col'
           }
           style={
             viewMode === 'month'
