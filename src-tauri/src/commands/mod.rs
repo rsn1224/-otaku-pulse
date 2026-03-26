@@ -3,6 +3,7 @@
 
 pub mod articles;
 pub mod collect;
+mod default_feeds;
 #[allow(dead_code)]
 pub mod digest;
 pub mod discover;
