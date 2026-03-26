@@ -12,42 +12,37 @@ export const AiringCard: React.FC<{ entry: AiringEntry }> = ({ entry }) => {
     if (entry.siteUrl) openUrl(entry.siteUrl).catch(() => {});
   };
 
-  const episodeLabel = entry.totalEpisodes
-    ? `#${entry.episode} / ${entry.totalEpisodes}`
-    : `#${entry.episode}`;
+  const title = entry.titleNative ?? entry.titleRomaji;
+  const ep = entry.totalEpisodes ? `#${entry.episode}/${entry.totalEpisodes}` : `#${entry.episode}`;
 
   return (
     <button
       type="button"
       onClick={handleOpen}
-      className="flex items-center gap-3 p-2 rounded-lg w-full text-left hover:opacity-80 transition-opacity"
+      className="flex items-start gap-2 p-1.5 rounded-lg w-full text-left hover:opacity-80 transition-opacity"
       style={{ background: 'var(--bg-card)' }}
     >
       {entry.coverImageUrl ? (
-        <img
-          src={entry.coverImageUrl}
-          alt=""
-          className="w-10 h-14 rounded object-cover flex-shrink-0"
-        />
+        <img src={entry.coverImageUrl} alt="" className="w-9 h-12 rounded object-cover flex-shrink-0" />
       ) : (
         <div
-          className="w-10 h-14 rounded flex-shrink-0 flex items-center justify-center text-lg"
+          className="w-9 h-12 rounded flex-shrink-0 flex items-center justify-center text-sm"
           style={{ background: 'var(--bg-primary)' }}
         >
           {'📺'}
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-          {entry.titleNative ?? entry.titleRomaji}
+      <div className="flex-1 min-w-0 py-0.5">
+        <p className="text-[11px] font-semibold leading-tight line-clamp-2" style={{ color: 'var(--text-primary)' }}>
+          {title}
         </p>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-          {episodeLabel}
-        </p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{ep}</span>
+          <span className="text-[10px] font-mono" style={{ color: 'var(--accent)' }}>
+            {formatTime(entry.airingAt)}
+          </span>
+        </div>
       </div>
-      <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--accent)' }}>
-        {formatTime(entry.airingAt)}
-      </span>
     </button>
   );
 };
