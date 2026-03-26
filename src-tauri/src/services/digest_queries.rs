@@ -83,59 +83,25 @@ pub async fn unsummarized_articles(
     category: &str,
     limit: i64,
 ) -> Result<Vec<Article>, AppError> {
-    // 24時間前のタイムスタンプを計算
-    let now = chrono::Utc::now();
-    let twenty_four_hours_ago = (now - chrono::Duration::hours(24)).to_rfc3339();
+    let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
 
-    let rows = sqlx::query(
+    let rows = sqlx::query_as::<_, Article>(
         "SELECT a.id, a.feed_id, a.external_id, a.title, a.url, a.url_normalized,
-                           a.content, a.summary, a.author, a.published_at, a.importance_score,
-                           a.is_read, a.is_bookmarked, a.is_duplicate, a.duplicate_of,
-                           a.language, a.thumbnail_url, a.content_hash, a.metadata, a.created_at
-                           FROM articles a
-                           JOIN feeds f ON a.feed_id = f.id
-                           WHERE a.is_duplicate = 0 
-                           AND a.content IS NOT NULL
-                           AND f.category = ?
-                           AND a.created_at > ?
-                           ORDER BY a.published_at DESC
-                           LIMIT ?",
+                a.content, a.summary, a.author, a.published_at, a.importance_score,
+                a.is_read, a.is_bookmarked, a.is_duplicate, a.duplicate_of,
+                a.language, a.thumbnail_url, a.content_hash, a.metadata, a.created_at
+         FROM articles a JOIN feeds f ON a.feed_id = f.id
+         WHERE a.is_duplicate = 0 AND a.content IS NOT NULL
+           AND f.category = ? AND a.created_at > ?
+         ORDER BY a.published_at DESC LIMIT ?",
     )
     .bind(category)
-    .bind(&twenty_four_hours_ago)
+    .bind(&cutoff)
     .bind(limit)
     .fetch_all(db)
-    .await
-    .map_err(AppError::Database)?;
+    .await?;
 
-    let mut articles = Vec::new();
-    for row in rows {
-        let article = Article {
-            id: row.get("id"),
-            feed_id: row.get("feed_id"),
-            external_id: row.get("external_id"),
-            title: row.get("title"),
-            url: row.get("url"),
-            url_normalized: row.get("url_normalized"),
-            content: row.get("content"),
-            summary: row.get("summary"),
-            author: row.get("author"),
-            published_at: row.get("published_at"),
-            importance_score: row.get("importance_score"),
-            is_read: row.get("is_read"),
-            is_bookmarked: row.get("is_bookmarked"),
-            is_duplicate: row.get("is_duplicate"),
-            duplicate_of: row.get("duplicate_of"),
-            language: row.get("language"),
-            thumbnail_url: row.get("thumbnail_url"),
-            content_hash: row.get("content_hash"),
-            metadata: row.get("metadata"),
-            created_at: row.get("created_at"),
-        };
-        articles.push(article);
-    }
-
-    Ok(articles)
+    Ok(rows)
 }
 
 /// ダイジェストを削除する
@@ -191,81 +157,7 @@ pub async fn get_latest_digest(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::SqlitePool;
-
-    async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect(":memory:").await.unwrap();
-
-        // テーブルを作成
-        sqlx::query(
-            "CREATE TABLE feeds (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            url TEXT NOT NULL,
-            feed_type TEXT NOT NULL,
-            category TEXT NOT NULL,
-            enabled BOOLEAN NOT NULL DEFAULT 1,
-            last_fetched_at TEXT,
-            consecutive_errors INTEGER NOT NULL DEFAULT 0,
-            last_error TEXT,
-            disabled_reason TEXT,
-            etag TEXT,
-            last_modified TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        sqlx::query(
-            "CREATE TABLE articles (
-            id INTEGER PRIMARY KEY,
-            feed_id INTEGER NOT NULL,
-            external_id TEXT,
-            title TEXT NOT NULL,
-            url TEXT,
-            url_normalized TEXT,
-            content TEXT,
-            summary TEXT,
-            author TEXT,
-            published_at TEXT,
-            importance_score REAL NOT NULL DEFAULT 0.0,
-            is_read BOOLEAN NOT NULL DEFAULT 0,
-            is_bookmarked BOOLEAN NOT NULL DEFAULT 0,
-            is_duplicate BOOLEAN NOT NULL DEFAULT 0,
-            duplicate_of INTEGER,
-            language TEXT,
-            thumbnail_url TEXT,
-            content_hash TEXT,
-            metadata TEXT,
-            created_at TEXT NOT NULL
-        )",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        sqlx::query(
-            "CREATE TABLE digests (
-            id INTEGER PRIMARY KEY,
-            category TEXT NOT NULL,
-            title TEXT NOT NULL,
-            content_markdown TEXT NOT NULL,
-            content_html TEXT,
-            article_ids TEXT,
-            model_used TEXT,
-            token_count INTEGER,
-            generated_at TEXT NOT NULL
-        )",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        pool
-    }
+    use crate::services::test_helpers::setup_test_db;
 
     #[tokio::test]
     async fn test_insert_digest() {

@@ -17,3 +17,5 @@ pub mod profile_service;
 pub mod scheduler;
 pub mod scoring_service;
 pub mod summary_service;
+#[cfg(test)]
+pub mod test_helpers;

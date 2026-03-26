@@ -24,99 +24,41 @@ fn calculate_freshness(published_at: &Option<String>) -> f64 {
     }
 }
 
+const ANIME_KEYWORDS: &[&str] = &[
+    "新作", "アニメ化", "放送開始", "決定", "pv", "cm", "予告編", "第弾",
+    "シリーズ", "キャスト", "スタッフ", "制作", "原作", "漫画", "ライトノベル",
+    "ゲーム", "特報", "情報解禁",
+];
+const MANGA_KEYWORDS: &[&str] = &[
+    "連載開始", "新連載", "最終回", "アニメ化", "ドラマ化", "実写化", "単行本",
+    "コミックス", "週刊", "月刊", "web漫画", "配信", "アプリ", "電子書籍", "巻", "話",
+];
+const GAME_KEYWORDS: &[&str] = &[
+    "発売", "dlc", "アップデート", "イベント", "キャンペーン", "セール", "限定",
+    "コラボ", "シーズン", "パス", "beta", "alpha", "クローズド", "オープン",
+    "プレ配信", "demo", "体験版",
+];
+const PC_KEYWORDS: &[&str] = &[
+    "gpu", "cpu", "ram", "ssd", "hdd", "windows", "linux", "mac", "driver",
+    "bios", "uefi", "overclock", "水冷", "空冷", "ケース", "電源", "マザーボード", "メモリ",
+];
+
 /// カテゴリー別キーワードマッチングスコア (0.0-0.3)
 fn keyword_match_score(title: &str, category: &str) -> f64 {
     let keywords = match category {
-        "anime" => vec![
-            "新作",
-            "アニメ化",
-            "放送開始",
-            "決定",
-            "pv",
-            "cm",
-            "予告編",
-            "第弾",
-            "シリーズ",
-            "キャスト",
-            "スタッフ",
-            "制作",
-            "原作",
-            "漫画",
-            "ライトノベル",
-            "ゲーム",
-            "特報",
-            "情報解禁",
-        ],
-        "manga" => vec![
-            "連載開始",
-            "新連載",
-            "最終回",
-            "アニメ化",
-            "ドラマ化",
-            "実写化",
-            "単行本",
-            "コミックス",
-            "週刊",
-            "月刊",
-            "web漫画",
-            "配信",
-            "アプリ",
-            "電子書籍",
-            "巻",
-            "話",
-        ],
-        "game" => vec![
-            "発売",
-            "dlc",
-            "アップデート",
-            "イベント",
-            "キャンペーン",
-            "セール",
-            "限定",
-            "コラボ",
-            "シーズン",
-            "パス",
-            "beta",
-            "alpha",
-            "クローズド",
-            "オープン",
-            "プレ配信",
-            "demo",
-            "体験版",
-        ],
-        "pc" => vec![
-            "gpu",
-            "cpu",
-            "ram",
-            "ssd",
-            "hdd",
-            "windows",
-            "linux",
-            "mac",
-            "driver",
-            "bios",
-            "uefi",
-            "overclock",
-            "水冷",
-            "空冷",
-            "ケース",
-            "電源",
-            "マザーボード",
-            "メモリ",
-        ],
+        "anime" => ANIME_KEYWORDS,
+        "manga" => MANGA_KEYWORDS,
+        "game" => GAME_KEYWORDS,
+        "pc" => PC_KEYWORDS,
         _ => return 0.0,
     };
 
     let title_lower = title.to_lowercase();
-    let mut matches = 0;
+    let matches = keywords
+        .iter()
+        .filter(|kw| title_lower.contains(&kw.to_lowercase()))
+        .count();
 
-    for keyword in keywords {
-        if title_lower.contains(&keyword.to_lowercase()) {
-            matches += 1;
-        }
-    }
-
-    // キーワードマッチ数に応じてスコア (最大0.3)
     (matches as f64 * 0.1).min(0.3)
 }
 

@@ -51,32 +51,26 @@ fn calc_personal_score(
     score
 }
 
-/// バッチでインタラクションボーナスを計算（N+1 解消）
 async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>, AppError> {
     let mut bonuses: HashMap<i64, f64> = HashMap::new();
 
-    // ブックマーク記事: +3.0
     let bookmarked: Vec<(i64,)> =
         sqlx::query_as("SELECT id FROM articles WHERE is_bookmarked = 1 AND is_duplicate = 0")
             .fetch_all(db)
             .await?;
-
     for (id,) in &bookmarked {
         *bonuses.entry(*id).or_insert(0.0) += 3.0;
     }
 
-    // deepdive された記事: +1.0
     let deepdived: Vec<(i64,)> = sqlx::query_as(
         "SELECT DISTINCT article_id FROM article_interactions WHERE action = 'deepdive'",
     )
     .fetch_all(db)
     .await?;
-
     for (id,) in &deepdived {
         *bonuses.entry(*id).or_insert(0.0) += 1.0;
     }
 
-    // フィード別 open 率をバッチ計算
     let feed_rates: Vec<(i64, f64)> = sqlx::query_as(
         "SELECT a.feed_id,
                 CAST(SUM(CASE WHEN ai.action = 'open' THEN 1 ELSE 0 END) AS REAL)
@@ -90,7 +84,6 @@ async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>,
 
     let feed_rate_map: HashMap<i64, f64> = feed_rates.into_iter().collect();
 
-    // フィード率をそのフィードの全記事に適用
     let feed_articles: Vec<(i64, i64)> = sqlx::query_as(
         "SELECT id, feed_id FROM articles WHERE is_duplicate = 0
          ORDER BY published_at DESC LIMIT 2000",
@@ -120,7 +113,6 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
     let fav_genres: Vec<String> = serde_json::from_str(&profile.1).unwrap_or_default();
     let fav_creators: Vec<String> = serde_json::from_str(&profile.2).unwrap_or_default();
 
-    // バッチでインタラクションボーナスを計算（N+1 解消）
     let interaction_bonuses = batch_interaction_bonuses(db).await?;
 
     let rows: Vec<(i64, String, Option<String>, f64)> = sqlx::query_as(
@@ -133,7 +125,6 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
     .fetch_all(db)
     .await?;
 
-    // スコアを計算してバッチで書き込み
     let mut scores: Vec<(i64, f64, f64, f64)> = Vec::with_capacity(rows.len());
 
     for (id, title, published_at, importance) in &rows {
@@ -144,7 +135,6 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
         scores.push((*id, base, personal, total));
     }
 
-    // 100 件ずつトランザクションでバッチ INSERT
     for chunk in scores.chunks(100) {
         let mut tx = db.begin().await?;
         for (id, base, personal, total) in chunk {
