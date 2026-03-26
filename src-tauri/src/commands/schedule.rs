@@ -29,7 +29,14 @@ struct AiringData {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct AiringPageInfo {
+    has_next_page: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AiringPage {
+    page_info: AiringPageInfo,
     airing_schedules: Vec<AiringScheduleNode>,
 }
 
@@ -63,10 +70,11 @@ struct AiringCoverImage {
     medium: Option<String>,
 }
 
-fn parse_airing_response(json: &str) -> Result<Vec<AiringEntry>, String> {
+fn parse_airing_response(json: &str) -> Result<(Vec<AiringEntry>, bool), String> {
     let resp: AiringResponse =
         serde_json::from_str(json).map_err(|e| format!("Failed to parse airing response: {e}"))?;
 
+    let has_next = resp.data.page.page_info.has_next_page;
     let entries = resp
         .data
         .page
@@ -85,7 +93,7 @@ fn parse_airing_response(json: &str) -> Result<Vec<AiringEntry>, String> {
         })
         .collect();
 
-    Ok(entries)
+    Ok((entries, has_next))
 }
 
 #[tauri::command]
@@ -96,16 +104,28 @@ pub async fn get_airing_schedule(
     let start = start_timestamp.unwrap_or_else(|| chrono::Utc::now().timestamp());
     let days = days_ahead.unwrap_or(7);
     let end = start + days * 86400;
-
     let query = include_str!("../../graphql/airing_schedule.graphql");
-    let variables = serde_json::json!({
-        "airingAtGreater": start,
-        "airingAtLesser": end,
-        "page": 1
-    });
 
-    let response = anilist_client::query_anilist(query, &variables).await?;
-    let entries = parse_airing_response(&response).map_err(crate::error::AppError::ParseError)?;
+    let mut all_entries = Vec::new();
+    let mut page = 1_i64;
+    let max_pages = 5;
 
-    Ok(entries)
+    loop {
+        let variables = serde_json::json!({
+            "airingAtGreater": start,
+            "airingAtLesser": end,
+            "page": page
+        });
+        let response = anilist_client::query_anilist(query, &variables).await?;
+        let (entries, has_next) =
+            parse_airing_response(&response).map_err(crate::error::AppError::ParseError)?;
+        all_entries.extend(entries);
+
+        if !has_next || page >= max_pages {
+            break;
+        }
+        page += 1;
+    }
+
+    Ok(all_entries)
 }
