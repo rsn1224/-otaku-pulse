@@ -1,14 +1,12 @@
 #![allow(dead_code)]
+use super::llm::{as_llm_client, build_llm_client, clone_llm_settings};
 use crate::error::CmdResult;
-use crate::infra::llm_client::{LlmClient, LlmProvider};
-use crate::infra::ollama_client::OllamaClient;
-use crate::infra::perplexity_client::PerplexitySonarClient;
 use crate::models::{DeepDiveResult, DiscoverFeedResult, UserProfileDto};
 use crate::services::{
     deepdive_service, discover_queries, fts_queries, highlights_service, personal_scoring,
     profile_service, summary_service,
 };
-use crate::state::{AppState, LlmSettings};
+use crate::state::AppState;
 
 // ---------------------------------------------------------------------------
 // Profile
@@ -87,50 +85,6 @@ pub async fn record_interaction(
 #[tauri::command]
 pub async fn rescore_articles(state: tauri::State<'_, AppState>) -> CmdResult<u64> {
     personal_scoring::rescore_all(&state.db).await
-}
-
-// ---------------------------------------------------------------------------
-// LLM helper
-// ---------------------------------------------------------------------------
-
-fn clone_llm_settings(state: &AppState) -> CmdResult<LlmSettings> {
-    let guard = state
-        .llm
-        .read()
-        .map_err(|e| crate::error::AppError::Internal(format!("LLM settings lock: {e}")))?;
-    Ok(guard.clone())
-}
-
-enum LlmBox {
-    Perplexity(PerplexitySonarClient),
-    Ollama(OllamaClient),
-}
-
-fn build_llm_client(settings: &LlmSettings, http: &reqwest::Client) -> CmdResult<LlmBox> {
-    match settings.provider {
-        LlmProvider::PerplexitySonar => {
-            let api_key = settings.perplexity_api_key.clone().ok_or_else(|| {
-                crate::error::AppError::Llm("Perplexity API キーが未設定です".into())
-            })?;
-            Ok(LlmBox::Perplexity(PerplexitySonarClient::new(
-                api_key,
-                http.clone(),
-            )))
-        }
-        LlmProvider::Ollama => Ok(LlmBox::Ollama(OllamaClient::new(
-            settings.ollama_base_url.clone(),
-            settings.ollama_model.clone(),
-            http.clone(),
-        ))),
-    }
-}
-
-/// LlmBox から &dyn LlmClient を取得するヘルパー
-fn as_llm_client(client: &LlmBox) -> &dyn LlmClient {
-    match client {
-        LlmBox::Perplexity(c) => c,
-        LlmBox::Ollama(c) => c,
-    }
 }
 
 // ---------------------------------------------------------------------------

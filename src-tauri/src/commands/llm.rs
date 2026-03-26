@@ -1,12 +1,55 @@
 #![allow(dead_code)]
-use crate::error::AppError;
+use crate::error::{AppError, CmdResult};
 use crate::infra::llm_client::{LlmClient, LlmProvider};
 use crate::infra::ollama_client::OllamaClient;
 use crate::infra::perplexity_client::PerplexitySonarClient;
 use crate::services::digest_generator;
-use crate::state::AppState;
+use crate::state::{AppState, LlmSettings};
 use std::sync::Arc;
 use tauri::State;
+
+// ---------------------------------------------------------------------------
+// LLM helpers (shared by discover_ai / discover_profile)
+// ---------------------------------------------------------------------------
+
+pub(super) enum LlmBox {
+    Perplexity(PerplexitySonarClient),
+    Ollama(OllamaClient),
+}
+
+pub(super) fn clone_llm_settings(state: &AppState) -> CmdResult<LlmSettings> {
+    let guard = state
+        .llm
+        .read()
+        .map_err(|e| AppError::Internal(format!("LLM settings lock: {e}")))?;
+    Ok(guard.clone())
+}
+
+pub(super) fn build_llm_client(settings: &LlmSettings, http: &reqwest::Client) -> CmdResult<LlmBox> {
+    match settings.provider {
+        LlmProvider::PerplexitySonar => {
+            let api_key = settings.perplexity_api_key.clone().ok_or_else(|| {
+                AppError::Llm("Perplexity API キーが未設定です".into())
+            })?;
+            Ok(LlmBox::Perplexity(PerplexitySonarClient::new(
+                api_key,
+                http.clone(),
+            )))
+        }
+        LlmProvider::Ollama => Ok(LlmBox::Ollama(OllamaClient::new(
+            settings.ollama_base_url.clone(),
+            settings.ollama_model.clone(),
+            http.clone(),
+        ))),
+    }
+}
+
+pub(super) fn as_llm_client(client: &LlmBox) -> &dyn LlmClient {
+    match client {
+        LlmBox::Perplexity(c) => c,
+        LlmBox::Ollama(c) => c,
+    }
+}
 
 #[derive(serde::Serialize)]
 pub struct LlmSettingsResponse {
