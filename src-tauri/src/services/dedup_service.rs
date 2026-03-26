@@ -1,41 +1,28 @@
-use crate::error::AppError;
 use sha2::{Digest, Sha256};
-use sqlx::SqlitePool;
 use std::collections::HashSet;
 use unicode_normalization::UnicodeNormalization;
 
-/// Layer 1: URL 正規化
+/// URL 正規化: http→https, www除去, フラグメント除去, トラッキングパラメータ除去
 pub fn normalize_url(url: &str) -> String {
-    // 1. パース（url クレートまたは手動）
     let mut normalized = url.to_string();
 
-    // 2. http → https
     if normalized.starts_with("http://") {
         normalized = normalized.replacen("http://", "https://", 1);
     }
-
-    // 3. www. 除去
     if normalized.starts_with("https://www.") {
         normalized = normalized.replacen("https://www.", "https://", 1);
     }
-
-    // 4. フラグメント(#)除去
     if let Some(fragment_pos) = normalized.find('#') {
         normalized.truncate(fragment_pos);
     }
-
-    // 5. 末尾スラッシュ除去
     if normalized.ends_with('/') && normalized.len() > 8 {
-        // "https://".len() + 1
         normalized.pop();
     }
 
-    // 6. クエリパラメータ処理
     if let Some(query_pos) = normalized.find('?') {
         let base_url = &normalized[..query_pos];
         let query = &normalized[query_pos + 1..];
 
-        // トラッキングパラメータを除去
         let tracking_params = [
             "utm_source",
             "utm_medium",
@@ -51,18 +38,13 @@ pub fn normalize_url(url: &str) -> String {
             "mc_eid",
         ];
 
-        let mut filtered_params = Vec::new();
-        for param in query.split('&') {
-            if let Some(key) = param.split_once('=') {
-                if !tracking_params.contains(&key.0) {
-                    filtered_params.push(param);
-                }
-            } else {
-                filtered_params.push(param);
-            }
-        }
-
-        // パラメータをソート
+        let mut filtered_params: Vec<&str> = query
+            .split('&')
+            .filter(|p| {
+                p.split_once('=')
+                    .map_or(true, |(k, _)| !tracking_params.contains(&k))
+            })
+            .collect();
         filtered_params.sort();
 
         if !filtered_params.is_empty() {
@@ -72,7 +54,6 @@ pub fn normalize_url(url: &str) -> String {
         }
     }
 
-    // 7. 小文字化（ホスト部分のみ）
     if let Some(scheme_end) = normalized.find("://") {
         let after_scheme = scheme_end + 3;
         if let Some(host_len) = normalized[after_scheme..].find('/') {
@@ -93,32 +74,18 @@ pub fn normalize_url(url: &str) -> String {
     normalized
 }
 
-/// Layer 2 前処理: タイトル正規化
+/// タイトル正規化: NFKC + 記号除去 + 小文字化
 pub fn normalize_title(title: &str) -> String {
-    // 1. NFKC 正規化（全角英数→半角、半角カナ→全角）
     let normalized = title.nfc().collect::<String>();
-
-    // 2. 記号除去: 「」『』【】（）()[]<>・、。,.!? を除去
     let symbols = [
         '「', '」', '『', '』', '【', '】', '（', '）', '(', ')', '[', ']', '<', '>', '・', '、',
         '。', ',', '.', '!', '?', '！', '？', '　',
     ];
-    let mut result = String::new();
-    for c in normalized.chars() {
-        if !symbols.contains(&c) {
-            result.push(c);
-        }
-    }
-
-    // 3. 小文字化
+    let mut result: String = normalized.chars().filter(|c| !symbols.contains(c)).collect();
     result = result.to_lowercase();
-
-    // 4. 連続空白を単一スペースに
     while result.contains("  ") {
         result = result.replace("  ", " ");
     }
-
-    // 5. trim
     result.trim().to_string()
 }
 
@@ -152,34 +119,6 @@ pub fn generate_content_hash(content: &str) -> String {
     let normalized = normalized.trim();
     format!("{:x}", Sha256::digest(normalized.as_bytes()))
 }
-
-/// 重複チェック：URLとコンテンツハッシュで検索
-#[allow(dead_code)]
-pub async fn is_duplicate(
-    db: &SqlitePool,
-    url: &str,
-    content_hash: &str,
-) -> Result<bool, AppError> {
-    // 1. URLで検索
-    let url_exists = sqlx::query("SELECT id FROM articles WHERE url = ? LIMIT 1")
-        .bind(url)
-        .fetch_optional(db)
-        .await?;
-
-    if url_exists.is_some() {
-        return Ok(true);
-    }
-
-    // 2. content_hashで検索
-    let hash_exists = sqlx::query("SELECT id FROM articles WHERE content_hash = ? LIMIT 1")
-        .bind(content_hash)
-        .fetch_optional(db)
-        .await?;
-
-    Ok(hash_exists.is_some())
-}
-
-// UPSERT SQL は Round 4 の feed_queries.rs で実装
 
 #[cfg(test)]
 mod tests {

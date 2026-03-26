@@ -3,58 +3,41 @@ use crate::error::AppError;
 use crate::models::{Article, Digest, DigestDto};
 use sqlx::{Row, SqlitePool};
 
-/// ダイジェスト一覧を取得する
+fn row_to_digest_dto(row: sqlx::sqlite::SqliteRow) -> DigestDto {
+    let article_ids: String = row.get("article_ids");
+    let article_count = if article_ids.is_empty() { 0 } else { article_ids.split(',').count() };
+    DigestDto {
+        id: row.get("id"),
+        category: row.get("category"),
+        title: row.get("title"),
+        content_markdown: row.get("content_markdown"),
+        content_html: row.get("content_html"),
+        article_count,
+        model_used: row.get("model_used"),
+        generated_at: row.get("generated_at"),
+    }
+}
+
 pub async fn list_digests(
     db: &SqlitePool,
     category: Option<&str>,
 ) -> Result<Vec<DigestDto>, AppError> {
-    let digests = if let Some(cat) = category {
+    let rows = if let Some(cat) = category {
         sqlx::query(
-            "SELECT id, category, title, content_markdown, content_html, 
-                    article_ids, model_used, token_count, generated_at 
-                    FROM digests WHERE category = ? ORDER BY generated_at DESC",
+            "SELECT * FROM digests WHERE category = ? ORDER BY generated_at DESC",
         )
         .bind(cat)
         .fetch_all(db)
-        .await
-        .map_err(AppError::Database)?
+        .await?
     } else {
-        sqlx::query(
-            "SELECT id, category, title, content_markdown, content_html, 
-                    article_ids, model_used, token_count, generated_at 
-                    FROM digests ORDER BY generated_at DESC",
-        )
-        .fetch_all(db)
-        .await
-        .map_err(AppError::Database)?
+        sqlx::query("SELECT * FROM digests ORDER BY generated_at DESC")
+            .fetch_all(db)
+            .await?
     };
 
-    let mut digest_dtos = Vec::new();
-    for row in digests {
-        let article_ids: String = row.get("article_ids");
-        let article_count = if article_ids.is_empty() {
-            0
-        } else {
-            article_ids.split(',').count()
-        };
-
-        let digest = DigestDto {
-            id: row.get("id"),
-            category: row.get("category"),
-            title: row.get("title"),
-            content_markdown: row.get("content_markdown"),
-            content_html: row.get("content_html"),
-            article_count,
-            model_used: row.get("model_used"),
-            generated_at: row.get("generated_at"),
-        };
-        digest_dtos.push(digest);
-    }
-
-    Ok(digest_dtos)
+    Ok(rows.into_iter().map(row_to_digest_dto).collect())
 }
 
-/// ダイジェストを挿入する
 #[allow(dead_code)]
 pub async fn insert_digest(db: &SqlitePool, digest: &Digest) -> Result<i64, AppError> {
     let result = sqlx::query(
@@ -77,7 +60,6 @@ pub async fn insert_digest(db: &SqlitePool, digest: &Digest) -> Result<i64, AppE
     Ok(result.last_insert_rowid())
 }
 
-/// 未要約の記事を取得する
 pub async fn unsummarized_articles(
     db: &SqlitePool,
     category: &str,
@@ -104,7 +86,6 @@ pub async fn unsummarized_articles(
     Ok(rows)
 }
 
-/// ダイジェストを削除する
 pub async fn delete_digest(db: &SqlitePool, digest_id: i64) -> Result<(), AppError> {
     sqlx::query("DELETE FROM digests WHERE id = ?")
         .bind(digest_id)
@@ -115,43 +96,18 @@ pub async fn delete_digest(db: &SqlitePool, digest_id: i64) -> Result<(), AppErr
     Ok(())
 }
 
-/// 指定カテゴリーの最新ダイジェストを取得する
 pub async fn get_latest_digest(
     db: &SqlitePool,
     category: &str,
 ) -> Result<Option<DigestDto>, AppError> {
     let row = sqlx::query(
-        "SELECT id, category, title, content_markdown, content_html, 
-                          article_ids, model_used, token_count, generated_at 
-                          FROM digests WHERE category = ? ORDER BY generated_at DESC LIMIT 1",
+        "SELECT * FROM digests WHERE category = ? ORDER BY generated_at DESC LIMIT 1",
     )
     .bind(category)
     .fetch_optional(db)
-    .await
-    .map_err(AppError::Database)?;
+    .await?;
 
-    if let Some(row) = row {
-        let article_ids: String = row.get("article_ids");
-        let article_count = if article_ids.is_empty() {
-            0
-        } else {
-            article_ids.split(',').count()
-        };
-
-        let digest = DigestDto {
-            id: row.get("id"),
-            category: row.get("category"),
-            title: row.get("title"),
-            content_markdown: row.get("content_markdown"),
-            content_html: row.get("content_html"),
-            article_count,
-            model_used: row.get("model_used"),
-            generated_at: row.get("generated_at"),
-        };
-        Ok(Some(digest))
-    } else {
-        Ok(None)
-    }
+    Ok(row.map(row_to_digest_dto))
 }
 
 #[cfg(test)]
@@ -182,8 +138,6 @@ mod tests {
     #[tokio::test]
     async fn test_list_digests() {
         let db = setup_test_db().await;
-
-        // テストデータを挿入
         let digest = Digest {
             id: 0,
             category: "anime".to_string(),
@@ -197,8 +151,6 @@ mod tests {
         };
 
         insert_digest(&db, &digest).await.unwrap();
-
-        // 一覧を取得
         let digests = list_digests(&db, Some("anime")).await.unwrap();
         assert_eq!(digests.len(), 1);
         assert_eq!(digests[0].category, "anime");
@@ -209,12 +161,8 @@ mod tests {
     async fn test_unsummarized_articles() {
         let db = setup_test_db().await;
 
-        // フィードを挿入
-        sqlx::query("INSERT INTO feeds (id, name, url, feed_type, category, created_at, updated_at) 
-                    VALUES (1, 'test', 'http://example.com', 'rss', 'anime', '2023-01-01T00:00:00Z', '2023-01-01T00:00:00Z')")
+        sqlx::query("INSERT INTO feeds (id, name, url, feed_type, category, created_at, updated_at) VALUES (1, 'test', 'http://example.com', 'rss', 'anime', '2023-01-01T00:00:00Z', '2023-01-01T00:00:00Z')")
             .execute(&db).await.unwrap();
-
-        // 記事を挿入（24時間以内）
         let now = chrono::Utc::now();
         let recent_time = (now - chrono::Duration::minutes(1)).to_rfc3339();
 

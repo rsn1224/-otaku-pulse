@@ -3,7 +3,6 @@ use crate::error::{AppError, CmdResult};
 use crate::infra::llm_client::{LlmClient, LlmProvider};
 use crate::infra::ollama_client::OllamaClient;
 use crate::infra::perplexity_client::PerplexitySonarClient;
-use crate::services::digest_generator;
 use crate::state::{AppState, LlmSettings};
 use std::sync::Arc;
 use tauri::State;
@@ -167,46 +166,3 @@ pub async fn check_ollama_status(
     crate::infra::ollama_client::check_status(&http, &base_url).await
 }
 
-#[tauri::command]
-pub async fn generate_llm_digest(
-    category: String,
-    state: State<'_, AppState>,
-    http: State<'_, Arc<reqwest::Client>>,
-) -> Result<DigestResult, AppError> {
-    // RwLock guard を drop してから async 処理するため、先に値をコピー
-    let client: Box<dyn LlmClient> = {
-        let llm = state
-            .llm
-            .read()
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        match llm.provider {
-            LlmProvider::PerplexitySonar => {
-                let api_key = llm.perplexity_api_key.as_ref().ok_or_else(|| {
-                    AppError::Unauthorized("Perplexity APIキーが設定されていません".to_string())
-                })?;
-                Box::new(PerplexitySonarClient::new(
-                    api_key.clone(),
-                    (**http).clone(),
-                ))
-            }
-            LlmProvider::Ollama => Box::new(OllamaClient::new(
-                llm.ollama_base_url.clone(),
-                llm.ollama_model.clone(),
-                (**http).clone(),
-            )),
-        }
-    };
-
-    let result = digest_generator::generate(&state.db, client.as_ref(), &category, 24).await?;
-
-    Ok(DigestResult {
-        category: result.category,
-        summary: result.summary,
-        article_count: result.article_count,
-        generated_at: result.generated_at,
-        is_ai_generated: result.is_ai_generated,
-        provider: result.provider,
-        model: result.model,
-        fallback_reason: result.fallback_reason,
-    })
-}

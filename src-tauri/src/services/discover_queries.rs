@@ -9,7 +9,6 @@ const DISCOVER_COLS: &str =
      a.published_at, a.is_read, a.is_bookmarked, a.language, \
      a.thumbnail_url, a.ai_summary, f.name AS feed_name, f.category AS category";
 
-/// Discover フィード取得（スコア順）
 pub async fn get_discover_feed(
     db: &SqlitePool,
     tab: &str,
@@ -39,7 +38,6 @@ pub async fn get_discover_feed(
     })
 }
 
-/// For You: パーソナルスコア順
 async fn get_for_you(
     db: &SqlitePool,
     limit: i64,
@@ -58,7 +56,6 @@ async fn get_for_you(
     Ok((articles, count_all(db).await?))
 }
 
-/// Trending: 直近12時間の記事をエンゲージメント順（E6: 真のトレンド）
 async fn get_trending(
     db: &SqlitePool,
     limit: i64,
@@ -91,7 +88,6 @@ async fn get_trending(
     Ok((articles, total.0))
 }
 
-/// カテゴリ別フィード
 async fn get_by_category(
     db: &SqlitePool,
     category: &str,
@@ -121,7 +117,6 @@ async fn get_by_category(
     Ok((articles, total.0))
 }
 
-/// 全記事数カウント (重複除外)
 async fn count_all(db: &SqlitePool) -> Result<i64, AppError> {
     let r: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM articles WHERE is_duplicate = 0")
         .fetch_one(db)
@@ -129,7 +124,6 @@ async fn count_all(db: &SqlitePool) -> Result<i64, AppError> {
     Ok(r.0)
 }
 
-/// Popular: エンゲージメント合計順
 async fn get_popular(
     db: &SqlitePool,
     limit: i64,
@@ -152,7 +146,6 @@ async fn get_popular(
     Ok((articles, count_all(db).await?))
 }
 
-/// Most Viewed: 閲覧回数順
 async fn get_most_viewed(
     db: &SqlitePool,
     limit: i64,
@@ -172,7 +165,6 @@ async fn get_most_viewed(
     Ok((articles, count_all(db).await?))
 }
 
-/// インタラクション記録
 pub async fn record_interaction(
     db: &SqlitePool,
     article_id: i64,
@@ -192,7 +184,6 @@ pub async fn record_interaction(
     Ok(())
 }
 
-/// ブックマーク記事取得（Library Wing 用）
 pub async fn get_library_articles(
     db: &SqlitePool,
     limit: i64,

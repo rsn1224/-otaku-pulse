@@ -3,7 +3,6 @@ use crate::infra::llm_client::{LlmClient, LlmRequest};
 use crate::models::DeepDiveResult;
 use sqlx::SqlitePool;
 
-/// 記事から深堀り質問を3件生成
 pub async fn generate_questions(
     db: &SqlitePool,
     article_id: i64,
@@ -34,7 +33,6 @@ pub async fn generate_questions(
     Ok(questions)
 }
 
-/// 深堀り質問に回答（キャッシュ付き）
 pub async fn answer_question(
     db: &SqlitePool,
     article_id: i64,
