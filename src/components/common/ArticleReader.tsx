@@ -2,9 +2,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { stripCitations } from '../../lib/textUtils';
+import { containsHtml, sanitizeHtml, stripCitations } from '../../lib/textUtils';
 import { useDiscoverStore } from '../../stores/useDiscoverStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
+import { RelatedArticles } from './RelatedArticles';
 
 interface ArticleReaderProps {
   article: ArticleDetailDto | null;
@@ -157,12 +158,20 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
         <div className="flex-1 overflow-y-auto discover-scroll px-6 py-6">
           <div style={{ maxWidth: '640px', margin: '0 auto' }}>
             {article.content ? (
-              <div
-                className="text-sm leading-[1.85] whitespace-pre-wrap"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                {stripCitations(article.content)}
-              </div>
+              containsHtml(article.content) ? (
+                <div
+                  className="text-sm leading-[1.85] article-html-content"
+                  style={{ color: 'var(--text-primary)' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
+                />
+              ) : (
+                <div
+                  className="text-sm leading-[1.85] whitespace-pre-wrap"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {stripCitations(article.content)}
+                </div>
+              )
             ) : article.summary ? (
               <p className="text-sm leading-[1.85]" style={{ color: 'var(--text-primary)' }}>
                 {stripCitations(article.summary)}
@@ -173,53 +182,7 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
               </p>
             )}
 
-            {/* 関連記事 */}
-            {relatedLoading && (
-              <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
-                <div className="skeleton-line h-3 w-16 mb-3" />
-                <div className="space-y-2">
-                  <div className="skeleton-line h-12 w-full rounded-lg" />
-                  <div className="skeleton-line h-12 w-full rounded-lg" />
-                </div>
-              </div>
-            )}
-            {!relatedLoading && related.length > 0 && (
-              <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
-                <h3
-                  className="text-xs font-semibold uppercase mb-3"
-                  style={{ color: 'var(--text-tertiary)', letterSpacing: '0.04em' }}
-                >
-                  Related
-                </h3>
-                <div className="space-y-2">
-                  {related.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      className="w-full text-left p-3 rounded-lg transition-colors"
-                      style={{
-                        background: 'var(--bg-card)',
-                        borderLeft: '2px solid var(--accent)',
-                      }}
-                      onClick={() => r.url && openUrl(r.url)}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = 'var(--bg-card-hover)';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = 'var(--bg-card)';
-                      }}
-                    >
-                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {r.title}
-                      </p>
-                      <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                        {r.feedName}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <RelatedArticles articles={related} isLoading={relatedLoading} />
           </div>
         </div>
       </div>
