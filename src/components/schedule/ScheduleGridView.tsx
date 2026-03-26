@@ -28,7 +28,9 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
           className={
             viewMode === 'month'
               ? 'min-h-[80px] p-1 rounded overflow-hidden'
-              : 'flex-1 min-w-[130px] flex flex-col'
+              : dayEntries.length > 0
+                ? 'flex-1 min-w-[140px] flex flex-col'
+                : 'w-[60px] flex-shrink-0 flex flex-col'
           }
           style={
             viewMode === 'month'
