@@ -80,6 +80,7 @@ pub fn run() {
             commands::feed::get_article_detail,
             commands::feed::delete_feed,
             commands::feed::cleanup_old_articles,
+            commands::feed::get_bookmarked_articles,
             // LLM
             commands::llm::get_llm_settings,
             commands::llm::set_llm_provider,
@@ -89,6 +90,8 @@ pub fn run() {
             // Scheduler
             commands::scheduler::get_scheduler_config,
             commands::scheduler::set_scheduler_config,
+            // Schedule
+            commands::schedule::get_airing_schedule,
             // Filters
             commands::filters::get_keyword_filters,
             commands::filters::add_keyword_filter,

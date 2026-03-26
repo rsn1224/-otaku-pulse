@@ -43,9 +43,14 @@ const estimateReadTime = (text: string | null): string | null => {
 interface DiscoverCardProps {
   article: DiscoverArticleDto;
   featured?: boolean;
+  isFocused?: boolean;
 }
 
-const DiscoverCardInner: React.FC<DiscoverCardProps> = ({ article, featured = false }) => {
+const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
+  article,
+  featured = false,
+  isFocused = false,
+}) => {
   const [state, setState] = useState<CardState>('collapsed');
   const [summary, setSummary] = useState<string | null>(article.aiSummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -112,6 +117,13 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({ article, featured = fa
     recordInteraction,
   ]);
 
+  // P5-A: フォーカス時に自動スクロール
+  useEffect(() => {
+    if (isFocused && cardRef.current) {
+      cardRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [isFocused]);
+
   const handleOpen = useCallback((): void => {
     openReader(article.id);
   }, [article.id, openReader]);
@@ -163,7 +175,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({ article, featured = fa
   return (
     <div
       ref={cardRef}
-      className={`discover-card ${featured ? 'featured' : ''} ${article.isRead ? 'opacity-50' : ''}`}
+      className={`discover-card ${featured ? 'featured' : ''} ${article.isRead ? 'opacity-50' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button, a, .deepdive-panel')) return;
         handleOpen();
@@ -331,5 +343,6 @@ export const DiscoverCard = React.memo(
     prev.article.isRead === next.article.isRead &&
     prev.article.isBookmarked === next.article.isBookmarked &&
     prev.article.aiSummary === next.article.aiSummary &&
-    prev.featured === next.featured,
+    prev.featured === next.featured &&
+    prev.isFocused === next.isFocused,
 );

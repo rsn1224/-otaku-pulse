@@ -1,18 +1,65 @@
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect } from 'react';
+import { useDiscoverStore } from '../stores/useDiscoverStore';
 
-/** v2 キーボードショートカット（"/" は TopBarSearch で直接処理） */
+/** P5-A キーボードショートカット（"/" は TopBarSearch で直接処理） */
 export function useKeyboardShortcuts(): void {
+  const {
+    articles,
+    focusedIndex,
+    focusNext,
+    focusPrev,
+    markRead,
+    toggleBookmark,
+    toggleHelp,
+    showHelp,
+    closeReader,
+    readerArticle,
+  } = useDiscoverStore();
+
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
+      const focused =
+        focusedIndex >= 0 && focusedIndex < articles.length ? articles[focusedIndex] : null;
+
       switch (e.key) {
-        case 'r':
-        case 'R':
-          // 将来: フィード再収集
+        case 'j':
+        case 'J':
+          focusNext();
+          break;
+        case 'k':
+        case 'K':
+          focusPrev();
+          break;
+        case 'o':
+        case 'O':
+          if (focused?.url) {
+            openUrl(focused.url).catch(() => {});
+          }
+          break;
+        case 'm':
+        case 'M':
+          if (focused) {
+            markRead(focused.id);
+          }
+          break;
+        case 'b':
+        case 'B':
+          if (focused) {
+            toggleBookmark(focused.id);
+          }
+          break;
+        case '?':
+          toggleHelp();
           break;
         case 'Escape':
-          // 将来: パネル閉じる
+          if (showHelp) {
+            toggleHelp();
+          } else if (readerArticle) {
+            closeReader();
+          }
           break;
         default:
           break;
@@ -21,5 +68,16 @@ export function useKeyboardShortcuts(): void {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [
+    articles,
+    focusedIndex,
+    focusNext,
+    focusPrev,
+    markRead,
+    toggleBookmark,
+    toggleHelp,
+    showHelp,
+    closeReader,
+    readerArticle,
+  ]);
 }

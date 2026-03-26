@@ -1,91 +1,108 @@
-use tauri::State;
-use sqlx::SqlitePool;
 use crate::error::CmdResult;
 use crate::infra::anilist_client;
-use crate::parsers::schedule_parser;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AnimeSchedule {
+pub struct AiringEntry {
     pub id: i64,
-    pub title_romaji: String,
-    pub title_english: Option<String>,
+    pub episode: i64,
+    pub airing_at: i64,
+    pub media_id: i64,
     pub title_native: Option<String>,
-    pub format: String,
-    pub status: String,
-    pub episodes: Option<i64>,
-    pub duration: Option<i64>,
-    pub cover_image_large: Option<String>,
-    pub cover_image_medium: Option<String>,
-    pub start_date_year: Option<i64>,
-    pub start_date_month: Option<i64>,
-    pub start_date_day: Option<i64>,
-    pub end_date_year: Option<i64>,
-    pub end_date_month: Option<i64>,
-    pub end_date_day: Option<i64>,
-    pub season: String,
-    pub season_year: i64,
-    pub genres: Vec<String>,
-    pub studios: Vec<String>,
-    pub next_airing_at: Option<i64>,
-    pub time_until_airing: Option<i64>,
-    pub next_episode: Option<i64>,
+    pub title_romaji: String,
+    pub cover_image_url: Option<String>,
+    pub total_episodes: Option<i64>,
+    pub site_url: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AiringResponse {
+    data: AiringData,
+}
+
+#[derive(Deserialize)]
+struct AiringData {
+    #[serde(rename = "Page")]
+    page: AiringPage,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AiringPage {
+    airing_schedules: Vec<AiringScheduleNode>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AiringScheduleNode {
+    id: i64,
+    episode: i64,
+    airing_at: i64,
+    media: AiringMedia,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AiringMedia {
+    id: i64,
+    title: AiringTitle,
+    cover_image: Option<AiringCoverImage>,
+    episodes: Option<i64>,
+    site_url: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AiringTitle {
+    native: Option<String>,
+    romaji: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AiringCoverImage {
+    medium: Option<String>,
+}
+
+fn parse_airing_response(json: &str) -> Result<Vec<AiringEntry>, String> {
+    let resp: AiringResponse =
+        serde_json::from_str(json).map_err(|e| format!("Failed to parse airing response: {e}"))?;
+
+    let entries = resp
+        .data
+        .page
+        .airing_schedules
+        .into_iter()
+        .map(|node| AiringEntry {
+            id: node.id,
+            episode: node.episode,
+            airing_at: node.airing_at,
+            media_id: node.media.id,
+            title_native: node.media.title.native,
+            title_romaji: node.media.title.romaji.unwrap_or_default(),
+            cover_image_url: node.media.cover_image.and_then(|ci| ci.medium),
+            total_episodes: node.media.episodes,
+            site_url: node.media.site_url,
+        })
+        .collect();
+
+    Ok(entries)
 }
 
 #[tauri::command]
-pub async fn get_anime_schedule(
-    _db: State<'_, SqlitePool>,
-    season: String,
-    year: i64,
-) -> CmdResult<Vec<AnimeSchedule>> {
-    // GraphQLクエリを実行
-    let query = include_str!("../../graphql/anime_schedule.graphql");
+pub async fn get_airing_schedule(days_ahead: Option<i64>) -> CmdResult<Vec<AiringEntry>> {
+    let now = chrono::Utc::now().timestamp();
+    let days = days_ahead.unwrap_or(7);
+    let end = now + days * 86400;
+
+    let query = include_str!("../../graphql/airing_schedule.graphql");
     let variables = serde_json::json!({
-        "season": season,
-        "year": year
+        "airingAtGreater": now,
+        "airingAtLesser": end,
+        "page": 1
     });
-    
+
     let response = anilist_client::query_anilist(query, &variables).await?;
-    let articles = schedule_parser::parse_anime_schedule(&response).map_err(|e| {
-        crate::error::AppError::ParseError(e)
-    })?;
-    
-    // DTOに変換
-    let schedules: Vec<AnimeSchedule> = articles.into_iter().map(|media| {
-        let title = &media.title;
-        let cover_image = &media.cover_image;
-        let start_date = &media.start_date;
-        let end_date = &media.end_date;
-        let next_airing = &media.next_airing_episode;
-        
-        AnimeSchedule {
-            id: media.id as i64,
-            title_romaji: title.romaji.clone().unwrap_or_default(),
-            title_english: title.english.clone(),
-            title_native: title.native.clone(),
-            format: media.format.clone().unwrap_or_default(),
-            status: media.status.clone().unwrap_or_default(),
-            episodes: media.episodes.map(|e| e as i64),
-            duration: None, // Not available in current schema
-            cover_image_large: cover_image.as_ref().and_then(|ci| ci.large.clone()),
-            cover_image_medium: cover_image.as_ref().and_then(|ci| ci.medium.clone()),
-            start_date_year: start_date.as_ref().and_then(|sd| sd.year).map(|y| y as i64),
-            start_date_month: start_date.as_ref().and_then(|sd| sd.month).map(|m| m as i64),
-            start_date_day: start_date.as_ref().and_then(|sd| sd.day).map(|d| d as i64),
-            end_date_year: end_date.as_ref().and_then(|ed| ed.year).map(|y| y as i64),
-            end_date_month: end_date.as_ref().and_then(|ed| ed.month).map(|m| m as i64),
-            end_date_day: end_date.as_ref().and_then(|ed| ed.day).map(|d| d as i64),
-            season: media.season.clone().unwrap_or_default(),
-            season_year: media.season_year.map(|y| y as i64).unwrap_or(year),
-            genres: media.genres.clone(),
-            studios: media.studios.as_ref()
-                .map(|s| s.nodes.iter().map(|n| n.name.clone()).collect())
-                .unwrap_or_default(),
-            next_airing_at: next_airing.as_ref().map(|na| na.airing_at),
-            time_until_airing: next_airing.as_ref().map(|na| na.time_until_airing),
-            next_episode: next_airing.as_ref().map(|na| na.episode),
-        }
-    }).collect();
-    
-    Ok(schedules)
+    let entries = parse_airing_response(&response).map_err(crate::error::AppError::ParseError)?;
+
+    Ok(entries)
 }

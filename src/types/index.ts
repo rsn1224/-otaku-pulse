@@ -78,7 +78,7 @@ export interface AppError {
 // ---------------------------------------------------------------------------
 export type DiscoverTab = 'for_you' | 'trending' | 'anime' | 'game' | 'manga' | 'hardware';
 
-export type WingIdV2 = 'discover' | 'library' | 'profile';
+export type WingIdV2 = 'discover' | 'library' | 'profile' | 'saved' | 'schedule';
 
 export interface DiscoverArticleDto {
   id: number;
@@ -134,4 +134,19 @@ export interface AiSearchResult {
 export interface HighlightEntry {
   article: DiscoverArticleDto;
   reason: string;
+}
+
+// ---------------------------------------------------------------------------
+// P5-D: Airing Schedule
+// ---------------------------------------------------------------------------
+export interface AiringEntry {
+  id: number;
+  episode: number;
+  airingAt: number;
+  mediaId: number;
+  titleNative: string | null;
+  titleRomaji: string;
+  coverImageUrl: string | null;
+  totalEpisodes: number | null;
+  siteUrl: string | null;
 }

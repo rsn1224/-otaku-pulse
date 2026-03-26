@@ -64,6 +64,16 @@ interface DiscoverState {
   // Scroll position memory
   scrollPositions: Record<string, number>;
   saveScrollPosition: (tab: string, pos: number) => void;
+
+  // Keyboard navigation
+  focusedIndex: number;
+  setFocusedIndex: (i: number) => void;
+  focusNext: () => void;
+  focusPrev: () => void;
+
+  // Help modal
+  showHelp: boolean;
+  toggleHelp: () => void;
 }
 
 const PAGE_SIZE = 30;
@@ -278,4 +288,24 @@ export const useDiscoverStore = create<DiscoverState>((set, get) => ({
   saveScrollPosition: (tab: string, pos: number) => {
     set({ scrollPositions: { ...get().scrollPositions, [tab]: pos } });
   },
+
+  // Keyboard navigation
+  focusedIndex: -1,
+
+  setFocusedIndex: (i: number) => set({ focusedIndex: i }),
+
+  focusNext: () => {
+    const { focusedIndex, articles } = get();
+    if (articles.length === 0) return;
+    set({ focusedIndex: Math.min(focusedIndex + 1, articles.length - 1) });
+  },
+
+  focusPrev: () => {
+    const { focusedIndex } = get();
+    set({ focusedIndex: Math.max(focusedIndex - 1, 0) });
+  },
+
+  // Help modal
+  showHelp: false,
+  toggleHelp: () => set({ showHelp: !get().showHelp }),
 }));

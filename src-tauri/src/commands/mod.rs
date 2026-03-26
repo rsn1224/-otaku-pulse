@@ -9,7 +9,6 @@ pub mod discover;
 pub mod feed;
 pub mod filters;
 pub mod llm;
-#[allow(dead_code)]
 pub mod schedule;
 pub mod scheduler;
 #[allow(dead_code)]

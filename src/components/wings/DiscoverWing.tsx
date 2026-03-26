@@ -1,5 +1,7 @@
+import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { applyMuteFilters } from '../../lib/articleFilter';
 import { useDiscoverStore } from '../../stores/useDiscoverStore';
 import { ArticleReader } from '../common/ArticleReader';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
@@ -28,9 +30,24 @@ export const DiscoverWing: React.FC = () => {
     closeReader,
     scrollPositions,
     saveScrollPosition,
+    focusedIndex,
   } = useDiscoverStore();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // P5-C: キーワードフィルタ
+  const [muteKeywords, setMuteKeywords] = useState<string[]>([]);
+  useEffect(() => {
+    invoke<{ keyword: string; filter_type: string }[]>('get_keyword_filters')
+      .then((filters) =>
+        setMuteKeywords(filters.filter((f) => f.filter_type === 'mute').map((f) => f.keyword)),
+      )
+      .catch(() => {});
+  }, []);
+  const filteredArticles = useMemo(
+    () => applyMuteFilters(articles, muteKeywords),
+    [articles, muteKeywords],
+  );
 
   useEffect(() => {
     fetchFeed(true);
@@ -171,24 +188,25 @@ export const DiscoverWing: React.FC = () => {
           {tab === 'for_you' && <HighlightsSection />}
 
           {/* Card grid or skeleton */}
-          {isLoading && articles.length === 0 ? (
+          {isLoading && filteredArticles.length === 0 ? (
             <CardSkeletonGrid />
           ) : (
             <div className="card-grid">
-              {articles.map((article, i) => (
+              {filteredArticles.map((article, i) => (
                 <DiscoverCard
                   key={article.id}
                   article={article}
                   featured={i === 0 && tab === 'for_you'}
+                  isFocused={i === focusedIndex}
                 />
               ))}
             </div>
           )}
 
-          {isLoading && articles.length > 0 && <Spinner />}
+          {isLoading && filteredArticles.length > 0 && <Spinner />}
 
           {/* Empty state */}
-          {!isLoading && articles.length === 0 && (
+          {!isLoading && filteredArticles.length === 0 && (
             <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
               <p className="text-4xl mb-4">{'🔍'}</p>
               <p className="text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -199,12 +217,15 @@ export const DiscoverWing: React.FC = () => {
           )}
 
           {/* All caught up state */}
-          {!isLoading && !hasMore && articles.length > 0 && articles.every((a) => a.isRead) && (
-            <div className="text-center py-8" style={{ color: 'var(--text-secondary)' }}>
-              <p className="text-2xl mb-2">{'✨'}</p>
-              <p className="text-sm">全部読みました！ また来てね</p>
-            </div>
-          )}
+          {!isLoading &&
+            !hasMore &&
+            filteredArticles.length > 0 &&
+            filteredArticles.every((a) => a.isRead) && (
+              <div className="text-center py-8" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-2xl mb-2">{'✨'}</p>
+                <p className="text-sm">全部読みました！ また来てね</p>
+              </div>
+            )}
 
           <div ref={sentinelRef} className="h-4" />
         </div>

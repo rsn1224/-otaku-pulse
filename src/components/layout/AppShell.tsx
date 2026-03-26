@@ -6,10 +6,12 @@ import { useDiscoverStore } from '../../stores/useDiscoverStore';
 import { initTheme } from '../../stores/useThemeStore';
 import type { WingIdV2 } from '../../types';
 import { ErrorBoundary } from '../common/ErrorBoundary';
+import { KeyboardHelpModal } from '../common/KeyboardHelpModal';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
 import { PreferenceSuggestion } from '../onboarding/PreferenceSuggestion';
 import { CollectButton } from './CollectButton';
 import { TopBarSearch } from './TopBarSearch';
+import { WindowControls } from './WindowControls';
 
 const DiscoverWing = React.lazy(() =>
   import('../wings/DiscoverWing').then((m) => ({ default: m.DiscoverWing })),
@@ -20,10 +22,26 @@ const LibraryWing = React.lazy(() =>
 const ProfileWing = React.lazy(() =>
   import('../wings/ProfileWing').then((m) => ({ default: m.ProfileWing })),
 );
+const SavedWing = React.lazy(() =>
+  import('../wings/SavedWing').then((m) => ({ default: m.SavedWing })),
+);
+const ScheduleWing = React.lazy(() =>
+  import('../wings/ScheduleWing').then((m) => ({ default: m.ScheduleWing })),
+);
 
 const NAV_ITEMS: { id: WingIdV2; label: string; icon: string }[] = [
   { id: 'discover', label: 'Discover', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
   { id: 'library', label: 'Library', icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z' },
+  {
+    id: 'saved',
+    label: 'Saved',
+    icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z',
+  },
+  {
+    id: 'schedule',
+    label: 'Schedule',
+    icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+  },
   {
     id: 'profile',
     label: 'Profile',
@@ -94,6 +112,10 @@ export const AppShell: React.FC = () => {
         return <DiscoverWing />;
       case 'library':
         return <LibraryWing />;
+      case 'saved':
+        return <SavedWing />;
+      case 'schedule':
+        return <ScheduleWing />;
       case 'profile':
         return <ProfileWing />;
       default:
@@ -172,57 +194,13 @@ export const AppShell: React.FC = () => {
         </div>
       </div>
 
+      <KeyboardHelpModal />
+
       {/* Onboarding Wizard */}
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       {showSuggestion && !showOnboarding && (
         <PreferenceSuggestion onClose={() => setShowSuggestion(false)} />
       )}
     </ErrorBoundary>
-  );
-};
-
-const WindowControls: React.FC = () => {
-  const handleAction = async (action: 'minimize' | 'maximize' | 'close'): Promise<void> => {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    const win = getCurrentWindow();
-    if (action === 'minimize') await win.minimize();
-    else if (action === 'maximize') {
-      if (await win.isMaximized()) await win.unmaximize();
-      else await win.maximize();
-    } else await win.close();
-  };
-  return (
-    <div className="flex items-center gap-1">
-      {(['minimize', 'maximize', 'close'] as const).map((action) => (
-        <button
-          key={action}
-          type="button"
-          onClick={() => handleAction(action)}
-          title={action === 'minimize' ? '最小化' : action === 'maximize' ? '最大化' : '閉じる'}
-          className={`w-7 h-5 flex items-center justify-center rounded transition-colors ${action === 'close' ? 'hover:bg-red-600' : 'hover:bg-white/10'}`}
-        >
-          <svg
-            aria-hidden="true"
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d={
-                action === 'minimize'
-                  ? 'M20 12H4'
-                  : action === 'maximize'
-                    ? 'M4 4h16v16H4z'
-                    : 'M6 18L18 6M6 6l12 12'
-              }
-            />
-          </svg>
-        </button>
-      ))}
-    </div>
   );
 };
