@@ -1,22 +1,4 @@
-/* Stitch デザインシステム カラートークン */
-:root {
-  --bg-primary: #0e0e13;
-  --bg-secondary: #131319;
-  --bg-card: #19191f;
-  --bg-card-hover: #1f1f26;
-  --bg-deepdive: #131319;
-  --border: #25252d;
-  --border-hover: #48474d;
-  --accent: #bd9dff;
-  --accent-soft: rgba(189, 157, 255, 0.15);
-  --accent-glow: rgba(189, 157, 255, 0.06);
-  --text-primary: #f9f5fd;
-  --text-secondary: #acaab1;
-  --text-tertiary: #76747b;
-  --text-source: #acaab1;
-  --badge-hot: #ff6e84;
-  --badge-new: #699cff;
-}
+/* === Component Styles === */
 
 /* DiscoverCard */
 .discover-card {
@@ -39,7 +21,7 @@
   transform: translateY(-2px) scale(1.01);
 }
 
-/* AI サマリー */
+/* AI Summary */
 .ai-summary {
   font-size: 0.8125rem;
   line-height: 1.75;
@@ -63,7 +45,7 @@
   margin-bottom: 0.375rem;
 }
 
-/* 深堀りパネル */
+/* DeepDive Panel */
 .deepdive-panel {
   border-radius: 0.75rem;
   margin-top: 1rem;
@@ -94,7 +76,7 @@
   color: var(--accent);
 }
 
-/* ソースバッジ */
+/* Source Badge */
 .source-badge {
   display: inline-flex;
   align-items: center;
@@ -115,7 +97,7 @@
   border-color: rgba(29, 185, 160, 0.15);
 }
 
-/* Action ボタン */
+/* Action Button */
 .card-action-btn {
   display: inline-flex;
   align-items: center;
@@ -152,20 +134,26 @@
   transform: scale(0.95);
 }
 
-.bookmark-btn:active {
-  transform: scale(0.9);
+/* Bookmark Button */
+.bookmark-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-@keyframes bookmarkPop {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  100% {
-    transform: scale(1);
-  }
+.bookmark-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bookmark-btn:active {
+  transform: scale(0.9);
 }
 
 .bookmark-btn.just-bookmarked svg {
@@ -251,53 +239,14 @@
   flex-shrink: 0;
 }
 
-/* Animations */
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* Feed column — full-width grid */
+/* Feed column */
 .feed-column {
   max-width: 1400px;
   margin: 0 auto;
   padding: 1.25rem 1.5rem;
 }
 
-/* Masonry-style grid for cards */
+/* Masonry grid */
 .card-grid {
   columns: 3;
   column-gap: 1rem;
@@ -308,21 +257,38 @@
   margin-bottom: 1rem;
 }
 
-/* 2 column for medium screens */
 @media (max-width: 1100px) {
   .card-grid {
     columns: 2;
   }
 }
 
-/* 1 column for narrow */
 @media (max-width: 700px) {
   .card-grid {
     columns: 1;
   }
 }
 
-/* Featured card — visually prominent hero card */
+/* Card title */
+.card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.card-title:hover {
+  color: var(--accent);
+}
+
+/* Featured card */
 .discover-card.featured {
   border-color: rgba(29, 185, 160, 0.2);
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-deepdive) 100%);
@@ -339,7 +305,7 @@
   font-size: 0.875rem;
 }
 
-/* Search result count */
+/* Search count */
 .search-count {
   font-size: 0.8125rem;
   font-weight: 500;
@@ -347,7 +313,7 @@
   padding: 0.5rem 0 1rem;
 }
 
-/* Scrollbar style */
+/* Scrollbar */
 .discover-scroll::-webkit-scrollbar {
   width: 6px;
 }
@@ -453,43 +419,6 @@
   transform: scale(1.03);
 }
 
-/* Card title */
-.card-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-  background: transparent;
-  border: none;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.card-title:hover {
-  color: var(--accent);
-}
-
-/* Bookmark button */
-.bookmark-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.bookmark-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
 /* Citation footer */
 .citation-footer {
   margin-top: 0.75rem;
@@ -546,9 +475,9 @@
   white-space: nowrap;
 }
 
-/* Time dot separator */
+/* Meta dot separator */
 .meta-dot::before {
-  content: "·";
+  content: "\00B7";
   margin: 0 0.25rem;
   color: var(--text-tertiary);
 }
@@ -618,7 +547,7 @@
   color: var(--text-tertiary);
 }
 
-/* Search bar in TopBar */
+/* TopBar search */
 .topbar-search {
   display: flex;
   align-items: center;
@@ -683,7 +612,7 @@
   background: var(--bg-card-hover);
 }
 
-/* Glass AI Summary block */
+/* Glass AI Summary */
 .glass-summary {
   background: rgba(189, 157, 255, 0.05);
   backdrop-filter: blur(12px);
@@ -691,36 +620,42 @@
   border: 1px solid rgba(189, 157, 255, 0.1);
 }
 
-/* Article HTML content rendering */
+/* Article HTML content */
 .article-html-content a {
   color: var(--accent);
   text-decoration: underline;
 }
+
 .article-html-content img {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
   margin: 0.75rem 0;
 }
+
 .article-html-content table {
   width: 100%;
   border-collapse: collapse;
   margin: 0.75rem 0;
 }
+
 .article-html-content td,
 .article-html-content th {
   padding: 0.5rem;
   border: 1px solid var(--border);
   text-align: left;
 }
+
 .article-html-content p {
   margin: 0.5rem 0;
 }
+
 .article-html-content ul,
 .article-html-content ol {
   padding-left: 1.5rem;
   margin: 0.5rem 0;
 }
+
 .article-html-content blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 1rem;

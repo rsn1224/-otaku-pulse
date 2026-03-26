@@ -1,9 +1,51 @@
 @import "tailwindcss";
-@import "./discover.css";
+@import "./animations.css";
+@import "./components.css";
+
+/* === Stitch Design System Tokens === */
+:root {
+  /* Surface */
+  --surface: #0e0e13;
+  --surface-container: #19191f;
+  --surface-container-high: #1f1f26;
+  --surface-container-highest: #25252d;
+
+  /* Content */
+  --on-surface: #f9f5fd;
+  --on-surface-variant: #acaab1;
+  --outline: #76747b;
+  --outline-variant: #48474d;
+
+  /* Accent */
+  --primary: #bd9dff;
+  --primary-soft: rgba(189, 157, 255, 0.15);
+  --primary-glow: rgba(189, 157, 255, 0.06);
+  --secondary: #699cff;
+  --tertiary: #ff97b2;
+  --error: #ff6e84;
+
+  /* === Legacy aliases (remove in Phase 3) === */
+  --bg-primary: var(--surface);
+  --bg-secondary: #131319;
+  --bg-card: var(--surface-container);
+  --bg-card-hover: var(--surface-container-high);
+  --bg-deepdive: #131319;
+  --border: var(--surface-container-highest);
+  --border-hover: var(--outline-variant);
+  --accent: var(--primary);
+  --accent-soft: var(--primary-soft);
+  --accent-glow: var(--primary-glow);
+  --text-primary: var(--on-surface);
+  --text-secondary: var(--on-surface-variant);
+  --text-tertiary: var(--outline);
+  --text-source: var(--on-surface-variant);
+  --badge-hot: var(--error);
+  --badge-new: var(--secondary);
+}
 
 html,
 body,
 #root {
   min-height: 100vh;
-  background-color: #0f1117;
+  background-color: var(--surface);
 }
