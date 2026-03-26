@@ -1,7 +1,7 @@
-use std::sync::{Arc, RwLock};
-use sqlx::SqlitePool;
-use reqwest::Client;
 use crate::infra::llm_client::LlmProvider;
+use reqwest::Client;
+use sqlx::SqlitePool;
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone)]
 pub struct LlmSettings {

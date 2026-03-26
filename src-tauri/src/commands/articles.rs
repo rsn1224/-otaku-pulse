@@ -1,7 +1,7 @@
 #![allow(dead_code)]
+use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
-use crate::error::AppError;
 
 #[derive(Deserialize)]
 pub struct ArticleQuery {
@@ -66,16 +66,16 @@ pub async fn get_articles(
         "SELECT COUNT(*) as count FROM articles a JOIN feeds f ON a.feed_id = f.id {}",
         where_clause
     );
-    
+
     let mut count_query_builder = sqlx::query_scalar(&count_query);
-    
+
     if let Some(category) = &query.category {
         count_query_builder = count_query_builder.bind(category);
     }
     if let Some(source) = &query.source {
         count_query_builder = count_query_builder.bind(source);
     }
-    
+
     let total: i64 = count_query_builder.fetch_one(&*db).await.unwrap_or(0);
 
     // Get articles
@@ -122,10 +122,7 @@ pub async fn get_articles(
 }
 
 #[tauri::command]
-pub async fn mark_read(
-    db: tauri::State<'_, SqlitePool>,
-    article_id: i64,
-) -> Result<(), AppError> {
+pub async fn mark_read(db: tauri::State<'_, SqlitePool>, article_id: i64) -> Result<(), AppError> {
     sqlx::query("UPDATE articles SET is_read = 1 WHERE id = ?")
         .bind(article_id)
         .execute(&*db)

@@ -56,10 +56,7 @@ const URL_ATTRS = new Set(['href', 'src']);
 const isSafeUrl = (value: string): boolean => {
   const t = value.trim().toLowerCase();
   return (
-    t.startsWith('https://') ||
-    t.startsWith('http://') ||
-    t.startsWith('/') ||
-    t.startsWith('#')
+    t.startsWith('https://') || t.startsWith('http://') || t.startsWith('/') || t.startsWith('#')
   );
 };
 

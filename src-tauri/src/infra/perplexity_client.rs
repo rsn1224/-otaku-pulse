@@ -1,8 +1,8 @@
+use crate::error::AppError;
+use crate::infra::llm_client::{Citation, LlmClient, LlmProvider, LlmRequest, LlmResponse};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use crate::error::AppError;
-use crate::infra::llm_client::{Citation, LlmClient, LlmRequest, LlmResponse, LlmProvider};
 
 #[derive(Serialize)]
 struct PerplexityRequest {
@@ -53,12 +53,10 @@ impl PerplexitySonarClient {
 impl LlmClient for PerplexitySonarClient {
     async fn complete(&self, req: LlmRequest) -> Result<LlmResponse, AppError> {
         // メッセージ構築: 会話履歴があればそれを使う
-        let mut messages = vec![
-            ApiMessage {
-                role: "system".to_string(),
-                content: req.system_prompt,
-            },
-        ];
+        let mut messages = vec![ApiMessage {
+            role: "system".to_string(),
+            content: req.system_prompt,
+        }];
 
         if let Some(conversation) = &req.conversation {
             for msg in conversation {
@@ -86,7 +84,8 @@ impl LlmClient for PerplexitySonarClient {
             },
         };
 
-        let response = self.http
+        let response = self
+            .http
             .post("https://api.perplexity.ai/chat/completions")
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -97,18 +96,28 @@ impl LlmClient for PerplexitySonarClient {
         let status = response.status();
         match status.as_u16() {
             401 => {
-                return Err(AppError::Unauthorized("Perplexity API キーが無効です".to_string()));
+                return Err(AppError::Unauthorized(
+                    "Perplexity API キーが無効です".to_string(),
+                ));
             }
             429 => {
-                return Err(AppError::RateLimit("レート制限中です。しばらく待ってください".to_string()));
+                return Err(AppError::RateLimit(
+                    "レート制限中です。しばらく待ってください".to_string(),
+                ));
             }
             200..=299 => {}
             _ => {
-                return Err(AppError::Network(format!("HTTP {}: {}", status, response.text().await?)));
+                return Err(AppError::Network(format!(
+                    "HTTP {}: {}",
+                    status,
+                    response.text().await?
+                )));
             }
         }
 
-        let perplexity_response: PerplexityResponse = response.json().await
+        let perplexity_response: PerplexityResponse = response
+            .json()
+            .await
             .map_err(|e| AppError::Parse(format!("Perplexity レスポンスのパースに失敗: {}", e)))?;
 
         if perplexity_response.choices.is_empty() {

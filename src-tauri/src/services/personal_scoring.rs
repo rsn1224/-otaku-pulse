@@ -1,7 +1,7 @@
+use crate::error::AppError;
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 use std::collections::HashMap;
-use crate::error::AppError;
 
 fn calc_base_score(published_at: &Option<String>) -> f64 {
     match published_at {
@@ -52,17 +52,14 @@ fn calc_personal_score(
 }
 
 /// バッチでインタラクションボーナスを計算（N+1 解消）
-async fn batch_interaction_bonuses(
-    db: &SqlitePool,
-) -> Result<HashMap<i64, f64>, AppError> {
+async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>, AppError> {
     let mut bonuses: HashMap<i64, f64> = HashMap::new();
 
     // ブックマーク記事: +3.0
-    let bookmarked: Vec<(i64,)> = sqlx::query_as(
-        "SELECT id FROM articles WHERE is_bookmarked = 1 AND is_duplicate = 0",
-    )
-    .fetch_all(db)
-    .await?;
+    let bookmarked: Vec<(i64,)> =
+        sqlx::query_as("SELECT id FROM articles WHERE is_bookmarked = 1 AND is_duplicate = 0")
+            .fetch_all(db)
+            .await?;
 
     for (id,) in &bookmarked {
         *bonuses.entry(*id).or_insert(0.0) += 3.0;

@@ -1,6 +1,6 @@
-use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::models::ArticleDto;
+use sqlx::SqlitePool;
 
 /// Task 1: 全文検索 (FTS5)
 pub async fn search_articles(
@@ -14,7 +14,7 @@ pub async fn search_articles(
     }
     // FTS5 クエリをプレフィックス検索に対応させる
     let fts_query = format!("{}*", trimmed.replace('"', ""));
-    
+
     let rows = sqlx::query_as::<_, ArticleDto>(
         "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author,
          a.published_at, a.importance_score, a.is_read, a.is_bookmarked,
@@ -24,7 +24,7 @@ pub async fn search_articles(
          JOIN articles_fts fts ON a.id = fts.rowid
          WHERE articles_fts MATCH ?
          ORDER BY rank
-         LIMIT ?"
+         LIMIT ?",
     )
     .bind(fts_query)
     .bind(limit)

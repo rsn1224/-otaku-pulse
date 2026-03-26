@@ -30,7 +30,9 @@ impl TokenBucket {
             refill_rate,
             last_refill: Arc::new(Mutex::new(Instant::now())),
             min_interval_ms,
-            last_request: Arc::new(Mutex::new(Instant::now() - Duration::from_millis(min_interval_ms))),
+            last_request: Arc::new(Mutex::new(
+                Instant::now() - Duration::from_millis(min_interval_ms),
+            )),
             retry_after: Arc::new(Mutex::new(None)),
         }
     }
@@ -40,7 +42,7 @@ impl TokenBucket {
         let now = Instant::now();
         let mut last_refill = self.last_refill.lock().await;
         let elapsed = now.duration_since(*last_refill);
-        
+
         if elapsed.as_secs_f64() > 0.0 {
             let tokens_to_add = (elapsed.as_secs_f64() * self.refill_rate) as u32;
             let mut tokens = self.tokens.lock().await;
@@ -54,13 +56,16 @@ impl TokenBucket {
         let now = Instant::now();
         let mut last_request = self.last_request.lock().await;
         let elapsed = now.duration_since(*last_request);
-        
+
         if elapsed < Duration::from_millis(self.min_interval_ms) {
             let wait_time = Duration::from_millis(self.min_interval_ms) - elapsed;
-            info!("Rate limiting: waiting {:?} for minimum interval", wait_time);
+            info!(
+                "Rate limiting: waiting {:?} for minimum interval",
+                wait_time
+            );
             tokio::time::sleep(wait_time).await;
         }
-        
+
         *last_request = Instant::now();
     }
 
@@ -70,10 +75,12 @@ impl TokenBucket {
         {
             let retry_after = self.retry_after.lock().await;
             if let Some(duration) = *retry_after
-                && duration > Duration::ZERO {
-                return Err(crate::error::AppError::Internal(
-                    format!("Rate limited. Retry after {:?}", duration),
-                ));
+                && duration > Duration::ZERO
+            {
+                return Err(crate::error::AppError::Internal(format!(
+                    "Rate limited. Retry after {:?}",
+                    duration
+                )));
             }
         }
 
@@ -111,7 +118,7 @@ impl TokenBucket {
             *retry_after_lock = Some(Duration::from_secs(retry_after));
             info!("Updated retry-after to {} seconds", retry_after);
         }
-        
+
         // Update remaining tokens from header
         if let Some(remaining) = response
             .headers()
@@ -145,18 +152,18 @@ pub mod configs {
     /// AniList: 30 requests per minute (>= 2,100ms interval)
     pub fn anilist() -> TokenBucket {
         TokenBucket::new(
-            30,      // max_tokens (30 requests per minute)
-            0.5,     // refill_rate (0.5 tokens per second = 30 per minute)
-            2100,    // min_interval_ms (2,100ms between requests)
+            30,   // max_tokens (30 requests per minute)
+            0.5,  // refill_rate (0.5 tokens per second = 30 per minute)
+            2100, // min_interval_ms (2,100ms between requests)
         )
     }
-    
+
     /// Steam: 10 requests per minute
     #[allow(dead_code)]
     pub fn steam() -> TokenBucket {
         TokenBucket::new(10, 10.0 / 60.0, 100)
     }
-    
+
     /// Generic RSS: 1 request per second per domain
     #[allow(dead_code)]
     pub fn rss() -> TokenBucket {
@@ -172,18 +179,18 @@ mod tests {
     #[tokio::test]
     async fn test_token_bucket_basic() {
         let limiter = TokenBucket::new(5, 1.0, 100); // 5 tokens, 1 token/sec, 100ms min interval
-        
+
         // Should be able to acquire tokens immediately
         for _ in 0..5 {
             assert!(limiter.acquire().await.is_ok());
         }
-        
+
         // Next acquire should fail (no tokens)
         assert!(limiter.acquire().await.is_err());
-        
+
         // Wait for token refill
         tokio::time::sleep(Duration::from_millis(1100)).await;
-        
+
         // Should be able to acquire again
         assert!(limiter.acquire().await.is_ok());
     }
@@ -191,15 +198,15 @@ mod tests {
     #[tokio::test]
     async fn test_minimum_interval() {
         let limiter = TokenBucket::new(10, 10.0, 200); // 200ms min interval
-        
+
         let start = Instant::now();
-        
+
         // First acquire should be immediate
         assert!(limiter.acquire().await.is_ok());
-        
+
         // Second acquire should wait for interval
         assert!(limiter.acquire().await.is_ok());
-        
+
         let elapsed = start.elapsed();
         assert!(elapsed >= Duration::from_millis(200));
     }
@@ -207,7 +214,7 @@ mod tests {
     #[test]
     fn test_update_from_response() {
         let bucket = TokenBucket::new(10, 1.0, 100);
-        
+
         // Create a mock response with rate limit headers
         let response = http::Response::builder()
             .status(429) // Use numeric status code
@@ -215,10 +222,10 @@ mod tests {
             .header("X-RateLimit-Remaining", "5")
             .body("")
             .unwrap();
-        
+
         // Update bucket from response
         bucket.update_from_response(&response);
-        
+
         assert_eq!(bucket.remaining(), 5);
         assert_eq!(bucket.retry_after(), Some(Duration::from_secs(60)));
     }
@@ -228,7 +235,7 @@ mod tests {
         let anilist = configs::anilist();
         let steam = configs::steam();
         let rss = configs::rss();
-        
+
         // Test that configs create valid limiters
         assert_eq!(anilist.remaining(), 30);
         assert_eq!(steam.remaining(), 10);

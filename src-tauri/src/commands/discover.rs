@@ -69,8 +69,13 @@ pub async fn record_interaction(
     action: String,
     dwell_seconds: Option<i64>,
 ) -> CmdResult<()> {
-    discover_queries::record_interaction(&state.db, article_id, &action, dwell_seconds.unwrap_or(0))
-        .await?;
+    discover_queries::record_interaction(
+        &state.db,
+        article_id,
+        &action,
+        dwell_seconds.unwrap_or(0),
+    )
+    .await?;
 
     if action == "open" {
         profile_service::increment_read_count(&state.db).await?;
@@ -89,9 +94,10 @@ pub async fn rescore_articles(state: tauri::State<'_, AppState>) -> CmdResult<u6
 // ---------------------------------------------------------------------------
 
 fn clone_llm_settings(state: &AppState) -> CmdResult<LlmSettings> {
-    let guard = state.llm.read().map_err(|e| {
-        crate::error::AppError::Internal(format!("LLM settings lock: {e}"))
-    })?;
+    let guard = state
+        .llm
+        .read()
+        .map_err(|e| crate::error::AppError::Internal(format!("LLM settings lock: {e}")))?;
     Ok(guard.clone())
 }
 
@@ -166,7 +172,8 @@ pub async fn ask_deepdive(
     let settings = clone_llm_settings(&state)?;
     let client = build_llm_client(&settings, &state.http)?;
 
-    deepdive_service::answer_question(&state.db, article_id, &question, as_llm_client(&client)).await
+    deepdive_service::answer_question(&state.db, article_id, &question, as_llm_client(&client))
+        .await
 }
 
 // ---------------------------------------------------------------------------
@@ -207,9 +214,7 @@ pub struct UnreadCounts {
 }
 
 #[tauri::command]
-pub async fn get_unread_counts(
-    state: tauri::State<'_, AppState>,
-) -> CmdResult<UnreadCounts> {
+pub async fn get_unread_counts(state: tauri::State<'_, AppState>) -> CmdResult<UnreadCounts> {
     // 1 クエリで全カテゴリの未読数を取得
     let row: (i64, i64, i64, i64, i64, i64) = sqlx::query_as(
         "SELECT
@@ -253,7 +258,11 @@ pub async fn mark_all_read_category(
         .execute(&*state.db)
         .await?
     } else {
-        let cat = if category == "hardware" { "pc" } else { &category };
+        let cat = if category == "hardware" {
+            "pc"
+        } else {
+            &category
+        };
         sqlx::query(
             "UPDATE articles SET is_read = 1
              WHERE is_read = 0 AND feed_id IN (SELECT id FROM feeds WHERE category = ?1)",
@@ -392,16 +401,34 @@ pub async fn suggest_preferences(
         Ok(resp) => {
             // JSON パース
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp.content) {
-                let titles = parsed["titles"].as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                let titles = parsed["titles"]
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default();
-                let genres = parsed["genres"].as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                let genres = parsed["genres"]
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default();
-                let creators = parsed["creators"].as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                let creators = parsed["creators"]
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default();
-                let reason = parsed["reason"].as_str().unwrap_or("行動パターンから推定").to_string();
+                let reason = parsed["reason"]
+                    .as_str()
+                    .unwrap_or("行動パターンから推定")
+                    .to_string();
 
                 return Ok(PreferenceSuggestion {
                     suggested_titles: titles,
@@ -447,10 +474,12 @@ pub async fn ai_search(
     query: String,
 ) -> CmdResult<AiSearchResult> {
     // 1. ローカル FTS 検索
-    let local = fts_queries::search_articles(&state.db, &query, 20).await.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "FTS search failed, falling back to empty results");
-        vec![]
-    });
+    let local = fts_queries::search_articles(&state.db, &query, 20)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "FTS search failed, falling back to empty results");
+            vec![]
+        });
 
     // 2. ローカル結果が少ない or 質問形式 → AI 検索
     let is_question = query.contains('？') || query.contains('?') || query.ends_with("とは");

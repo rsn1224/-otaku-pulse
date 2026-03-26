@@ -154,7 +154,9 @@ fn extract_thumbnail(
 
     // 2. enclosure リンク（type=image/*）
     for link in links {
-        if let Some(ref media_type) = link.media_type && media_type.starts_with("image/") {
+        if let Some(ref media_type) = link.media_type
+            && media_type.starts_with("image/")
+        {
             return Some(link.href.clone());
         }
         if is_image_url(&link.href) && link.rel.as_deref() == Some("enclosure") {
@@ -177,7 +179,9 @@ fn extract_img_from_html(html: &str) -> Option<String> {
     // <img ... src="URL" ...> パターンを検索
     let img_start = html.find("<img ")?;
     let after_img = &html[img_start..];
-    let src_start = after_img.find("src=\"").or_else(|| after_img.find("src='"))?;
+    let src_start = after_img
+        .find("src=\"")
+        .or_else(|| after_img.find("src='"))?;
     let quote = after_img.as_bytes()[src_start + 4] as char;
     let url_start = src_start + 5;
     let url_end = after_img[url_start..].find(quote)?;

@@ -1,6 +1,6 @@
-use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::infra::llm_client::{LlmClient, LlmRequest};
+use sqlx::SqlitePool;
 
 /// AI サマリーを取得（キャッシュあり）またはオンデマンド生成
 pub async fn get_or_generate_summary(
@@ -8,29 +8,26 @@ pub async fn get_or_generate_summary(
     article_id: i64,
     llm: &dyn LlmClient,
 ) -> Result<String, AppError> {
-    let cached: Option<(Option<String>,)> = sqlx::query_as(
-        "SELECT ai_summary FROM articles WHERE id = ?1",
-    )
-    .bind(article_id)
-    .fetch_optional(db)
-    .await?;
+    let cached: Option<(Option<String>,)> =
+        sqlx::query_as("SELECT ai_summary FROM articles WHERE id = ?1")
+            .bind(article_id)
+            .fetch_optional(db)
+            .await?;
 
-    if let Some((Some(summary),)) = cached && !summary.is_empty() {
+    if let Some((Some(summary),)) = cached
+        && !summary.is_empty()
+    {
         return Ok(summary);
     }
 
-    let row: (String, Option<String>, Option<String>) = sqlx::query_as(
-        "SELECT title, summary, content FROM articles WHERE id = ?1",
-    )
-    .bind(article_id)
-    .fetch_one(db)
-    .await?;
+    let row: (String, Option<String>, Option<String>) =
+        sqlx::query_as("SELECT title, summary, content FROM articles WHERE id = ?1")
+            .bind(article_id)
+            .fetch_one(db)
+            .await?;
 
     let (title, summary, content) = row;
-    let source_text = content
-        .as_deref()
-        .or(summary.as_deref())
-        .unwrap_or("");
+    let source_text = content.as_deref().or(summary.as_deref()).unwrap_or("");
 
     if source_text.is_empty() {
         let fallback = format!("「{}」に関するニュース記事。", title);

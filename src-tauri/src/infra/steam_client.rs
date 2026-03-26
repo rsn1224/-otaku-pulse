@@ -1,10 +1,10 @@
 use crate::error::AppError;
 use crate::models::Article;
 use crate::parsers::bbcode_parser;
+use chrono::Utc;
 use reqwest::Client;
 use serde_json::Value;
 use std::sync::Arc;
-use chrono::Utc;
 
 pub struct SteamClient {
     client: Arc<Client>,
@@ -14,103 +14,103 @@ impl SteamClient {
     pub fn new(client: Arc<Client>) -> Self {
         Self { client }
     }
-    
+
     /// Extract AppID from steam:// URL
     pub fn extract_appid(url: &str) -> Result<u32, AppError> {
         if !url.starts_with("steam://") {
             return Err(AppError::InvalidInput("Not a steam:// URL".to_string()));
         }
-        
+
         // steam://appid/12345 or steam://run/12345
         let parts: Vec<&str> = url.split('/').collect();
         if parts.len() < 4 {
-            return Err(AppError::InvalidInput("Invalid steam:// URL format".to_string()));
+            return Err(AppError::InvalidInput(
+                "Invalid steam:// URL format".to_string(),
+            ));
         }
-        
+
         let appid_str = parts[3];
-        let appid = appid_str.parse::<u32>()
+        let appid = appid_str
+            .parse::<u32>()
             .map_err(|_| AppError::InvalidInput("Invalid AppID".to_string()))?;
-        
+
         Ok(appid)
     }
-    
+
     /// Fetch news for a Steam app
     pub async fn fetch_app_news(&self, appid: u32) -> Result<Vec<Article>, AppError> {
         let url = format!(
             "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid={}&count=10&maxlength=0&format=json",
             appid
         );
-        
-        let response = self.client
+
+        let response = self
+            .client
             .get(&url)
             .header("User-Agent", "OtakuPulse/1.0.0 (personal use)")
             .send()
             .await?;
-        
+
         if !response.status().is_success() {
             return Err(AppError::NetworkError(format!(
                 "Steam API error: {}",
                 response.status()
             )));
         }
-        
-        let json: Value = response.json().await
+
+        let json: Value = response
+            .json()
+            .await
             .map_err(|e| AppError::ParseError(format!("Failed to parse Steam response: {}", e)))?;
-        
+
         let news_items = json["appnews"]["newsitems"]
             .as_array()
             .ok_or_else(|| AppError::ParseError("Invalid news items format".to_string()))?;
-        
+
         let mut articles = Vec::new();
-        
+
         for item in news_items.iter() {
             let title = item["title"]
                 .as_str()
                 .ok_or_else(|| AppError::ParseError("Missing title".to_string()))?;
-            
+
             let url = item["url"]
                 .as_str()
                 .ok_or_else(|| AppError::ParseError("Missing URL".to_string()))?;
-            
-            let contents = item["contents"]
-                .as_str()
-                .unwrap_or("");
-            
+
+            let contents = item["contents"].as_str().unwrap_or("");
+
             // Convert BBCode to plain text
             let content = bbcode_parser::bbcode_to_plain(contents);
-            
+
             // Extract feed information
-            let feedid = item["feedid"]
-                .as_u64()
-                .unwrap_or(0) as i64;
-            
-            let date = item["date"]
-                .as_u64()
-                .unwrap_or(0);
-            
-            let author = item["author"]
-                .as_str()
-                .unwrap_or("Steam");
-            
+            let feedid = item["feedid"].as_u64().unwrap_or(0) as i64;
+
+            let date = item["date"].as_u64().unwrap_or(0);
+
+            let author = item["author"].as_str().unwrap_or("Steam");
+
             // Build external ID
             let external_id = format!("steam:{}:{}", appid, feedid);
-            
+
             // Build published date
             let published_at = if date > 0 {
-                Some(chrono::DateTime::from_timestamp(date as i64, 0)
-                    .unwrap_or_else(chrono::Utc::now)
-                    .format("%Y-%m-%d")
-                    .to_string())
+                Some(
+                    chrono::DateTime::from_timestamp(date as i64, 0)
+                        .unwrap_or_else(chrono::Utc::now)
+                        .format("%Y-%m-%d")
+                        .to_string(),
+                )
             } else {
                 None
             };
-            
+
             // Build content hash
             let content_hash = Some(crate::parsers::rss_parser::generate_content_hash(&content));
-            
+
             // Detect language (English content)
             let language = Some("en".to_string());
-            
+
             // Build metadata JSON
             let metadata = serde_json::json!({
                 "appid": appid,
@@ -119,9 +119,9 @@ impl SteamClient {
                 "date": date,
                 "tags": item["tags"].as_array().unwrap_or(&vec![]),
             });
-            
+
             let article = Article {
-                id: 0, // Will be set by database
+                id: 0,      // Will be set by database
                 feed_id: 0, // Will be set by caller
                 external_id: Some(external_id),
                 title: title.to_string(),
@@ -142,29 +142,29 @@ impl SteamClient {
                 metadata: Some(metadata.to_string()),
                 created_at: Utc::now().to_rfc3339(),
             };
-            
+
             articles.push(article);
         }
-        
+
         Ok(articles)
     }
 }
 
 fn calculate_importance_score(item: &Value) -> f64 {
     let mut score = 0.5; // Base score
-    
+
     // Add points for content length (longer news might be more important)
     if let Some(contents) = item["contents"].as_str() {
         let length_score = (contents.len() as f64 / 1000.0).min(0.2);
         score += length_score;
     }
-    
+
     // Add points for having tags
     if let Some(tags) = item["tags"].as_array() {
         let tag_score = (tags.len() as f64 / 10.0).min(0.1);
         score += tag_score;
     }
-    
+
     // Add points for recent news (within last 7 days)
     if let Some(date) = item["date"].as_u64() {
         let now = Utc::now().timestamp() as u64;
@@ -173,32 +173,38 @@ fn calculate_importance_score(item: &Value) -> f64 {
             score += 0.2;
         }
     }
-    
+
     score.min(1.0)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-    use wiremock::matchers::{method, path, query_param};
-    use std::sync::Arc;
     use crate::infra::http_client;
+    use std::sync::Arc;
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[test]
     fn test_extract_appid() {
-        assert_eq!(SteamClient::extract_appid("steam://appid/12345").unwrap(), 12345);
-        assert_eq!(SteamClient::extract_appid("steam://run/67890").unwrap(), 67890);
-        
+        assert_eq!(
+            SteamClient::extract_appid("steam://appid/12345").unwrap(),
+            12345
+        );
+        assert_eq!(
+            SteamClient::extract_appid("steam://run/67890").unwrap(),
+            67890
+        );
+
         assert!(SteamClient::extract_appid("invalid").is_err());
         assert!(SteamClient::extract_appid("steam://").is_err());
         assert!(SteamClient::extract_appid("steam://invalid").is_err());
     }
-    
+
     #[tokio::test]
     async fn test_fetch_app_news() {
         let mock_server = MockServer::start().await;
-        
+
         let mock_response = serde_json::json!({
             "appnews": {
                 "appid": 12345,
@@ -217,7 +223,7 @@ mod tests {
                 }]
             }
         });
-        
+
         Mock::given(method("GET"))
             .and(path("/ISteamNews/GetNewsForApp/v2/"))
             .and(query_param("appid", "12345"))
@@ -227,83 +233,81 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(&mock_response))
             .mount(&mock_server)
             .await;
-        
+
         let client = Arc::new(http_client::build_http_client());
         let steam_client = SteamClient::new(Arc::clone(&client));
-        
+
         // Override the API URL for testing
         let test_client = MockSteamClient::new(&mock_server.uri());
         let articles = test_client.fetch_app_news(12345).await.unwrap();
-        
+
         assert_eq!(articles.len(), 1);
         let article = &articles[0];
         assert_eq!(&article.title, "Test Update");
         assert_eq!(article.author.as_ref().unwrap(), "Valve");
-        assert_eq!(article.content.as_ref().unwrap(), "This is a **test** update with link (https://example.com).");
+        assert_eq!(
+            article.content.as_ref().unwrap(),
+            "This is a **test** update with link (https://example.com)."
+        );
         assert_eq!(article.external_id.as_ref().unwrap(), "steam:12345:0");
     }
-    
+
     // Mock client for testing
     struct MockSteamClient {
         api_url: String,
     }
-    
+
     impl MockSteamClient {
         fn new(api_url: &str) -> Self {
             Self {
                 api_url: api_url.to_string(),
             }
         }
-        
+
         async fn fetch_app_news(&self, appid: u32) -> Result<Vec<Article>, AppError> {
             let client = reqwest::Client::new();
-            
+
             let url = format!(
                 "{}/ISteamNews/GetNewsForApp/v2/?appid={}&count=10&maxlength=0&format=json",
                 self.api_url, appid
             );
-            
+
             let response = client
                 .get(&url)
                 .header("User-Agent", "OtakuPulse/1.0.0 (personal use)")
                 .send()
                 .await?;
-            
-            let json: Value = response.json().await
-                .map_err(|e| AppError::ParseError(format!("Failed to parse Steam response: {}", e)))?;
-            
+
+            let json: Value = response.json().await.map_err(|e| {
+                AppError::ParseError(format!("Failed to parse Steam response: {}", e))
+            })?;
+
             let news_items = json["appnews"]["newsitems"]
                 .as_array()
                 .ok_or_else(|| AppError::ParseError("Invalid news items format".to_string()))?;
-            
+
             let mut articles = Vec::new();
-            
+
             for item in news_items {
                 let title = item["title"]
                     .as_str()
                     .ok_or_else(|| AppError::ParseError("Missing title".to_string()))?;
-                
+
                 let url = item["url"]
                     .as_str()
                     .ok_or_else(|| AppError::ParseError("Missing URL".to_string()))?;
-                
-                let author = item["author"]
-                    .as_str()
-                    .unwrap_or("unknown");
-                
-                let contents = item["contents"]
-                    .as_str()
-                    .unwrap_or("");
-                
+
+                let author = item["author"].as_str().unwrap_or("unknown");
+
+                let contents = item["contents"].as_str().unwrap_or("");
+
                 // Convert BBCode to plain text
                 let content = bbcode_parser::bbcode_to_plain(contents);
-                
-                let feedid = item["feedid"]
-                    .as_u64()
-                    .unwrap_or(0) as i64;
-                
+
+                let feedid = item["feedid"].as_u64().unwrap_or(0) as i64;
+
                 let external_id = format!("steam:{}:{}", appid, feedid);
-                
+
                 let article = Article {
                     id: 0,
                     feed_id: 0,
@@ -326,10 +330,10 @@ mod tests {
                     metadata: None,
                     created_at: Utc::now().to_rfc3339(),
                 };
-                
+
                 articles.push(article);
             }
-            
+
             Ok(articles)
         }
     }

@@ -1,6 +1,6 @@
-use tauri::State;
-use sqlx::{SqlitePool, Row};
 use crate::error::CmdResult;
+use sqlx::{Row, SqlitePool};
+use tauri::State;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,18 +17,21 @@ pub async fn get_keyword_filters(db: State<'_, SqlitePool>) -> CmdResult<Vec<Key
     let filters = sqlx::query(
         "SELECT id, keyword, filter_type, category, created_at 
          FROM keyword_filters 
-         ORDER BY created_at DESC"
+         ORDER BY created_at DESC",
     )
     .fetch_all(&*db)
     .await?;
 
-    let dtos = filters.into_iter().map(|row| KeywordFilter {
-        id: row.get("id"),
-        keyword: row.get("keyword"),
-        filter_type: row.get("filter_type"),
-        category: row.get("category"),
-        created_at: row.get("created_at"),
-    }).collect();
+    let dtos = filters
+        .into_iter()
+        .map(|row| KeywordFilter {
+            id: row.get("id"),
+            keyword: row.get("keyword"),
+            filter_type: row.get("filter_type"),
+            category: row.get("category"),
+            created_at: row.get("created_at"),
+        })
+        .collect();
 
     Ok(dtos)
 }
@@ -42,7 +45,7 @@ pub async fn add_keyword_filter(
 ) -> CmdResult<KeywordFilter> {
     let result = sqlx::query(
         "INSERT INTO keyword_filters (keyword, filter_type, category) 
-         VALUES (?, ?, ?)"
+         VALUES (?, ?, ?)",
     )
     .bind(&keyword)
     .bind(&filter_type)
@@ -51,11 +54,11 @@ pub async fn add_keyword_filter(
     .await?;
 
     let id = result.last_insert_rowid();
-    
+
     let filter = sqlx::query(
         "SELECT id, keyword, filter_type, category, created_at 
          FROM keyword_filters 
-         WHERE id = ?"
+         WHERE id = ?",
     )
     .bind(id)
     .fetch_one(&*db)

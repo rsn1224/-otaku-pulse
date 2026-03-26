@@ -128,8 +128,6 @@ fn handle_img_tags(input: &str) -> String {
 
 /// Remove unknown BBCode tags while preserving content
 fn remove_unknown_tags(input: &str) -> String {
-    
-
     // Remove unknown tags but keep content
     // Handle [unknown]content[/unknown] -> content
     input

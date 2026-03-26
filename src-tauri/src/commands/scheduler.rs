@@ -1,10 +1,10 @@
 #![allow(dead_code)]
-use tauri::{State, AppHandle};
-use serde::{Deserialize, Serialize};
-use crate::state::AppState;
+use crate::commands::llm;
 use crate::error::AppError;
 use crate::services::scheduler::SchedulerConfig;
-use crate::commands::llm;
+use crate::state::AppState;
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, State};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SchedulerSettings {
@@ -38,9 +38,7 @@ impl From<SchedulerSettings> for SchedulerConfig {
 
 /// 現在のスケジューラー設定を取得
 #[tauri::command]
-pub async fn get_scheduler_config(
-    _app_handle: AppHandle,
-) -> Result<SchedulerSettings, AppError> {
+pub async fn get_scheduler_config(_app_handle: AppHandle) -> Result<SchedulerSettings, AppError> {
     // TODO: tauri-plugin-storeから読み込む（現在一時的実装）
     Ok(SchedulerConfig::default().into())
 }
@@ -64,11 +62,11 @@ pub async fn run_digest_now(
 ) -> Result<Vec<llm::DigestResult>, AppError> {
     let categories = ["anime", "manga", "game", "pc"];
     let mut results = Vec::new();
-    
+
     for category in &categories {
         // TODO: generate_llm_digestを呼ぶ実装が必要
         tracing::info!("手動ダイジェスト生成対象: {}", category);
-        
+
         // 現時点ではスタブ実装
         let stub_result = llm::DigestResult {
             category: category.to_string(),
@@ -82,6 +80,6 @@ pub async fn run_digest_now(
         };
         results.push(stub_result);
     }
-    
+
     Ok(results)
 }

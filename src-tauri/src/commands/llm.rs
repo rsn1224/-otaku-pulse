@@ -1,12 +1,12 @@
 #![allow(dead_code)]
+use crate::error::AppError;
+use crate::infra::llm_client::{LlmClient, LlmProvider};
+use crate::infra::ollama_client::OllamaClient;
+use crate::infra::perplexity_client::PerplexitySonarClient;
+use crate::services::digest_generator;
+use crate::state::AppState;
 use std::sync::Arc;
 use tauri::State;
-use crate::state::AppState;
-use crate::error::AppError;
-use crate::infra::llm_client::{LlmProvider, LlmClient};
-use crate::infra::perplexity_client::PerplexitySonarClient;
-use crate::infra::ollama_client::OllamaClient;
-use crate::services::digest_generator;
 
 #[derive(serde::Serialize)]
 pub struct LlmSettingsResponse {
@@ -37,7 +37,10 @@ pub async fn get_llm_settings(
 ) -> Result<LlmSettingsResponse, AppError> {
     // RwLock guard を即座に drop するためブロックで囲む
     let (provider, api_key_set, base_url, model) = {
-        let llm = state.llm.read().map_err(|e| AppError::Internal(e.to_string()))?;
+        let llm = state
+            .llm
+            .read()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         (
             llm.provider.clone(),
             llm.perplexity_api_key.is_some(),
@@ -46,9 +49,9 @@ pub async fn get_llm_settings(
         )
     };
 
-    let available_models = crate::infra::ollama_client::check_status(
-        &http, &base_url,
-    ).await.unwrap_or_default();
+    let available_models = crate::infra::ollama_client::check_status(&http, &base_url)
+        .await
+        .unwrap_or_default();
 
     let ollama_running = !available_models.is_empty();
 
@@ -67,7 +70,10 @@ pub async fn set_llm_provider(
     provider: LlmProvider,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    let mut llm = state.llm.write().map_err(|e| AppError::Internal(e.to_string()))?;
+    let mut llm = state
+        .llm
+        .write()
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     llm.provider = provider.clone();
     tracing::info!("LLM provider set to: {:?}", provider);
     Ok(())
@@ -78,7 +84,10 @@ pub async fn set_perplexity_api_key(
     api_key: String,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    let mut llm = state.llm.write().map_err(|e| AppError::Internal(e.to_string()))?;
+    let mut llm = state
+        .llm
+        .write()
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     llm.perplexity_api_key = Some(api_key);
     tracing::info!("Perplexity API key set");
     Ok(())
@@ -90,7 +99,10 @@ pub async fn set_ollama_settings(
     model: String,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    let mut llm = state.llm.write().map_err(|e| AppError::Internal(e.to_string()))?;
+    let mut llm = state
+        .llm
+        .write()
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     llm.ollama_base_url = base_url.clone();
     llm.ollama_model = model.clone();
     tracing::info!("Ollama settings updated: {} @ {}", model, base_url);
@@ -103,7 +115,10 @@ pub async fn check_ollama_status(
     state: State<'_, AppState>,
 ) -> Result<Vec<String>, AppError> {
     let base_url = {
-        let llm = state.llm.read().map_err(|e| AppError::Internal(e.to_string()))?;
+        let llm = state
+            .llm
+            .read()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         llm.ollama_base_url.clone()
     };
     crate::infra::ollama_client::check_status(&http, &base_url).await
@@ -117,22 +132,25 @@ pub async fn generate_llm_digest(
 ) -> Result<DigestResult, AppError> {
     // RwLock guard を drop してから async 処理するため、先に値をコピー
     let client: Box<dyn LlmClient> = {
-        let llm = state.llm.read().map_err(|e| AppError::Internal(e.to_string()))?;
+        let llm = state
+            .llm
+            .read()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         match llm.provider {
             LlmProvider::PerplexitySonar => {
-                let api_key = llm.perplexity_api_key.as_ref()
-                    .ok_or_else(|| AppError::Unauthorized(
-                        "Perplexity APIキーが設定されていません".to_string(),
-                    ))?;
-                Box::new(PerplexitySonarClient::new(api_key.clone(), (**http).clone()))
-            }
-            LlmProvider::Ollama => {
-                Box::new(OllamaClient::new(
-                    llm.ollama_base_url.clone(),
-                    llm.ollama_model.clone(),
+                let api_key = llm.perplexity_api_key.as_ref().ok_or_else(|| {
+                    AppError::Unauthorized("Perplexity APIキーが設定されていません".to_string())
+                })?;
+                Box::new(PerplexitySonarClient::new(
+                    api_key.clone(),
                     (**http).clone(),
                 ))
             }
+            LlmProvider::Ollama => Box::new(OllamaClient::new(
+                llm.ollama_base_url.clone(),
+                llm.ollama_model.clone(),
+                (**http).clone(),
+            )),
         }
     };
 

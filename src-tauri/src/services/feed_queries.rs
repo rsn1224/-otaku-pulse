@@ -1,31 +1,34 @@
 #![allow(dead_code)]
-use sqlx::{Row, SqlitePool};
 use crate::error::AppError;
-use crate::models::{Feed, FeedDto, Article, ArticleDto, ArticleDetailDto};
+use crate::models::{Article, ArticleDetailDto, ArticleDto, Feed, FeedDto};
+use sqlx::{Row, SqlitePool};
 
 pub async fn list_feeds(db: &SqlitePool) -> Result<Vec<FeedDto>, AppError> {
     let rows = sqlx::query_as::<_, Feed>(
         "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
          last_fetched_at, consecutive_errors, disabled_reason, last_error,
          etag, last_modified, created_at, updated_at
-         FROM feeds ORDER BY category, name"
+         FROM feeds ORDER BY category, name",
     )
     .fetch_all(db)
     .await?;
 
-    Ok(rows.into_iter().map(|f| FeedDto {
-        id: f.id,
-        name: f.name,
-        url: f.url,
-        feed_type: f.feed_type,
-        category: f.category,
-        enabled: f.enabled,
-        fetch_interval_minutes: f.fetch_interval_minutes,
-        last_fetched_at: f.last_fetched_at,
-        consecutive_errors: f.consecutive_errors,
-        disabled_reason: f.disabled_reason,
-        last_error: f.last_error,
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|f| FeedDto {
+            id: f.id,
+            name: f.name,
+            url: f.url,
+            feed_type: f.feed_type,
+            category: f.category,
+            enabled: f.enabled,
+            fetch_interval_minutes: f.fetch_interval_minutes,
+            last_fetched_at: f.last_fetched_at,
+            consecutive_errors: f.consecutive_errors,
+            disabled_reason: f.disabled_reason,
+            last_error: f.last_error,
+        })
+        .collect())
 }
 
 pub async fn list_articles(
@@ -39,7 +42,7 @@ pub async fn list_articles(
              a.language, a.thumbnail_url, f.name as feed_name
              FROM articles a JOIN feeds f ON a.feed_id = f.id
              WHERE a.is_duplicate = 0 AND f.category = ?
-             ORDER BY a.published_at DESC LIMIT 100"
+             ORDER BY a.published_at DESC LIMIT 100",
         )
         .bind(cat)
         .fetch_all(db)
@@ -51,7 +54,7 @@ pub async fn list_articles(
              a.language, a.thumbnail_url, f.name as feed_name
              FROM articles a JOIN feeds f ON a.feed_id = f.id
              WHERE a.is_duplicate = 0
-             ORDER BY a.published_at DESC LIMIT 100"
+             ORDER BY a.published_at DESC LIMIT 100",
         )
         .fetch_all(db)
         .await?
@@ -60,10 +63,7 @@ pub async fn list_articles(
     Ok(rows)
 }
 
-pub async fn upsert_articles(
-    db: &SqlitePool,
-    articles: &[Article],
-) -> Result<u32, AppError> {
+pub async fn upsert_articles(db: &SqlitePool, articles: &[Article]) -> Result<u32, AppError> {
     let mut count = 0u32;
 
     for article in articles {
@@ -86,7 +86,7 @@ pub async fn upsert_articles(
                 thumbnail_url = excluded.thumbnail_url,
                 content_hash = excluded.content_hash,
                 metadata = excluded.metadata
-            WHERE 1=1"
+            WHERE 1=1",
         )
         .bind(article.feed_id)
         .bind(&article.external_id)
@@ -122,7 +122,7 @@ pub async fn update_feed_success(
             consecutive_errors = 0, last_error = NULL,
             last_fetched_at = datetime('now'),
             etag = ?, last_modified = ?
-         WHERE id = ?"
+         WHERE id = ?",
     )
     .bind(etag)
     .bind(last_modified)
@@ -142,7 +142,7 @@ pub async fn update_feed_failure(
         "UPDATE feeds SET
             consecutive_errors = consecutive_errors + 1,
             last_error = ?
-         WHERE id = ?"
+         WHERE id = ?",
     )
     .bind(error_msg)
     .bind(feed_id)
@@ -180,7 +180,7 @@ pub async fn recent_articles_for_dedup(
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
          WHERE f.category = ? AND a.created_at >= datetime('now', '-7 days')
-         ORDER BY a.created_at DESC"
+         ORDER BY a.created_at DESC",
     )
     .bind(category)
     .fetch_all(db)
@@ -194,7 +194,7 @@ pub async fn mark_all_as_read(db: &SqlitePool, category: Option<&str>) -> Result
     let result = if let Some(cat) = category {
         sqlx::query(
             "UPDATE articles SET is_read = 1
-             WHERE is_read = 0 AND feed_id IN (SELECT id FROM feeds WHERE category = ?)"
+             WHERE is_read = 0 AND feed_id IN (SELECT id FROM feeds WHERE category = ?)",
         )
         .bind(cat)
         .execute(db)
@@ -230,7 +230,7 @@ pub async fn reenable(db: &SqlitePool, feed_id: i64) -> Result<(), AppError> {
         "UPDATE feeds SET
             enabled = 1, consecutive_errors = 0,
             disabled_reason = NULL, last_error = NULL
-         WHERE id = ?"
+         WHERE id = ?",
     )
     .bind(feed_id)
     .execute(db)
@@ -249,7 +249,7 @@ pub async fn get_article_detail(
          a.published_at, a.importance_score, f.name as feed_name
          FROM articles a 
          JOIN feeds f ON a.feed_id = f.id
-         WHERE a.id = ?"
+         WHERE a.id = ?",
     )
     .bind(article_id)
     .fetch_one(db)
@@ -270,9 +270,11 @@ pub async fn get_article_detail(
 
 /// Task 6: 未読記事数取得
 pub async fn get_unread_count(db: &SqlitePool) -> Result<i64, AppError> {
-    let count = sqlx::query("SELECT COUNT(*) as count FROM articles WHERE is_read = 0 AND is_duplicate = 0")
-        .fetch_one(db)
-        .await?;
-    
+    let count = sqlx::query(
+        "SELECT COUNT(*) as count FROM articles WHERE is_read = 0 AND is_duplicate = 0",
+    )
+    .fetch_one(db)
+    .await?;
+
     Ok(count.get("count"))
 }

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::infra::llm_client::{LlmClient, LlmRequest};
 use crate::models::DiscoverArticleDto;
+use sqlx::SqlitePool;
 
 /// AI が選定した今日のハイライト記事を取得
 /// 1. 直近24hのトップ記事を取得
@@ -91,10 +91,7 @@ pub async fn batch_generate_summaries(
     let mut generated = 0u32;
 
     for (id, title, summary, content) in &rows {
-        let source_text = content
-            .as_deref()
-            .or(summary.as_deref())
-            .unwrap_or("");
+        let source_text = content.as_deref().or(summary.as_deref()).unwrap_or("");
 
         if source_text.is_empty() {
             continue;
@@ -151,9 +148,7 @@ pub struct TrendKeyword {
 }
 
 /// 直近 7 日間のタイトルから頻出キーワードを抽出（SQL ベース、LLM 不要）
-pub async fn get_trending_keywords(
-    db: &SqlitePool,
-) -> Result<Vec<TrendKeyword>, AppError> {
+pub async fn get_trending_keywords(db: &SqlitePool) -> Result<Vec<TrendKeyword>, AppError> {
     // タイトルの単語を集計（日本語は難しいので、英単語 + 既知パターンで抽出）
     let rows: Vec<(String,)> = sqlx::query_as(
         "SELECT title FROM articles
@@ -192,10 +187,36 @@ pub async fn get_trending_keywords(
 fn is_stop_word(word: &str) -> bool {
     matches!(
         word,
-        "the" | "and" | "for" | "that" | "this" | "with" | "from" | "your"
-            | "have" | "are" | "was" | "will" | "can" | "has" | "more" | "about"
-            | "into" | "than" | "its" | "been" | "most" | "just" | "over" | "also"
-            | "after" | "http" | "https" | "www" | "html" | "nbsp"
+        "the"
+            | "and"
+            | "for"
+            | "that"
+            | "this"
+            | "with"
+            | "from"
+            | "your"
+            | "have"
+            | "are"
+            | "was"
+            | "will"
+            | "can"
+            | "has"
+            | "more"
+            | "about"
+            | "into"
+            | "than"
+            | "its"
+            | "been"
+            | "most"
+            | "just"
+            | "over"
+            | "also"
+            | "after"
+            | "http"
+            | "https"
+            | "www"
+            | "html"
+            | "nbsp"
     )
 }
 

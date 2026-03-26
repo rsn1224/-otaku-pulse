@@ -1,8 +1,8 @@
-use tauri::State;
-use sqlx::SqlitePool;
 use crate::error::CmdResult;
 use crate::models::DigestDto;
 use crate::services::digest_queries;
+use sqlx::SqlitePool;
+use tauri::State;
 
 #[tauri::command]
 pub async fn get_digests(
@@ -21,9 +21,6 @@ pub async fn get_latest_digest(
 }
 
 #[tauri::command]
-pub async fn delete_digest(
-    db: State<'_, SqlitePool>,
-    digest_id: i64,
-) -> CmdResult<()> {
+pub async fn delete_digest(db: State<'_, SqlitePool>, digest_id: i64) -> CmdResult<()> {
     digest_queries::delete_digest(&db, digest_id).await
 }

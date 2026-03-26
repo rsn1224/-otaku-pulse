@@ -165,17 +165,17 @@ pub async fn is_duplicate(
         .bind(url)
         .fetch_optional(db)
         .await?;
-    
+
     if url_exists.is_some() {
         return Ok(true);
     }
-    
+
     // 2. content_hashで検索
     let hash_exists = sqlx::query("SELECT id FROM articles WHERE content_hash = ? LIMIT 1")
         .bind(content_hash)
         .fetch_optional(db)
         .await?;
-    
+
     Ok(hash_exists.is_some())
 }
 
@@ -244,7 +244,7 @@ mod tests {
     fn test_content_hash() {
         let hash = generate_content_hash("Hello World");
         assert_eq!(hash.len(), 64); // SHA-256 hex
-                                    // 同じ入力 → 同じ出力
+        // 同じ入力 → 同じ出力
         assert_eq!(hash, generate_content_hash("Hello World"));
     }
 }

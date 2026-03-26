@@ -2,7 +2,7 @@ use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 const REQUEST_TIMEOUT_SECS: u64 = 30;
 #[allow(dead_code)]
@@ -37,7 +37,7 @@ where
         match request_fn().await {
             Ok(response) => {
                 let status = response.status();
-                
+
                 // Handle rate limiting (429)
                 if status == 429 {
                     if attempt < MAX_RETRIES {
@@ -48,8 +48,13 @@ where
                             .and_then(|v| v.to_str().ok())
                             .and_then(|s| s.parse::<u64>().ok())
                             .unwrap_or(60); // Default to 60 seconds
-                        
-                        info!("Rate limited. Waiting {} seconds before retry {}/{}", retry_after, attempt + 1, MAX_RETRIES + 1);
+
+                        info!(
+                            "Rate limited. Waiting {} seconds before retry {}/{}",
+                            retry_after,
+                            attempt + 1,
+                            MAX_RETRIES + 1
+                        );
                         sleep(Duration::from_secs(retry_after)).await;
                         continue;
                     } else {
@@ -58,21 +63,27 @@ where
                         ));
                     }
                 }
-                
+
                 // Handle server errors (5xx)
                 if status.is_server_error() {
                     if attempt < MAX_RETRIES {
                         let delay = INITIAL_RETRY_DELAY_MS * 2_u64.pow(attempt);
-                        warn!("Server error {}: {}. Retrying in {}ms...", status, response.text().await.unwrap_or_default(), delay);
+                        warn!(
+                            "Server error {}: {}. Retrying in {}ms...",
+                            status,
+                            response.text().await.unwrap_or_default(),
+                            delay
+                        );
                         sleep(Duration::from_millis(delay)).await;
                         continue;
                     } else {
-                        return Err(crate::error::AppError::NetworkError(
-                            format!("Server error {} after all retries", status),
-                        ));
+                        return Err(crate::error::AppError::NetworkError(format!(
+                            "Server error {} after all retries",
+                            status
+                        )));
                     }
                 }
-                
+
                 return Ok(response);
             }
             Err(e) => {
@@ -88,16 +99,17 @@ where
         }
     }
 
-    Err(crate::error::AppError::NetworkError(
-        format!("All retries failed: {:?}", last_error),
-    ))
+    Err(crate::error::AppError::NetworkError(format!(
+        "All retries failed: {:?}",
+        last_error
+    )))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::{Mock, MockServer, ResponseTemplate};
     use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[test]
     fn test_build_http_client() {
@@ -142,23 +154,25 @@ mod tests {
         // Mock server that returns 429 with Retry-After header
         Mock::given(method("GET"))
             .and(path("/rate-limited"))
-            .respond_with(
-                ResponseTemplate::new(429)
-                    .insert_header("Retry-After", "2")
-            )
+            .respond_with(ResponseTemplate::new(429).insert_header("Retry-After", "2"))
             .mount(&mock_server)
             .await;
 
         let start = std::time::Instant::now();
         let result = execute_with_retry(&client, || {
-            client.get(&format!("{}/rate-limited", mock_server.uri())).send()
+            client
+                .get(&format!("{}/rate-limited", mock_server.uri()))
+                .send()
         })
         .await;
 
         // Should fail after max retries
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), crate::error::AppError::RateLimitExceeded(_)));
-        
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::error::AppError::RateLimitExceeded(_)
+        ));
+
         // Should have waited at least 2 seconds due to Retry-After
         assert!(start.elapsed() >= Duration::from_secs(2));
     }

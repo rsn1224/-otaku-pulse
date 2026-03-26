@@ -2,7 +2,7 @@ use crate::error::AppError;
 use crate::infra::rate_limiter::TokenBucket;
 use crate::parsers::graphql_parser;
 use reqwest::Client;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -23,7 +23,7 @@ impl AniListClient {
             last_request_time: std::sync::Mutex::new(std::time::Instant::now()),
         }
     }
-    
+
     /// Execute GraphQL query with rate limiting
     async fn execute_query(&self, query: &str, variables: Value) -> Result<String, AppError> {
         // Rate limiting: calculate wait time while holding lock, then drop lock before await
@@ -46,23 +46,24 @@ impl AniListClient {
             let mut last_time = self.last_request_time.lock().unwrap();
             *last_time = std::time::Instant::now();
         }
-        
+
         // Acquire token from rate limiter
         self.rate_limiter.acquire().await?;
-        
+
         let request_body = json!({
             "query": query,
             "variables": variables
         });
-        
-        let response = self.client
+
+        let response = self
+            .client
             .post(ANILIST_API_URL)
             .header("Content-Type", "application/json")
             .header("User-Agent", "OtakuPulse/1.0.0 (personal use)")
             .json(&request_body)
             .send()
             .await?;
-        
+
         let status = response.status();
         if status.is_success() {
             let text = response.text().await?;
@@ -71,12 +72,11 @@ impl AniListClient {
             let error_text = response.text().await.unwrap_or_default();
             Err(AppError::NetworkError(format!(
                 "AniList API error: {} - {}",
-                status,
-                error_text
+                status, error_text
             )))
         }
     }
-    
+
     /// Fetch seasonal anime
     pub async fn fetch_seasonal_anime(
         &self,
@@ -85,37 +85,37 @@ impl AniListClient {
         page: Option<i32>,
     ) -> Result<Vec<crate::models::Article>, AppError> {
         let query = include_str!("../../graphql/seasonal_anime.graphql");
-        
+
         let variables = json!({
             "season": season,
             "year": year,
             "page": page.unwrap_or(1)
         });
-        
+
         let response = self.execute_query(query, variables).await?;
-        
+
         let articles = graphql_parser::anilist_to_articles(&response, "anime")
             .map_err(AppError::ParseError)?;
-        
+
         Ok(articles)
     }
-    
+
     /// Fetch trending manga
     pub async fn fetch_trending_manga(
         &self,
         page: Option<i32>,
     ) -> Result<Vec<crate::models::Article>, AppError> {
         let query = include_str!("../../graphql/trending_manga.graphql");
-        
+
         let variables = json!({
             "page": page.unwrap_or(1)
         });
-        
+
         let response = self.execute_query(query, variables).await?;
-        
+
         let articles = graphql_parser::anilist_to_articles(&response, "manga")
             .map_err(AppError::ParseError)?;
-        
+
         Ok(articles)
     }
 }
@@ -130,15 +130,15 @@ pub async fn query_anilist(query: &str, variables: &serde_json::Value) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-    use wiremock::matchers::{method, path, header, body_json};
-    use std::sync::Arc;
     use crate::infra::http_client;
+    use std::sync::Arc;
+    use wiremock::matchers::{body_json, header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
     async fn test_fetch_seasonal_anime() {
         let mock_server = MockServer::start().await;
-        
+
         let mock_response = json!({
             "data": {
                 "page": {
@@ -192,7 +192,7 @@ mod tests {
                 }
             }
         });
-        
+
         Mock::given(method("POST"))
             .and(path("/"))
             .and(header("Content-Type", "application/json"))
@@ -200,42 +200,45 @@ mod tests {
             .respond_with(
                 ResponseTemplate::new(200)
                     .insert_header("X-RateLimit-Remaining", "29")
-                    .set_body_json(&mock_response)
+                    .set_body_json(&mock_response),
             )
             .mount(&mock_server)
             .await;
-        
+
         let client = Arc::new(http_client::build_http_client());
         let mut anilist_client = AniListClient::new(Arc::clone(&client));
-        
+
         // Override the API URL for testing
         let test_client = AniListClient {
             client: anilist_client.client.clone(),
             rate_limiter: anilist_client.rate_limiter,
             last_request_time: anilist_client.last_request_time,
         };
-        
+
         // We need to mock the actual HTTP call, so we'll create a custom implementation
         let test_client = MockAniListClient::new(&mock_server.uri());
-        let articles = test_client.fetch_seasonal_anime("WINTER", 2023, Some(1)).await.unwrap();
-        
+        let articles = test_client
+            .fetch_seasonal_anime("WINTER", 2023, Some(1))
+            .await
+            .unwrap();
+
         assert_eq!(articles.len(), 1);
         assert_eq!(&articles[0].title, "Test Anime");
         assert_eq!(articles[0].external_id.as_ref().unwrap(), "anilist:1");
     }
-    
+
     // Mock client for testing
     struct MockAniListClient {
         api_url: String,
     }
-    
+
     impl MockAniListClient {
         fn new(api_url: &str) -> Self {
             Self {
                 api_url: api_url.to_string(),
             }
         }
-        
+
         async fn fetch_seasonal_anime(
             &self,
             season: &str,
@@ -243,19 +246,19 @@ mod tests {
             page: Option<i32>,
         ) -> Result<Vec<crate::models::Article>, AppError> {
             let client = reqwest::Client::new();
-            
+
             let query = include_str!("../../graphql/seasonal_anime.graphql");
             let variables = json!({
                 "season": season,
                 "year": year,
                 "page": page.unwrap_or(1)
             });
-            
+
             let request_body = json!({
                 "query": query,
                 "variables": variables
             });
-            
+
             let response = client
                 .post(&self.api_url)
                 .header("Content-Type", "application/json")
@@ -263,11 +266,11 @@ mod tests {
                 .json(&request_body)
                 .send()
                 .await?;
-            
+
             let text = response.text().await?;
             let articles = graphql_parser::anilist_to_articles(&text, "anime")
                 .map_err(AppError::ParseError)?;
-            
+
             Ok(articles)
         }
     }

@@ -1,6 +1,6 @@
-use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::models::{UserProfile, UserProfileDto};
+use sqlx::SqlitePool;
 
 /// プロフィール取得
 pub async fn get_profile(db: &SqlitePool) -> Result<UserProfileDto, AppError> {

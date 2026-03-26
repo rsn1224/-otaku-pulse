@@ -1,13 +1,13 @@
 #![allow(dead_code)]
-use async_trait::async_trait;
-use sqlx::SqlitePool;
-use std::sync::Arc;
 use crate::error::AppError;
+use crate::infra::{anilist_client, rss_fetcher, steam_client};
 use crate::models::{Article, Feed};
-use chrono::Datelike;
-use crate::infra::{rss_fetcher, anilist_client, steam_client};
 use crate::parsers::rss_parser;
 use crate::services::{dedup_service, feed_queries, scoring_service};
+use async_trait::async_trait;
+use chrono::Datelike;
+use sqlx::SqlitePool;
+use std::sync::Arc;
 
 #[async_trait]
 pub trait Collector: Send + Sync {
@@ -38,7 +38,9 @@ impl Collector for RssCollector {
             last_modified: feed.last_modified.clone(),
         };
 
-        if let Some((raw, _new_cache)) = rss_fetcher::fetch_rss(&self.http, &feed.url, &cache).await? {
+        if let Some((raw, _new_cache)) =
+            rss_fetcher::fetch_rss(&self.http, &feed.url, &cache).await?
+        {
             rss_parser::parse_rss_feed(&raw, feed.id)
         } else {
             Ok(Vec::new())
@@ -82,13 +84,18 @@ impl Collector for AniListCollector {
                 7..=9 => "SUMMER",
                 _ => "FALL",
             };
-            client.fetch_seasonal_anime(season, now.year(), Some(1)).await?
+            client
+                .fetch_seasonal_anime(season, now.year(), Some(1))
+                .await?
         };
 
-        Ok(articles.into_iter().map(|mut a| {
-            a.feed_id = feed.id;
-            a
-        }).collect())
+        Ok(articles
+            .into_iter()
+            .map(|mut a| {
+                a.feed_id = feed.id;
+                a
+            })
+            .collect())
     }
 
     fn feed_type(&self) -> &str {
@@ -117,10 +124,13 @@ impl Collector for SteamCollector {
         let client = steam_client::SteamClient::new(self.http.clone());
         let articles = client.fetch_app_news(appid).await?;
 
-        Ok(articles.into_iter().map(|mut a| {
-            a.feed_id = feed.id;
-            a
-        }).collect())
+        Ok(articles
+            .into_iter()
+            .map(|mut a| {
+                a.feed_id = feed.id;
+                a
+            })
+            .collect())
     }
 
     fn feed_type(&self) -> &str {
@@ -133,15 +143,12 @@ impl Collector for SteamCollector {
 // ---------------------------------------------------------------------------
 
 /// 全フィードを収集して DB に保存。取得記事数を返す。
-pub async fn refresh_all(
-    db: &SqlitePool,
-    http: &reqwest::Client,
-) -> Result<u32, AppError> {
+pub async fn refresh_all(db: &SqlitePool, http: &reqwest::Client) -> Result<u32, AppError> {
     let feeds: Vec<Feed> = sqlx::query_as::<_, Feed>(
         "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
          last_fetched_at, consecutive_errors, disabled_reason, last_error,
          etag, last_modified, created_at, updated_at
-         FROM feeds WHERE enabled = 1"
+         FROM feeds WHERE enabled = 1",
     )
     .fetch_all(db)
     .await?;
@@ -175,7 +182,7 @@ pub async fn refresh_one(
         "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
          last_fetched_at, consecutive_errors, disabled_reason, last_error,
          etag, last_modified, created_at, updated_at
-         FROM feeds WHERE id = ?"
+         FROM feeds WHERE id = ?",
     )
     .bind(feed_id)
     .fetch_one(db)
@@ -194,7 +201,11 @@ pub async fn collect_feed(
         "rss" | "reddit" => Box::new(RssCollector::new(http.clone())),
         "anilist" => Box::new(AniListCollector::new(http.clone())),
         "steam" => Box::new(SteamCollector::new(http.clone())),
-        other => return Err(AppError::InvalidInput(format!("Unsupported feed type: {other}"))),
+        other => {
+            return Err(AppError::InvalidInput(format!(
+                "Unsupported feed type: {other}"
+            )));
+        }
     };
 
     let mut articles = collector.collect(feed).await?;
@@ -213,18 +224,18 @@ pub async fn collect_feed(
     let existing = feed_queries::recent_articles_for_dedup(db, &feed.category).await?;
     for article in &mut articles {
         for existing_article in &existing {
-            let similarity = dedup_service::jaccard_bigram_similarity(
-                &article.title,
-                &existing_article.title,
-            );
+            let similarity =
+                dedup_service::jaccard_bigram_similarity(&article.title, &existing_article.title);
             if similarity >= 0.6 {
                 article.is_duplicate = true;
                 article.duplicate_of = Some(existing_article.id);
                 break;
             }
             // Layer 3: content_hash 完全一致
-            if let (Some(new_hash), Some(existing_hash)) = (&article.content_hash, &existing_article.content_hash)
-                && new_hash == existing_hash {
+            if let (Some(new_hash), Some(existing_hash)) =
+                (&article.content_hash, &existing_article.content_hash)
+                && new_hash == existing_hash
+            {
                 article.is_duplicate = true;
                 article.duplicate_of = Some(existing_article.id);
                 break;

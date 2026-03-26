@@ -1,7 +1,7 @@
-use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::infra::llm_client::{LlmClient, LlmRequest};
 use crate::models::DeepDiveResult;
+use sqlx::SqlitePool;
 
 /// 記事から深堀り質問を3件生成
 pub async fn generate_questions(
@@ -9,12 +9,11 @@ pub async fn generate_questions(
     article_id: i64,
     llm: &dyn LlmClient,
 ) -> Result<Vec<String>, AppError> {
-    let row: (String, Option<String>) = sqlx::query_as(
-        "SELECT title, summary FROM articles WHERE id = ?1",
-    )
-    .bind(article_id)
-    .fetch_one(db)
-    .await?;
+    let row: (String, Option<String>) =
+        sqlx::query_as("SELECT title, summary FROM articles WHERE id = ?1")
+            .bind(article_id)
+            .fetch_one(db)
+            .await?;
 
     let (title, summary) = row;
     let context = summary.as_deref().unwrap_or("");
@@ -63,12 +62,11 @@ pub async fn answer_question(
         });
     }
 
-    let row: (String, Option<String>) = sqlx::query_as(
-        "SELECT title, summary FROM articles WHERE id = ?1",
-    )
-    .bind(article_id)
-    .fetch_one(db)
-    .await?;
+    let row: (String, Option<String>) =
+        sqlx::query_as("SELECT title, summary FROM articles WHERE id = ?1")
+            .bind(article_id)
+            .fetch_one(db)
+            .await?;
 
     let (title, summary) = row;
     let context = summary.as_deref().unwrap_or("");
@@ -133,7 +131,11 @@ fn parse_question_array(raw: &str) -> Vec<String> {
     raw.lines()
         .filter(|l| !l.trim().is_empty())
         .take(3)
-        .map(|l| l.trim().trim_matches(|c: char| c == '"' || c == '[' || c == ']' || c == ',').to_string())
+        .map(|l| {
+            l.trim()
+                .trim_matches(|c: char| c == '"' || c == '[' || c == ']' || c == ',')
+                .to_string()
+        })
         .collect()
 }
 

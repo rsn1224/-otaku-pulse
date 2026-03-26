@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use sqlx::SqlitePool;
 use crate::error::AppError;
 use crate::infra::llm_client::{LlmClient, LlmRequest};
 use crate::services::digest_queries;
+use sqlx::SqlitePool;
 
 #[derive(serde::Serialize)]
 pub struct DigestResult {
@@ -25,22 +25,22 @@ pub async fn generate(
 ) -> Result<DigestResult, AppError> {
     // 1. DBから直近hours時間の記事を取得（最大10件、published_at DESC）
     let articles = digest_queries::unsummarized_articles(db, category, 10).await?;
-    
+
     // 2. 記事が0件 → stubを返す
     if articles.is_empty() {
-        return Ok(create_stub_digest(category, 0, Some("記事がありません".to_string())));
+        return Ok(create_stub_digest(
+            category,
+            0,
+            Some("記事がありません".to_string()),
+        ));
     }
-    
+
     // 3. LlmClient::complete()を呼ぶ
     let system_prompt = build_system_prompt(category);
     let user_prompt = build_user_prompt(&articles);
-    
-    let request = LlmRequest::simple(
-        system_prompt,
-        user_prompt,
-        1000,
-    );
-    
+
+    let request = LlmRequest::simple(system_prompt, user_prompt, 1000);
+
     match client.complete(request).await {
         Ok(response) => {
             // 4. 成功時 → AI生成済みダイジェスト
@@ -58,20 +58,36 @@ pub async fn generate(
         Err(e) => {
             // 4. 失敗時 → tracing::warn!でログ → stubにフォールバック
             tracing::warn!("LLM生成失敗（{}）: {}", category, e);
-            Ok(create_stub_digest(category, articles.len(), Some(format!("AI生成失敗: {}", e))))
+            Ok(create_stub_digest(
+                category,
+                articles.len(),
+                Some(format!("AI生成失敗: {}", e)),
+            ))
         }
     }
 }
 
-fn create_stub_digest(category: &str, article_count: usize, fallback_reason: Option<String>) -> DigestResult {
+fn create_stub_digest(
+    category: &str,
+    article_count: usize,
+    fallback_reason: Option<String>,
+) -> DigestResult {
     let summary = match category {
-        "anime" => "・新作アニメ情報が更新されました\n・人気シリーズの最新話が配信開始\n・声優関連ニュースが話題に",
-        "manga" => "・連載漫画の最新刊が発売\n・新人作家のデビュー作が注目\n・電子書籍限定コンテンツ追加",
-        "game" => "・新作タイトルの発売情報\n・人気ゲームのアップデート実施\n・eスポーツ大会の開催決定",
-        "pc" => "・最新PCパーツの価格動向\n・新グラフィックボード発表\n・ソフトウェアのセキュリティ更新",
+        "anime" => {
+            "・新作アニメ情報が更新されました\n・人気シリーズの最新話が配信開始\n・声優関連ニュースが話題に"
+        }
+        "manga" => {
+            "・連載漫画の最新刊が発売\n・新人作家のデビュー作が注目\n・電子書籍限定コンテンツ追加"
+        }
+        "game" => {
+            "・新作タイトルの発売情報\n・人気ゲームのアップデート実施\n・eスポーツ大会の開催決定"
+        }
+        "pc" => {
+            "・最新PCパーツの価格動向\n・新グラフィックボード発表\n・ソフトウェアのセキュリティ更新"
+        }
         _ => "関連ニュースが複数報道されています",
     };
-    
+
     DigestResult {
         category: category.to_string(),
         summary: summary.to_string(),

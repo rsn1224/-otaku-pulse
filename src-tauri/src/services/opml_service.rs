@@ -55,19 +55,23 @@ pub fn parse_opml(xml: &str) -> Result<Vec<(String, String, String)>, AppError> 
         let trimmed = line.trim();
 
         // カテゴリー開始タグ
-        if trimmed.starts_with("<outline") && !trimmed.contains("type=")
-            && let Some(category) = extract_attribute(trimmed, "text") {
-                current_category = category;
-            }
+        if trimmed.starts_with("<outline")
+            && !trimmed.contains("type=")
+            && let Some(category) = extract_attribute(trimmed, "text")
+        {
+            current_category = category;
+        }
 
         // RSSフィード
-        if trimmed.starts_with("<outline") && trimmed.contains("type=\"rss\"")
+        if trimmed.starts_with("<outline")
+            && trimmed.contains("type=\"rss\"")
             && let (Some(name), Some(url)) = (
                 extract_attribute(trimmed, "text"),
                 extract_attribute(trimmed, "xmlUrl"),
-            ) {
-                feeds.push((name, url, current_category.clone()));
-            }
+            )
+        {
+            feeds.push((name, url, current_category.clone()));
+        }
     }
 
     Ok(feeds)
