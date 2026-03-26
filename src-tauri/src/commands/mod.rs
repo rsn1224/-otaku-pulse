@@ -6,6 +6,8 @@ pub mod collect;
 #[allow(dead_code)]
 pub mod digest;
 pub mod discover;
+pub mod discover_ai;
+pub mod discover_profile;
 pub mod feed;
 pub mod filters;
 pub mod llm;

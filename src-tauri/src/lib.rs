@@ -97,25 +97,29 @@ pub fn run() {
             commands::filters::get_keyword_filters,
             commands::filters::add_keyword_filter,
             commands::filters::remove_keyword_filter,
-            // Discover
-            commands::discover::get_user_profile,
-            commands::discover::update_user_profile,
-            commands::discover::reset_learning_data,
+            // Discover (feed / interactions / unread)
             commands::discover::get_discover_feed,
             commands::discover::get_library_articles,
             commands::discover::record_interaction,
             commands::discover::rescore_articles,
-            commands::discover::get_or_generate_summary,
-            commands::discover::get_deepdive_questions,
-            commands::discover::ask_deepdive,
-            commands::discover::get_daily_highlights,
-            commands::discover::batch_generate_summaries,
             commands::discover::get_unread_counts,
             commands::discover::mark_all_read_category,
             commands::discover::get_related_articles,
-            commands::discover::adjust_feed_preference,
-            commands::discover::ai_search,
-            commands::discover::suggest_preferences,
+            // Discover AI (summary / deepdive / search)
+            commands::discover_ai::get_or_generate_summary,
+            commands::discover_ai::get_deepdive_questions,
+            commands::discover_ai::ask_deepdive,
+            commands::discover_ai::get_daily_highlights,
+            commands::discover_ai::batch_generate_summaries,
+            commands::discover_ai::get_trending_keywords,
+            commands::discover_ai::ai_search,
+            commands::discover_ai::search_discover,
+            // Discover Profile (profile / preferences)
+            commands::discover_profile::get_user_profile,
+            commands::discover_profile::update_user_profile,
+            commands::discover_profile::reset_learning_data,
+            commands::discover_profile::adjust_feed_preference,
+            commands::discover_profile::suggest_preferences,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run OtakuPulse");
