@@ -121,7 +121,7 @@ pub async fn get_airing_schedule(
         });
         let response = anilist_client::query_anilist(query, &variables).await?;
         let (entries, has_next) =
-            parse_airing_response(&response).map_err(crate::error::AppError::ParseError)?;
+            parse_airing_response(&response).map_err(crate::error::AppError::Parse)?;
         all_entries.extend(entries);
 
         if !has_next || page >= max_pages {

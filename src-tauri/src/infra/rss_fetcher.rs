@@ -45,7 +45,7 @@ pub async fn fetch_rss(
 
             Ok(Some((body, new_cache)))
         }
-        status => Err(AppError::NetworkError(format!(
+        status => Err(AppError::Network(format!(
             "Failed to fetch RSS feed: HTTP {}",
             status
         ))),

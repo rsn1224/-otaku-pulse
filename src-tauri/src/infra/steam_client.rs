@@ -52,7 +52,7 @@ impl SteamClient {
             .await?;
 
         if !response.status().is_success() {
-            return Err(AppError::NetworkError(format!(
+            return Err(AppError::Network(format!(
                 "Steam API error: {}",
                 response.status()
             )));
@@ -61,22 +61,22 @@ impl SteamClient {
         let json: Value = response
             .json()
             .await
-            .map_err(|e| AppError::ParseError(format!("Failed to parse Steam response: {}", e)))?;
+            .map_err(|e| AppError::Parse(format!("Failed to parse Steam response: {}", e)))?;
 
         let news_items = json["appnews"]["newsitems"]
             .as_array()
-            .ok_or_else(|| AppError::ParseError("Invalid news items format".to_string()))?;
+            .ok_or_else(|| AppError::Parse("Invalid news items format".to_string()))?;
 
         let mut articles = Vec::new();
 
         for item in news_items.iter() {
             let title = item["title"]
                 .as_str()
-                .ok_or_else(|| AppError::ParseError("Missing title".to_string()))?;
+                .ok_or_else(|| AppError::Parse("Missing title".to_string()))?;
 
             let url = item["url"]
                 .as_str()
-                .ok_or_else(|| AppError::ParseError("Missing URL".to_string()))?;
+                .ok_or_else(|| AppError::Parse("Missing URL".to_string()))?;
 
             let contents = item["contents"].as_str().unwrap_or("");
 
@@ -279,23 +279,23 @@ mod tests {
                 .await?;
 
             let json: Value = response.json().await.map_err(|e| {
-                AppError::ParseError(format!("Failed to parse Steam response: {}", e))
+                AppError::Parse(format!("Failed to parse Steam response: {}", e))
             })?;
 
             let news_items = json["appnews"]["newsitems"]
                 .as_array()
-                .ok_or_else(|| AppError::ParseError("Invalid news items format".to_string()))?;
+                .ok_or_else(|| AppError::Parse("Invalid news items format".to_string()))?;
 
             let mut articles = Vec::new();
 
             for item in news_items {
                 let title = item["title"]
                     .as_str()
-                    .ok_or_else(|| AppError::ParseError("Missing title".to_string()))?;
+                    .ok_or_else(|| AppError::Parse("Missing title".to_string()))?;
 
                 let url = item["url"]
                     .as_str()
-                    .ok_or_else(|| AppError::ParseError("Missing URL".to_string()))?;
+                    .ok_or_else(|| AppError::Parse("Missing URL".to_string()))?;
 
                 let author = item["author"].as_str().unwrap_or("unknown");
 

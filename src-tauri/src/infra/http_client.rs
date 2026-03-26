@@ -58,7 +58,7 @@ where
                         sleep(Duration::from_secs(retry_after)).await;
                         continue;
                     } else {
-                        return Err(crate::error::AppError::RateLimitExceeded(
+                        return Err(crate::error::AppError::RateLimit(
                             "Rate limit exceeded after all retries".to_string(),
                         ));
                     }
@@ -77,7 +77,7 @@ where
                         sleep(Duration::from_millis(delay)).await;
                         continue;
                     } else {
-                        return Err(crate::error::AppError::NetworkError(format!(
+                        return Err(crate::error::AppError::Network(format!(
                             "Server error {} after all retries",
                             status
                         )));
@@ -99,7 +99,7 @@ where
         }
     }
 
-    Err(crate::error::AppError::NetworkError(format!(
+    Err(crate::error::AppError::Network(format!(
         "All retries failed: {:?}",
         last_error
     )))
@@ -170,7 +170,7 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            crate::error::AppError::RateLimitExceeded(_)
+            crate::error::AppError::RateLimit(_)
         ));
 
         // Should have waited at least 2 seconds due to Retry-After

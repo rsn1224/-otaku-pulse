@@ -43,7 +43,7 @@ impl RedditFetcher {
                 // Fall back to JSON endpoint
                 self.fetch_json(subreddit).await
             }
-            status => Err(AppError::NetworkError(format!(
+            status => Err(AppError::Network(format!(
                 "Reddit RSS error: HTTP {}",
                 status
             ))),
@@ -63,7 +63,7 @@ impl RedditFetcher {
             .await?;
 
         if !response.status().is_success() {
-            return Err(AppError::NetworkError(format!(
+            return Err(AppError::Network(format!(
                 "Reddit JSON error: {}",
                 response.status()
             )));
@@ -72,11 +72,11 @@ impl RedditFetcher {
         let json: Value = response
             .json()
             .await
-            .map_err(|e| AppError::ParseError(format!("Failed to parse Reddit response: {}", e)))?;
+            .map_err(|e| AppError::Parse(format!("Failed to parse Reddit response: {}", e)))?;
 
         let posts = json["data"]["children"]
             .as_array()
-            .ok_or_else(|| AppError::ParseError("Invalid Reddit response format".to_string()))?;
+            .ok_or_else(|| AppError::Parse("Invalid Reddit response format".to_string()))?;
 
         let mut articles = Vec::new();
 
@@ -85,11 +85,11 @@ impl RedditFetcher {
 
             let title = data["title"]
                 .as_str()
-                .ok_or_else(|| AppError::ParseError("Missing title".to_string()))?;
+                .ok_or_else(|| AppError::Parse("Missing title".to_string()))?;
 
             let permalink = data["permalink"]
                 .as_str()
-                .ok_or_else(|| AppError::ParseError("Missing permalink".to_string()))?;
+                .ok_or_else(|| AppError::Parse("Missing permalink".to_string()))?;
 
             let url = format!("https://www.reddit.com{}", permalink);
 
@@ -98,7 +98,7 @@ impl RedditFetcher {
             // Build external ID
             let id = data["id"]
                 .as_str()
-                .ok_or_else(|| AppError::ParseError("Missing ID".to_string()))?;
+                .ok_or_else(|| AppError::Parse("Missing ID".to_string()))?;
             let external_id = format!("reddit:{}", id);
 
             // Build published date
@@ -351,7 +351,7 @@ mod tests {
                     // Fall back to JSON
                     self.fetch_json(subreddit).await
                 }
-                status => Err(AppError::NetworkError(format!(
+                status => Err(AppError::Network(format!(
                     "Reddit RSS error: HTTP {}",
                     status
                 ))),
@@ -370,18 +370,18 @@ mod tests {
                 .await?;
 
             if !response.status().is_success() {
-                return Err(AppError::NetworkError(format!(
+                return Err(AppError::Network(format!(
                     "Reddit JSON error: {}",
                     response.status()
                 )));
             }
 
             let json: Value = response.json().await.map_err(|e| {
-                AppError::ParseError(format!("Failed to parse Reddit response: {}", e))
+                AppError::Parse(format!("Failed to parse Reddit response: {}", e))
             })?;
 
             let posts = json["data"]["children"].as_array().ok_or_else(|| {
-                AppError::ParseError("Invalid Reddit response format".to_string())
+                AppError::Parse("Invalid Reddit response format".to_string())
             })?;
 
             let mut articles = Vec::new();
@@ -391,11 +391,11 @@ mod tests {
 
                 let title = data["title"]
                     .as_str()
-                    .ok_or_else(|| AppError::ParseError("Missing title".to_string()))?;
+                    .ok_or_else(|| AppError::Parse("Missing title".to_string()))?;
 
                 let permalink = data["permalink"]
                     .as_str()
-                    .ok_or_else(|| AppError::ParseError("Missing permalink".to_string()))?;
+                    .ok_or_else(|| AppError::Parse("Missing permalink".to_string()))?;
 
                 let url = format!("https://www.reddit.com{}", permalink);
 
@@ -403,7 +403,7 @@ mod tests {
 
                 let id = data["id"]
                     .as_str()
-                    .ok_or_else(|| AppError::ParseError("Missing ID".to_string()))?;
+                    .ok_or_else(|| AppError::Parse("Missing ID".to_string()))?;
                 let external_id = format!("reddit:{}", id);
 
                 let article = Article {

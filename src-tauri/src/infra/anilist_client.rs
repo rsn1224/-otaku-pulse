@@ -70,7 +70,7 @@ impl AniListClient {
             Ok(text)
         } else {
             let error_text = response.text().await.unwrap_or_default();
-            Err(AppError::NetworkError(format!(
+            Err(AppError::Network(format!(
                 "AniList API error: {} - {}",
                 status, error_text
             )))
@@ -95,7 +95,7 @@ impl AniListClient {
         let response = self.execute_query(query, variables).await?;
 
         let articles = graphql_parser::anilist_to_articles(&response, "anime")
-            .map_err(AppError::ParseError)?;
+            .map_err(AppError::Parse)?;
 
         Ok(articles)
     }
@@ -114,7 +114,7 @@ impl AniListClient {
         let response = self.execute_query(query, variables).await?;
 
         let articles = graphql_parser::anilist_to_articles(&response, "manga")
-            .map_err(AppError::ParseError)?;
+            .map_err(AppError::Parse)?;
 
         Ok(articles)
     }
@@ -269,7 +269,7 @@ mod tests {
 
             let text = response.text().await?;
             let articles = graphql_parser::anilist_to_articles(&text, "anime")
-                .map_err(AppError::ParseError)?;
+                .map_err(AppError::Parse)?;
 
             Ok(articles)
         }

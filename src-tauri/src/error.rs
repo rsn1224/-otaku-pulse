@@ -15,9 +15,6 @@ pub enum AppError {
     #[error("Feed parse error: {0}")]
     FeedParse(String),
 
-    #[error("Rate limit exceeded: {0}")]
-    RateLimitExceeded(String),
-
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
 
@@ -32,12 +29,6 @@ pub enum AppError {
 
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-
-    #[error("Network error: {0}")]
-    NetworkError(String),
-
-    #[error("Parse error: {0}")]
-    ParseError(String),
 
     #[error("LLM error: {0}")]
     Llm(String),
@@ -62,12 +53,11 @@ impl Serialize for AppError {
             Self::Database(_) => "database",
             Self::Http(_) => "http",
             Self::FeedParse(_) => "feed_parse",
-            Self::RateLimitExceeded(_) | Self::RateLimit(_) => "rate_limit",
+            Self::RateLimit(_) => "rate_limit",
             Self::Unauthorized(_) => "unauthorized",
-            Self::Network(_) | Self::NetworkError(_) => "network",
+            Self::Network(_) => "network",
             Self::Parse(_) => "parse",
             Self::InvalidInput(_) => "invalid_input",
-            Self::ParseError(_) => "parse_error",
             Self::Llm(_) => "llm",
             Self::Scheduler(_) => "scheduler",
             Self::Internal(_) => "internal",
