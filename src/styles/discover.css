@@ -1,21 +1,21 @@
-/* Perplexity Discover 風カラートークン (ダークファースト) */
+/* Stitch デザインシステム カラートークン */
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #131820;
-  --bg-card: #161b22;
-  --bg-card-hover: #1c2333;
-  --bg-deepdive: #141d2e;
-  --border: #21262d;
-  --border-hover: #30363d;
-  --accent: #1db9a0;
-  --accent-soft: rgba(29, 185, 160, 0.16);
-  --accent-glow: rgba(29, 185, 160, 0.06);
-  --text-primary: #ecf0f5;
-  --text-secondary: #7d8590;
-  --text-tertiary: #484f58;
-  --text-source: #6e7681;
-  --badge-hot: #f85149;
-  --badge-new: #3fb950;
+  --bg-primary: #0e0e13;
+  --bg-secondary: #131319;
+  --bg-card: #19191f;
+  --bg-card-hover: #1f1f26;
+  --bg-deepdive: #131319;
+  --border: #25252d;
+  --border-hover: #48474d;
+  --accent: #bd9dff;
+  --accent-soft: rgba(189, 157, 255, 0.15);
+  --accent-glow: rgba(189, 157, 255, 0.06);
+  --text-primary: #f9f5fd;
+  --text-secondary: #acaab1;
+  --text-tertiary: #76747b;
+  --text-source: #acaab1;
+  --badge-hot: #ff6e84;
+  --badge-new: #699cff;
 }
 
 /* DiscoverCard */
@@ -681,6 +681,14 @@
 
 .search-result-item:hover {
   background: var(--bg-card-hover);
+}
+
+/* Glass AI Summary block */
+.glass-summary {
+  background: rgba(189, 157, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(189, 157, 255, 0.1);
 }
 
 /* Article HTML content rendering */

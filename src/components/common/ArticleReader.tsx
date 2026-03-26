@@ -157,6 +157,30 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
         {/* Body */}
         <div className="flex-1 overflow-y-auto discover-scroll px-6 py-6">
           <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+            {/* Glass AI Summary */}
+            {article.summary && (
+              <div className="glass-summary rounded-2xl p-5 mb-6 relative overflow-hidden">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                    style={{
+                      background: 'rgba(189, 157, 255, 0.1)',
+                      border: '1px solid rgba(189, 157, 255, 0.2)',
+                      color: 'var(--accent)',
+                    }}
+                  >
+                    AI Summary
+                  </span>
+                </div>
+                <p
+                  className="text-[14px] leading-[1.6] italic"
+                  style={{ color: 'rgba(249, 245, 253, 0.9)' }}
+                >
+                  {stripCitations(article.summary)}
+                </p>
+              </div>
+            )}
+
             {article.content ? (
               containsHtml(article.content) ? (
                 <div

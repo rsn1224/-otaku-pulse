@@ -133,13 +133,7 @@ export const AppShell: React.FC = () => {
       >
         <div className="topbar" data-tauri-drag-region>
           <div className="flex items-center gap-3" data-tauri-drag-region>
-            <div
-              className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold"
-              style={{ background: 'var(--accent)', color: '#fff' }}
-            >
-              O
-            </div>
-            <span className="text-sm font-semibold" data-tauri-drag-region>
+            <span className="text-sm font-semibold tracking-tight" data-tauri-drag-region>
               OtakuPulse
             </span>
           </div>
@@ -149,19 +143,42 @@ export const AppShell: React.FC = () => {
 
         <div className="flex flex-1 overflow-hidden">
           <nav
-            className="w-44 flex flex-col py-4 px-2 flex-shrink-0"
-            style={{ background: 'var(--bg-primary)', borderRight: '1px solid var(--border)' }}
+            className="w-[60px] flex flex-col items-center py-6 flex-shrink-0 space-y-2"
+            style={{
+              background: 'rgba(19, 19, 25, 0.9)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '40px 0 40px -20px rgba(189, 157, 255, 0.06)',
+            }}
           >
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold mb-4"
+              style={{
+                background: 'linear-gradient(135deg, var(--accent), #699cff)',
+                color: '#fff',
+              }}
+            >
+              OP
+            </div>
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setActiveWing(item.id)}
-                className={`nav-item ${activeWing === item.id ? 'active' : ''}`}
+                className="relative flex items-center justify-center w-full h-11 transition-all"
+                style={{
+                  color: activeWing === item.id ? 'var(--accent)' : '#94a3b8',
+                }}
+                title={item.label}
               >
+                {activeWing === item.id && (
+                  <span
+                    className="absolute left-0 w-[2px] h-7"
+                    style={{ background: 'linear-gradient(to bottom, var(--accent), #699cff)' }}
+                  />
+                )}
                 <svg
                   aria-hidden="true"
-                  className="w-[18px] h-[18px]"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={1.75}
@@ -169,10 +186,9 @@ export const AppShell: React.FC = () => {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
-                {item.label}
               </button>
             ))}
-            <div className="mt-auto px-1">
+            <div className="mt-auto">
               <CollectButton />
             </div>
           </nav>
