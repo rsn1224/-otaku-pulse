@@ -55,6 +55,25 @@ pub fn run() {
             app.manage(http_client);
 
             let app_state = state::AppState::new(db_arc, http_arc);
+
+            // Load persisted API key from OS credential store
+            match infra::credential_store::load_api_key() {
+                Ok(Some(key)) => {
+                    let mut llm = app_state
+                        .llm
+                        .write()
+                        .expect("LLM settings lock poisoned during startup");
+                    llm.perplexity_api_key = Some(key);
+                    tracing::info!("Perplexity API key loaded from credential store");
+                }
+                Ok(None) => {
+                    tracing::debug!("No Perplexity API key found in credential store");
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to load API key from credential store");
+                }
+            }
+
             let app_state_for_scheduler = app_state.clone();
             app.manage(app_state);
 
@@ -90,6 +109,7 @@ pub fn run() {
             commands::llm::get_llm_settings,
             commands::llm::set_llm_provider,
             commands::llm::set_perplexity_api_key,
+            commands::llm::clear_perplexity_api_key,
             commands::llm::set_ollama_settings,
             commands::llm::check_ollama_status,
             // Scheduler

@@ -1,4 +1,5 @@
 pub mod anilist_client;
+pub mod credential_store;
 pub mod database;
 pub mod http_client;
 pub mod llm_client;

@@ -130,12 +130,34 @@ pub async fn set_perplexity_api_key(
     api_key: String,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
+    // Persist to OS credential store first
+    if let Err(e) = crate::infra::credential_store::store_api_key(&api_key) {
+        tracing::warn!(error = %e, "Failed to persist API key to credential store; using memory only");
+    }
+
     let mut llm = state
         .llm
         .write()
         .map_err(|e| AppError::Internal(e.to_string()))?;
     llm.perplexity_api_key = Some(api_key);
     tracing::info!("Perplexity API key set");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn clear_perplexity_api_key(
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    if let Err(e) = crate::infra::credential_store::delete_api_key() {
+        tracing::warn!(error = %e, "Failed to delete API key from credential store");
+    }
+
+    let mut llm = state
+        .llm
+        .write()
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    llm.perplexity_api_key = None;
+    tracing::info!("Perplexity API key cleared");
     Ok(())
 }
 

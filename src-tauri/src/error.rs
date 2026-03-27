@@ -36,6 +36,9 @@ pub enum AppError {
     #[error("Scheduler error: {0}")]
     Scheduler(String),
 
+    #[error("Keyring error: {0}")]
+    Keyring(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -60,6 +63,7 @@ impl Serialize for AppError {
             Self::InvalidInput(_) => "invalid_input",
             Self::Llm(_) => "llm",
             Self::Scheduler(_) => "scheduler",
+            Self::Keyring(_) => "keyring",
             Self::Internal(_) => "internal",
         };
         s.serialize_field("kind", kind)?;
