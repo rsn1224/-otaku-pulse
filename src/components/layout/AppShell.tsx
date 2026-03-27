@@ -149,8 +149,9 @@ export const AppShell: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveWing(item.id)}
-                className={`relative flex items-center justify-center w-full h-11 transition-all ${activeWing === item.id ? 'text-[var(--accent)]' : 'text-[#94a3b8]'}`}
+                className={`relative flex items-center justify-center w-full h-11 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:rounded-lg ${activeWing === item.id ? 'text-[var(--accent)]' : 'text-[#94a3b8]'}`}
                 title={item.label}
+                aria-label={item.label}
               >
                 {activeWing === item.id && (
                   <span className="absolute left-0 w-[2px] h-7 bg-gradient-to-b from-[var(--accent)] to-[#699cff]" />

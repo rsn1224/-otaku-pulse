@@ -130,6 +130,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
           type="button"
           onClick={handleClose}
           className="ml-4 text-white hover:text-gray-200 transition-colors"
+          aria-label="通知を閉じる"
         >
           ×
         </button>

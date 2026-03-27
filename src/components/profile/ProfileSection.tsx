@@ -76,6 +76,7 @@ export const ProfileSection: React.FC = () => {
               type="button"
               className="tag-chip-remove"
               onClick={() => removeTag(tag, tags, tagSetter)}
+              aria-label={`${tag}を削除`}
             >
               ✕
             </button>

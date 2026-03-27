@@ -54,7 +54,7 @@ export const UniversalTabs: React.FC = () => {
             type="button"
             onClick={() => setTab(t.id)}
             onContextMenu={(e) => handleContextMenu(e, t.id)}
-            className={`tab-item ${tab === t.id ? 'active' : ''}`}
+            className={`tab-item focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:rounded ${tab === t.id ? 'active' : ''}`}
             title="右クリックで全既読"
           >
             {t.label}

@@ -98,6 +98,7 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
             }
           }}
           placeholder="自由に質問する..."
+          aria-label="記事について自由に質問"
           disabled={isLoading}
           className={`flex-1 px-3 py-1.5 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] ${isLoading ? 'opacity-50' : ''}`}
         />

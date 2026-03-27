@@ -130,7 +130,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
         <div className={`card-thumbnail-wrap ${featured ? 'featured' : ''}`}>
           <img
             src={article.thumbnailUrl}
-            alt=""
+            alt={article.title}
             loading="lazy"
             className="card-thumbnail"
             onError={(e) => {

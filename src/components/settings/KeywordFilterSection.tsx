@@ -82,6 +82,7 @@ export const KeywordFilterSection: React.FC = () => {
             value={newKeyword}
             onChange={(e) => setNewKeyword(e.target.value)}
             placeholder="ミュートするキーワード"
+            aria-label="フィルターキーワード"
             className="flex-1 px-3 py-2 bg-gray-700 text-gray-100 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
             onKeyPress={(e) => e.key === 'Enter' && addFilter()}
           />
@@ -89,7 +90,7 @@ export const KeywordFilterSection: React.FC = () => {
             value={newFilterType}
             onChange={(e) => setNewFilterType(e.target.value as 'mute' | 'highlight')}
             className="px-3 py-2 bg-gray-700 text-gray-100 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-            title="フィルタータイプを選択"
+            aria-label="フィルタータイプ"
           >
             <option value="mute">ミュート</option>
             <option value="highlight">ハイライト</option>
@@ -99,6 +100,7 @@ export const KeywordFilterSection: React.FC = () => {
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             placeholder="カテゴリー（任意）"
+            aria-label="フィルターカテゴリー"
             className="px-3 py-2 bg-gray-700 text-gray-100 rounded border border-gray-600 focus:border-blue-500 focus:outline-none w-32"
           />
           <button

@@ -37,6 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
       className={[
         'inline-flex items-center justify-center rounded-lg font-medium',
         'transition-all duration-150 active:scale-95',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]',
         'disabled:opacity-50 disabled:pointer-events-none',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],

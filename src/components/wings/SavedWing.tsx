@@ -111,6 +111,7 @@ const SavedCard: React.FC<{
         type="button"
         onClick={() => onUnbookmark(article.id)}
         title="ブックマーク解除"
+        aria-label="ブックマーク解除"
         className="flex-shrink-0 p-1 rounded hover:opacity-70 text-[var(--accent)]"
       >
         <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

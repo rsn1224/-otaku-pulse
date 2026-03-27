@@ -99,7 +99,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/70" />
 
-      <div className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="初期設定ウィザード"
+        className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]"
+      >
         {/* Progress */}
         <div className="flex gap-1 px-6 pt-5">
           {STEPS.map((s, i) => (

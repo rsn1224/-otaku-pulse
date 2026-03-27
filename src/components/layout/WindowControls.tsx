@@ -18,6 +18,9 @@ export const WindowControls: React.FC = () => {
           type="button"
           onClick={() => handleAction(action)}
           title={action === 'minimize' ? '最小化' : action === 'maximize' ? '最大化' : '閉じる'}
+          aria-label={
+            action === 'minimize' ? '最小化' : action === 'maximize' ? '最大化' : '閉じる'
+          }
           className={`w-7 h-5 flex items-center justify-center rounded transition-colors ${action === 'close' ? 'hover:bg-red-600' : 'hover:bg-white/10'}`}
         >
           <svg

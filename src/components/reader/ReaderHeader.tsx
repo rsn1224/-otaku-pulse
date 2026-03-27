@@ -28,6 +28,7 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({ article, onClose }) 
             onClick={onClose}
             className="bookmark-btn flex-shrink-0"
             title="閉じる"
+            aria-label="記事を閉じる"
           >
             <svg
               aria-hidden="true"

@@ -49,7 +49,13 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ article, onBookmark }) =
         {readTime && <span className="meta-dot">{readTime}</span>}
       </div>
 
-      <button type="button" onClick={onBookmark} className="bookmark-btn" title="ブックマーク">
+      <button
+        type="button"
+        onClick={onBookmark}
+        className="bookmark-btn"
+        title="ブックマーク"
+        aria-label={article.isBookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
+      >
         <svg
           aria-hidden="true"
           className="w-4 h-4"

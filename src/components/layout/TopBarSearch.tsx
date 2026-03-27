@@ -66,6 +66,7 @@ export const TopBarSearch: React.FC = () => {
           type="button"
           onClick={clearSearch}
           className="text-xs flex-shrink-0 text-[var(--text-tertiary)]"
+          aria-label="検索をクリア"
         >
           ✕
         </button>

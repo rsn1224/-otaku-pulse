@@ -36,7 +36,12 @@ export const KeyboardHelpModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-xl overflow-hidden bg-[#12121a] border border-[#1e1e2e]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="キーボードショートカット"
+        className="w-full max-w-2xl rounded-xl overflow-hidden bg-[#12121a] border border-[#1e1e2e]"
+      >
         <div className="px-8 py-5 flex items-center justify-between border-b border-[#1e1e2e]">
           <h2 className="text-xl font-bold tracking-tight text-slate-100">Keyboard Shortcuts</h2>
           <button

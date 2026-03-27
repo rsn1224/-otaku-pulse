@@ -73,7 +73,12 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
         onKeyDown={() => {}}
       />
 
-      <div className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI による好み提案"
+        className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]"
+      >
         <div className="px-6 pt-5 pb-3">
           <div className="ai-summary-label mb-2">
             <svg aria-hidden="true" className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">

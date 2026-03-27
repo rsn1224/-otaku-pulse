@@ -23,7 +23,7 @@ export const Card: React.FC<CardProps> = ({
         'bg-[var(--surface-container)] p-6 mb-4',
         'transition-all duration-200',
         interactive
-          ? 'cursor-pointer hover:bg-[var(--surface-container-high)] hover:border-[var(--outline-variant)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] hover:-translate-y-0.5 hover:scale-[1.01]'
+          ? 'cursor-pointer hover:bg-[var(--surface-container-high)] hover:border-[var(--outline-variant)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] hover:-translate-y-0.5 hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]'
           : '',
         className,
       ].join(' ')}
