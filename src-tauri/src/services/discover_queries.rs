@@ -180,24 +180,7 @@ async fn get_most_viewed(
     Ok((articles, count_all(db).await?))
 }
 
-pub async fn record_interaction(
-    db: &SqlitePool,
-    article_id: i64,
-    action: &str,
-    dwell_seconds: i64,
-) -> Result<(), AppError> {
-    sqlx::query(
-        "INSERT INTO article_interactions (article_id, action, dwell_seconds)
-         VALUES (?1, ?2, ?3)",
-    )
-    .bind(article_id)
-    .bind(action)
-    .bind(dwell_seconds)
-    .execute(db)
-    .await?;
-
-    Ok(())
-}
+pub use super::article_queries::record_interaction;
 
 pub async fn get_library_articles(
     db: &SqlitePool,

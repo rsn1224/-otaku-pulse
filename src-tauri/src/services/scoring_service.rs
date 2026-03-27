@@ -1,7 +1,7 @@
+use super::scoring_keywords::{ANIME_KEYWORDS, GAME_KEYWORDS, MANGA_KEYWORDS, PC_KEYWORDS};
 use crate::models::Article;
 use chrono::{DateTime, Utc};
 
-/// 記事の新鮮度を計算 (0.0-1.0)
 fn calculate_freshness(published_at: &Option<String>) -> f64 {
     if let Some(date_str) = published_at {
         if let Ok(dt) = DateTime::parse_from_rfc3339(date_str) {
@@ -23,84 +23,6 @@ fn calculate_freshness(published_at: &Option<String>) -> f64 {
         0.5 // 日付なしは中間スコア
     }
 }
-
-const ANIME_KEYWORDS: &[&str] = &[
-    "新作",
-    "アニメ化",
-    "放送開始",
-    "決定",
-    "pv",
-    "cm",
-    "予告編",
-    "第弾",
-    "シリーズ",
-    "キャスト",
-    "スタッフ",
-    "制作",
-    "原作",
-    "漫画",
-    "ライトノベル",
-    "ゲーム",
-    "特報",
-    "情報解禁",
-];
-const MANGA_KEYWORDS: &[&str] = &[
-    "連載開始",
-    "新連載",
-    "最終回",
-    "アニメ化",
-    "ドラマ化",
-    "実写化",
-    "単行本",
-    "コミックス",
-    "週刊",
-    "月刊",
-    "web漫画",
-    "配信",
-    "アプリ",
-    "電子書籍",
-    "巻",
-    "話",
-];
-const GAME_KEYWORDS: &[&str] = &[
-    "発売",
-    "dlc",
-    "アップデート",
-    "イベント",
-    "キャンペーン",
-    "セール",
-    "限定",
-    "コラボ",
-    "シーズン",
-    "パス",
-    "beta",
-    "alpha",
-    "クローズド",
-    "オープン",
-    "プレ配信",
-    "demo",
-    "体験版",
-];
-const PC_KEYWORDS: &[&str] = &[
-    "gpu",
-    "cpu",
-    "ram",
-    "ssd",
-    "hdd",
-    "windows",
-    "linux",
-    "mac",
-    "driver",
-    "bios",
-    "uefi",
-    "overclock",
-    "水冷",
-    "空冷",
-    "ケース",
-    "電源",
-    "マザーボード",
-    "メモリ",
-];
 
 /// カテゴリー別キーワードマッチングスコア (0.0-0.3)
 fn keyword_match_score(title: &str, category: &str) -> f64 {
