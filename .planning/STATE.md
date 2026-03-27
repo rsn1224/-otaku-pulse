@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-foundation-correctness/01-01-PLAN.md
-last_updated: "2026-03-27T16:08:15.689Z"
+stopped_at: Completed 01-foundation-correctness/01-02-PLAN.md
+last_updated: "2026-03-27T16:14:44.425Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 01 (foundation-correctness) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-27
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-foundation-correctness P01 | 6 | 3 tasks | 6 files |
+| Phase 01-foundation-correctness P02 | 15 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-correctness]: Used rfd 0.15 for OS native dialog (Option B) — tauri-plugin-dialog not in Cargo.toml
 - [Phase 01-foundation-correctness]: personal_scoring.rs tracing::warn already present on all 3 JSON deserialization fields — no changes needed
 - [Phase 01-foundation-correctness]: setup() Err return + rfd dialog before exit satisfies both STATE.md note (Err return) and PLAN must_have (OS dialog)
+- [Phase 01-foundation-correctness]: generate_content_hash applies NFKC to content string (not title+url) to preserve existing signature used by collector.rs
+- [Phase 01-foundation-correctness]: Migration 008 clears content_hash=NULL instead of SQL recalculation (SQLite lacks NFKC support); collector regenerates on next run
+- [Phase 01-foundation-correctness]: DeepDive cache stores summary_hash as Optional<String>; NULL treated as cache miss for backward compatibility
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T16:08:15.687Z
-Stopped at: Completed 01-foundation-correctness/01-01-PLAN.md
+Last session: 2026-03-27T16:14:44.423Z
+Stopped at: Completed 01-foundation-correctness/01-02-PLAN.md
 Resume file: None
