@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useArticleStore } from '../../stores/useArticleStore';
 import type { DiscoverFeedResult } from '../../types';
 
