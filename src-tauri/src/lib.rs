@@ -57,7 +57,9 @@ pub fn run() {
             let app_state = state::AppState::new(db_arc, http_arc);
 
             // Load persisted API key from OS credential store
-            match infra::credential_store::load_api_key() {
+            match infra::credential_store::load_credential(
+                infra::credential_store::PERPLEXITY_ACCOUNT,
+            ) {
                 Ok(Some(key)) => {
                     let mut llm = app_state
                         .llm
@@ -126,6 +128,9 @@ pub fn run() {
             // Schedule
             commands::schedule::get_airing_schedule,
             commands::schedule::get_game_releases,
+            commands::schedule::set_rawg_api_key,
+            commands::schedule::clear_rawg_api_key,
+            commands::schedule::is_rawg_api_key_set,
             // Filters
             commands::filters::get_keyword_filters,
             commands::filters::add_keyword_filter,

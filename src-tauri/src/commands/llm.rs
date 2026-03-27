@@ -130,7 +130,10 @@ pub async fn set_perplexity_api_key(
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
     // Persist to OS credential store first
-    if let Err(e) = crate::infra::credential_store::store_api_key(&api_key) {
+    if let Err(e) = crate::infra::credential_store::store_credential(
+        crate::infra::credential_store::PERPLEXITY_ACCOUNT,
+        &api_key,
+    ) {
         tracing::warn!(error = %e, "Failed to persist API key to credential store; using memory only");
     }
 
@@ -147,7 +150,9 @@ pub async fn set_perplexity_api_key(
 pub async fn clear_perplexity_api_key(
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    if let Err(e) = crate::infra::credential_store::delete_api_key() {
+    if let Err(e) = crate::infra::credential_store::delete_credential(
+        crate::infra::credential_store::PERPLEXITY_ACCOUNT,
+    ) {
         tracing::warn!(error = %e, "Failed to delete API key from credential store");
     }
 

@@ -3015,6 +3015,7 @@ dependencies = [
 name = "otaku-pulse"
 version = "1.0.0"
 dependencies = [
+ "ahash",
  "anyhow",
  "async-trait",
  "chrono",
