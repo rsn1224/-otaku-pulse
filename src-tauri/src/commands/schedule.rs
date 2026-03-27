@@ -1,5 +1,5 @@
-use crate::error::CmdResult;
-use crate::infra::{anilist_client, rawg_client};
+use crate::error::{AppError, CmdResult};
+use crate::infra::{anilist_client, credential_store, rawg_client};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -139,7 +139,31 @@ pub async fn get_game_releases(
     start_date: String,
     end_date: String,
 ) -> CmdResult<Vec<rawg_client::GameReleaseEntry>> {
-    let api_key = std::env::var("RAWG_API_KEY")
-        .unwrap_or_else(|_| "dc83232e41084700ab12d805cfbc6aed".to_string());
+    let api_key = credential_store::load_credential(credential_store::RAWG_ACCOUNT)?
+        .ok_or_else(|| AppError::InvalidInput("RAWG API キーが未設定です".into()))?;
     rawg_client::fetch_game_releases(&http, &api_key, &start_date, &end_date).await
+}
+
+#[tauri::command]
+pub async fn set_rawg_api_key(api_key: String) -> CmdResult<()> {
+    let api_key = api_key.trim().to_string();
+    if api_key.is_empty() {
+        return Err(AppError::InvalidInput("RAWG API キーが空です".into()));
+    }
+    credential_store::store_credential(credential_store::RAWG_ACCOUNT, &api_key)?;
+    tracing::info!("RAWG API key stored in credential store");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn clear_rawg_api_key() -> CmdResult<()> {
+    credential_store::delete_credential(credential_store::RAWG_ACCOUNT)?;
+    tracing::info!("RAWG API key cleared from credential store");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn is_rawg_api_key_set() -> CmdResult<bool> {
+    let key = credential_store::load_credential(credential_store::RAWG_ACCOUNT)?;
+    Ok(key.is_some())
 }
