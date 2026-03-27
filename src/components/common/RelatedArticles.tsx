@@ -24,10 +24,7 @@ export const RelatedArticles: React.FC<RelatedArticlesProps> = ({ articles, isLo
 
   return (
     <div className="mt-8 pt-6 border-t border-[var(--border)]">
-      <h3
-        className="text-xs font-semibold uppercase mb-3 text-[var(--text-tertiary)]"
-        style={{ letterSpacing: '0.04em' }}
-      >
+      <h3 className="text-xs font-semibold uppercase mb-3 text-[var(--text-tertiary)] tracking-[0.04em]">
         Related
       </h3>
       <div className="space-y-2">
@@ -35,17 +32,8 @@ export const RelatedArticles: React.FC<RelatedArticlesProps> = ({ articles, isLo
           <button
             key={r.id}
             type="button"
-            className="w-full text-left p-3 rounded-lg transition-colors border-l-2 border-l-[var(--accent)]"
-            style={{
-              background: 'var(--bg-card)',
-            }}
+            className="w-full text-left p-3 rounded-lg transition-colors border-l-2 border-l-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)]"
             onClick={() => r.url && openUrl(r.url)}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--bg-card-hover)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--bg-card)';
-            }}
           >
             <p className="text-sm font-medium text-[var(--text-primary)]">{r.title}</p>
             <p className="text-xs mt-1 text-[var(--text-tertiary)]">{r.feedName}</p>

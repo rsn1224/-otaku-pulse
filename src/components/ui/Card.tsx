@@ -16,6 +16,7 @@ export const Card: React.FC<CardProps> = ({
   const interactive = isInteractive || !!onClick;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: role is conditionally applied
     <div
       className={[
         'relative rounded-[0.875rem] border border-[var(--surface-container-highest)]',

@@ -36,6 +36,11 @@ pub async fn list_articles(
 }
 
 pub async fn upsert_articles(db: &SqlitePool, articles: &[Article]) -> Result<u32, AppError> {
+    if articles.is_empty() {
+        return Ok(0);
+    }
+
+    let mut tx = db.begin().await?;
     let mut count = 0u32;
 
     for article in articles {
@@ -74,12 +79,13 @@ pub async fn upsert_articles(db: &SqlitePool, articles: &[Article]) -> Result<u3
         .bind(&article.thumbnail_url)
         .bind(&article.content_hash)
         .bind(&article.metadata)
-        .execute(db)
+        .execute(&mut *tx)
         .await?;
 
         count += result.rows_affected() as u32;
     }
 
+    tx.commit().await?;
     Ok(count)
 }
 

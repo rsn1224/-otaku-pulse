@@ -23,15 +23,11 @@ export const CollectButton: React.FC = () => {
       type="button"
       onClick={handleCollect}
       disabled={collecting}
-      className="card-action-btn primary w-full justify-center"
-      style={{ opacity: collecting ? 0.5 : 1 }}
+      className={`card-action-btn primary w-full justify-center ${collecting ? 'opacity-50' : ''}`}
     >
       {collecting ? (
         <>
-          <div
-            className="w-3 h-3 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'transparent', borderTopColor: 'currentColor' }}
-          />
+          <div className="w-3 h-3 border-2 rounded-full animate-spin border-transparent border-t-current" />
           収集中...
         </>
       ) : (

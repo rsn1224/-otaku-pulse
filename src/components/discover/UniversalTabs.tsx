@@ -28,6 +28,7 @@ export const UniversalTabs: React.FC = () => {
     return () => clearInterval(interval);
   }, [fetchUnreadCounts]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to active tab when tab changes
   useEffect(() => {
     const el = tabsRef.current?.querySelector('.active');
     el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });

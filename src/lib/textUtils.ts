@@ -73,8 +73,7 @@ export const sanitizeHtml = (html: string): string =>
       if (match.startsWith('</')) return `</${lower}>`;
       const attrs: string[] = [];
       const attrRe = /([a-z][a-z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
-      let m: RegExpExecArray | null;
-      while ((m = attrRe.exec(match)) !== null) {
+      for (let m = attrRe.exec(match); m !== null; m = attrRe.exec(match)) {
         const name = m[1].toLowerCase();
         const value = m[2] ?? m[3];
         if (!ALLOWED_ATTRS.has(name)) continue;

@@ -16,20 +16,11 @@ export const ArticleBody: React.FC<ArticleBodyProps> = ({ article, related, rela
         {article.summary && (
           <div className="glass-summary rounded-2xl p-5 mb-6 relative overflow-hidden">
             <div className="flex items-center gap-1.5 mb-3">
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]"
-                style={{
-                  background: 'rgba(189, 157, 255, 0.1)',
-                  border: '1px solid rgba(189, 157, 255, 0.2)',
-                }}
-              >
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] bg-[rgba(189,157,255,0.1)] border border-[rgba(189,157,255,0.2)]">
                 AI Summary
               </span>
             </div>
-            <p
-              className="text-[14px] leading-[1.6] italic"
-              style={{ color: 'rgba(249, 245, 253, 0.9)' }}
-            >
+            <p className="text-[14px] leading-[1.6] italic text-[rgba(249,245,253,0.9)]">
               {stripCitations(article.summary)}
             </p>
           </div>

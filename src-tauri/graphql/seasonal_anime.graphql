@@ -1,4 +1,4 @@
-query ($season: MediaSeason!, $year: Int!, $page: Int) {
+query SeasonalAnime($season: MediaSeason!, $year: Int!, $page: Int) {
   Page(page: $page, perPage: 50) {
     pageInfo {
       total

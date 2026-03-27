@@ -63,7 +63,7 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
       <div className="flex flex-col gap-1">
         {questions.map((q, i) => (
           <button
-            key={`${q}-${i}`}
+            key={q}
             type="button"
             disabled={isLoading}
             onClick={() => handleAsk(q)}
@@ -97,20 +97,13 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
           }}
           placeholder="自由に質問する..."
           disabled={isLoading}
-          className="flex-1 px-3 py-1.5 rounded-lg text-sm"
-          style={{
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
-            opacity: isLoading ? 0.5 : 1,
-          }}
+          className={`flex-1 px-3 py-1.5 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] ${isLoading ? 'opacity-50' : ''}`}
         />
         <button
           type="button"
           onClick={handleCustomSubmit}
           disabled={isLoading || !customQ.trim()}
-          className="card-action-btn primary"
-          style={{ opacity: isLoading || !customQ.trim() ? 0.4 : 1 }}
+          className={`card-action-btn primary ${isLoading || !customQ.trim() ? 'opacity-40' : ''}`}
         >
           送信
         </button>

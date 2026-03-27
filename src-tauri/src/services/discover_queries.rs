@@ -3,6 +3,7 @@ use crate::models::{DiscoverArticleDto, DiscoverFeedResult};
 use sqlx::SqlitePool;
 
 const PAGE_SIZE: i64 = 30;
+const MAX_LIMIT: i64 = 200;
 
 const DISCOVER_COLS: &str = "a.id, a.feed_id, a.title, a.url, a.summary, a.author, \
      a.published_at, a.is_read, a.is_bookmarked, a.language, \
@@ -14,8 +15,8 @@ pub async fn get_discover_feed(
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Result<DiscoverFeedResult, AppError> {
-    let limit = limit.unwrap_or(PAGE_SIZE);
-    let offset = offset.unwrap_or(0);
+    let limit = limit.unwrap_or(PAGE_SIZE).clamp(1, MAX_LIMIT);
+    let offset = offset.unwrap_or(0).max(0);
 
     let (articles, total) = match tab {
         "trending" => get_trending(db, limit, offset).await?,

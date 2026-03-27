@@ -1,90 +1,87 @@
 import type React from 'react';
 import { DAY_LABELS, dateKey, fmtDate } from '../../lib/scheduleUtils';
-import type { AiringEntry, ScheduleViewMode } from '../../types';
-import { AiringCard } from './AiringCard';
+import type { GameReleaseEntry, ScheduleViewMode } from '../../types';
+import { GameReleaseCard } from './GameReleaseCard';
 
-interface Props {
+export const GameDayView: React.FC<{ date: Date; games: GameReleaseEntry[] }> = ({
+  date,
+  games,
+}) => (
+  <div className="max-w-lg mx-auto space-y-2">
+    <h2 className="text-sm font-bold mb-3 text-[#699cff]">
+      {date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' })}
+      {' — '}
+      {games.length} 件
+    </h2>
+    {games.map((g) => (
+      <GameReleaseCard key={g.id} game={g} />
+    ))}
+    {games.length === 0 && <p className="text-xs py-4 text-[var(--text-tertiary)]">発売なし</p>}
+  </div>
+);
+
+export const GameGridView: React.FC<{
   dates: Date[];
-  grouped: Map<string, AiringEntry[]>;
+  grouped: Map<string, GameReleaseEntry[]>;
   viewMode: ScheduleViewMode;
-}
-
-export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) => (
+}> = ({ dates, grouped, viewMode }) => (
   <div className={viewMode === 'month' ? 'grid grid-cols-7 gap-1' : 'flex gap-3 min-w-[900px]'}>
     {dates.map((date) => {
       const k = dateKey(date);
-      const dayEntries = grouped.get(k) ?? [];
+      const dayGames = grouped.get(k) ?? [];
       const isToday = new Date().toDateString() === date.toDateString();
-
       return (
         <div
           key={k}
           className={[
             viewMode === 'month'
               ? 'min-h-[80px] p-1 rounded overflow-hidden'
-              : dayEntries.length > 0
+              : dayGames.length > 0
                 ? 'flex-1 min-w-[140px] flex flex-col'
                 : 'w-[60px] flex-shrink-0 flex flex-col',
-            viewMode === 'month' && isToday ? 'bg-[rgba(189,157,255,0.08)]' : '',
+            viewMode === 'month' && isToday ? 'bg-[rgba(105,156,255,0.08)]' : '',
           ].join(' ')}
         >
           <div
             className={[
               viewMode === 'month' ? 'mb-1' : 'py-2 mb-2',
-              viewMode === 'week' && isToday ? 'border-b-2 border-b-[var(--accent)]' : '',
+              viewMode === 'week' && isToday ? 'border-b-2 border-b-[#699cff]' : '',
               viewMode === 'week' && !isToday ? 'border-b border-b-[rgba(72,71,77,0.1)]' : '',
             ].join(' ')}
           >
             {viewMode === 'week' && (
               <h3
-                className={`text-xs font-bold ${isToday ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}
+                className={`text-xs font-bold ${isToday ? 'text-[#699cff]' : 'text-[var(--text-secondary)]'}`}
               >
                 {DAY_LABELS[date.getDay()]}
               </h3>
             )}
             <p
-              className={`text-[10px] font-bold ${isToday ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'}`}
+              className={`text-[10px] font-bold ${isToday ? 'text-[#699cff]' : 'text-[var(--text-tertiary)]'}`}
             >
               {fmtDate(date)}
             </p>
           </div>
           <div className={viewMode === 'month' ? 'space-y-0.5' : 'flex flex-col gap-2'}>
-            {dayEntries.map((e) =>
+            {dayGames.map((g) =>
               viewMode === 'month' ? (
                 <p
-                  key={e.id}
+                  key={g.id}
                   className="text-[9px] truncate text-[var(--text-secondary)]"
-                  title={e.titleNative ?? e.titleRomaji}
+                  title={g.name}
                 >
-                  {e.titleNative ?? e.titleRomaji}
+                  {g.name}
                 </p>
               ) : (
-                <AiringCard key={e.id} entry={e} />
+                <GameReleaseCard key={g.id} game={g} />
               ),
             )}
-            {viewMode === 'week' && dayEntries.length === 0 && (
+            {viewMode === 'week' && dayGames.length === 0 && (
               <p className="text-xs text-[var(--text-tertiary)]">—</p>
             )}
           </div>
         </div>
       );
     })}
-  </div>
-);
-
-export const ScheduleDayView: React.FC<{ date: Date; entries: AiringEntry[] }> = ({
-  date,
-  entries,
-}) => (
-  <div className="max-w-lg mx-auto space-y-2">
-    <h2 className="text-sm font-bold mb-3 text-[var(--accent)]">
-      {date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' })}
-      {' — '}
-      {entries.length} 件
-    </h2>
-    {entries.map((e) => (
-      <AiringCard key={e.id} entry={e} />
-    ))}
-    {entries.length === 0 && <p className="text-xs py-4 text-[var(--text-tertiary)]">放送なし</p>}
   </div>
 );

@@ -95,11 +95,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
   if (showWelcome) {
     return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{ background: 'rgba(0, 0, 0, 0.7)' }}
-      >
-        <div className="text-center" style={{ animation: 'fadeSlideIn 0.5s ease-out' }}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div className="text-center animate-[fadeSlideIn_0.5s_ease-out]">
           <p className="text-5xl mb-4">{'🎉'}</p>
           <h2 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">
             Welcome to OtakuPulse!
@@ -114,23 +111,15 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0" style={{ background: 'rgba(0, 0, 0, 0.7)' }} />
+      <div className="fixed inset-0 bg-black/70" />
 
-      <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden"
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          animation: 'fadeSlideIn 0.3s ease-out',
-        }}
-      >
+      <div className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]">
         {/* Progress */}
         <div className="flex gap-1 px-6 pt-5">
-          {STEPS.map((_, i) => (
+          {STEPS.map((s, i) => (
             <div
-              key={`step-${i}`}
-              className="flex-1 h-1.5 rounded-full"
-              style={{ background: i <= step ? 'var(--accent)' : 'var(--border)' }}
+              key={s.title}
+              className={`flex-1 h-1.5 rounded-full ${i <= step ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}
             />
           ))}
         </div>
@@ -214,8 +203,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
               type="button"
               onClick={handleComplete}
               disabled={saving}
-              className="card-action-btn primary"
-              style={{ opacity: saving ? 0.5 : 1 }}
+              className={`card-action-btn primary ${saving ? 'opacity-50' : ''}`}
             >
               {saving ? '保存中...' : '始める'}
             </button>

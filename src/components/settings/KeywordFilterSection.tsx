@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface KeywordFilter {
   id: number;
@@ -13,25 +13,28 @@ interface KeywordFilter {
 export const KeywordFilterSection: React.FC = () => {
   const [filters, setFilters] = useState<KeywordFilter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState('');
   const [newFilterType, setNewFilterType] = useState<'mute' | 'highlight'>('mute');
   const [newCategory, setNewCategory] = useState('');
 
-  const fetchFilters = async () => {
+  const fetchFilters = useCallback(async () => {
     try {
+      setError(null);
       const result = await invoke<KeywordFilter[]>('get_keyword_filters');
       setFilters(result);
-    } catch (error) {
-      console.error('Failed to fetch keyword filters:', error);
+    } catch (_) {
+      setError('フィルターの読み込みに失敗しました');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const addFilter = async () => {
     if (!newKeyword.trim()) return;
 
     try {
+      setError(null);
       const result = await invoke<KeywordFilter>('add_keyword_filter', {
         keyword: newKeyword.trim(),
         filterType: newFilterType,
@@ -41,17 +44,18 @@ export const KeywordFilterSection: React.FC = () => {
       setFilters((prev) => [result, ...prev]);
       setNewKeyword('');
       setNewCategory('');
-    } catch (error) {
-      console.error('Failed to add keyword filter:', error);
+    } catch (_) {
+      setError('フィルターの追加に失敗しました');
     }
   };
 
   const removeFilter = async (id: number) => {
     try {
+      setError(null);
       await invoke('remove_keyword_filter', { id });
       setFilters((prev) => prev.filter((f) => f.id !== id));
-    } catch (error) {
-      console.error('Failed to remove keyword filter:', error);
+    } catch (_) {
+      setError('フィルターの削除に失敗しました');
     }
   };
 
@@ -165,6 +169,7 @@ export const KeywordFilterSection: React.FC = () => {
         </div>
       </div>
 
+      {error && <div className="text-red-400 text-center py-2 text-sm">{error}</div>}
       {isLoading && <div className="text-gray-400 text-center py-4">読み込み中...</div>}
     </div>
   );

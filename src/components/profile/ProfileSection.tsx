@@ -145,8 +145,7 @@ export const ProfileSection: React.FC = () => {
           type="button"
           onClick={handleSave}
           disabled={isLoading}
-          className="card-action-btn primary w-full justify-center py-2"
-          style={{ opacity: isLoading ? 0.5 : 1 }}
+          className={`card-action-btn primary w-full justify-center py-2 ${isLoading ? 'opacity-50' : ''}`}
         >
           {isLoading ? '保存中...' : 'プロフィールを保存'}
         </button>

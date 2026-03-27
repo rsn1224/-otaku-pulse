@@ -1,4 +1,4 @@
-query ($page: Int) {
+query TrendingManga($page: Int) {
   Page(page: $page, perPage: 50) {
     pageInfo {
       total

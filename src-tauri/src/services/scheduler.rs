@@ -72,10 +72,9 @@ async fn collect_loop(
             continue;
         }
 
-        // TODO: collect_all関数を実装する必要あり
+        // STUB: フィード収集は commands/collect.rs の collect_feeds を直接呼ぶ形に統合予定
         info!("スケジューラ: フィード収集開始");
 
-        // 現時点ではスタブ実装
         let result = CollectResult {
             fetched: 0,
             saved: 0,
@@ -118,14 +117,14 @@ async fn digest_loop(app_handle: AppHandle, config: SchedulerConfig) {
 
         // 4カテゴリーを順番に生成
         for category in &["anime", "manga", "game", "pc"] {
-            // TODO: generate_llm_digestを呼ぶ実装が必要
+            // STUB: generate_llm_digest 統合予定（LLM プロバイダー設定後に実装）
             info!("ダイジェスト生成対象: {}", category);
 
-            // ダイジェスト完了通知
+            // STUB: 記事数は digest 生成結果から取得予定
             crate::infra::notification::notify_digest_ready(
                 &app_handle,
                 category,
-                0, // TODO: 実際の記事数を渡す
+                0,
             );
         }
 

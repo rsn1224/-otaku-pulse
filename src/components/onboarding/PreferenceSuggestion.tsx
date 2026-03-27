@@ -61,22 +61,15 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close */}
       <div
-        className="fixed inset-0"
-        style={{ background: 'rgba(0, 0, 0, 0.6)' }}
+        className="fixed inset-0 bg-black/60"
         role="presentation"
         onClick={onClose}
         onKeyDown={() => {}}
       />
 
-      <div
-        className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden"
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          animation: 'fadeSlideIn 0.3s ease-out',
-        }}
-      >
+      <div className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]">
         <div className="px-6 pt-5 pb-3">
           <div className="ai-summary-label mb-2">
             <svg aria-hidden="true" className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -110,8 +103,7 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
             type="button"
             onClick={handleAccept}
             disabled={saving}
-            className="card-action-btn primary"
-            style={{ opacity: saving ? 0.5 : 1 }}
+            className={`card-action-btn primary ${saving ? 'opacity-50' : ''}`}
           >
             {saving ? '更新中...' : 'プロフィールに追加'}
           </button>

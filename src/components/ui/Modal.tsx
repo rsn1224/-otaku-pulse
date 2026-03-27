@@ -43,6 +43,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, width = 'm
   if (!isOpen) return null;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={handleOverlayClick}

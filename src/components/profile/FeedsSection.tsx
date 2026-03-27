@@ -1,20 +1,20 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FeedDto } from '../../types';
 
 export const FeedsSection: React.FC = () => {
   const [feeds, setFeeds] = useState<FeedDto[]>([]);
 
-  const refresh = (): void => {
+  const refresh = useCallback((): void => {
     invoke<FeedDto[]>('get_feeds')
       .then(setFeeds)
       .catch(() => {});
-  };
+  }, []);
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [refresh]);
 
   const handleDelete = async (feedId: number): Promise<void> => {
     if (!window.confirm('このフィードを削除しますか？')) return;

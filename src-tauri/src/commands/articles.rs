@@ -37,8 +37,9 @@ pub async fn get_articles(
     db: tauri::State<'_, SqlitePool>,
     query: ArticleQuery,
 ) -> Result<ArticleListResult, AppError> {
-    let limit = query.limit.unwrap_or(50);
-    let offset = query.offset.unwrap_or(0);
+    const MAX_LIMIT: i64 = 200;
+    let limit = query.limit.unwrap_or(50).clamp(1, MAX_LIMIT);
+    let offset = query.offset.unwrap_or(0).max(0);
 
     // Build WHERE clause
     let mut where_conditions = Vec::new();

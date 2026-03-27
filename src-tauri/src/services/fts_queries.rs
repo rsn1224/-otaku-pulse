@@ -12,8 +12,19 @@ pub async fn search_articles(
     if trimmed.is_empty() {
         return Ok(vec![]);
     }
-    // FTS5 クエリをプレフィックス検索に対応させる
-    let fts_query = format!("{}*", trimmed.replace('"', ""));
+    // FTS5 特殊文字を除去してプレフィックス検索に対応させる
+    let sanitized: String = trimmed
+        .replace(['"', '(', ')', '*', '^'], "");
+    // FTS5 演算子キーワードを除去
+    let fts_query = sanitized
+        .split_whitespace()
+        .filter(|w| !matches!(w.to_uppercase().as_str(), "AND" | "OR" | "NOT" | "NEAR"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    if fts_query.is_empty() {
+        return Ok(vec![]);
+    }
+    let fts_query = format!("{fts_query}*");
 
     let rows = sqlx::query_as::<_, ArticleDto>(
         "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author,

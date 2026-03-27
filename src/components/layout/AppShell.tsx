@@ -139,21 +139,8 @@ export const AppShell: React.FC = () => {
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          <nav
-            className="w-[60px] flex flex-col items-center py-6 flex-shrink-0 space-y-2"
-            style={{
-              background: 'rgba(19, 19, 25, 0.9)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '40px 0 40px -20px rgba(189, 157, 255, 0.06)',
-            }}
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold mb-4"
-              style={{
-                background: 'linear-gradient(135deg, var(--accent), #699cff)',
-                color: '#fff',
-              }}
-            >
+          <nav className="w-[60px] flex flex-col items-center py-6 flex-shrink-0 space-y-2 bg-[rgba(19,19,25,0.9)] backdrop-blur-[20px] shadow-[40px_0_40px_-20px_rgba(189,157,255,0.06)]">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold mb-4 bg-gradient-to-br from-[var(--accent)] to-[#699cff] text-white">
               OP
             </div>
             {NAV_ITEMS.map((item) => (
@@ -161,17 +148,11 @@ export const AppShell: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveWing(item.id)}
-                className="relative flex items-center justify-center w-full h-11 transition-all"
-                style={{
-                  color: activeWing === item.id ? 'var(--accent)' : '#94a3b8',
-                }}
+                className={`relative flex items-center justify-center w-full h-11 transition-all ${activeWing === item.id ? 'text-[var(--accent)]' : 'text-[#94a3b8]'}`}
                 title={item.label}
               >
                 {activeWing === item.id && (
-                  <span
-                    className="absolute left-0 w-[2px] h-7"
-                    style={{ background: 'linear-gradient(to bottom, var(--accent), #699cff)' }}
-                  />
+                  <span className="absolute left-0 w-[2px] h-7 bg-gradient-to-b from-[var(--accent)] to-[#699cff]" />
                 )}
                 <svg
                   aria-hidden="true"

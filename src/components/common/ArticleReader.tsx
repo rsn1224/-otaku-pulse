@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
 import { ArticleBody } from '../reader/ArticleBody';
@@ -17,6 +17,14 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
   const [relatedLoading, setRelatedLoading] = useState(false);
   const { openNextArticle, openPrevArticle } = useReaderStore();
 
+  const handleClose = useCallback((): void => {
+    setClosing(true);
+    setTimeout(() => {
+      setClosing(false);
+      onClose();
+    }, 200);
+  }, [onClose]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') handleClose();
@@ -25,7 +33,7 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [openNextArticle, openPrevArticle]);
+  }, [handleClose, openNextArticle, openPrevArticle]);
 
   useEffect(() => {
     if (!article) return;
@@ -47,21 +55,13 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
     };
   }, [article]);
 
-  const handleClose = (): void => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose();
-    }, 200);
-  };
-
   if (!article) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close pattern */}
       <div
-        className="fixed inset-0"
-        style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+        className="fixed inset-0 bg-black/50"
         role="presentation"
         onClick={handleClose}
         onKeyDown={(e) => {

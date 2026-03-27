@@ -17,6 +17,9 @@
         "noExplicitAny": "error",
         "noArrayIndexKey": "warn"
       },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
+      },
       "a11y": {
         "useSemanticElements": "warn",
         "noStaticElementInteractions": "warn"
