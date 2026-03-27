@@ -41,7 +41,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
     if (!readerArticle || articles.length === 0) return;
     const idx = articles.findIndex((a) => a.id === readerArticle.id);
     const nextIdx = idx >= articles.length - 1 ? 0 : idx + 1;
-    openReader(articles[nextIdx].id);
+    openReader(articles[nextIdx]!.id);
   },
 
   openPrevArticle: () => {
@@ -50,6 +50,6 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
     if (!readerArticle || articles.length === 0) return;
     const idx = articles.findIndex((a) => a.id === readerArticle.id);
     const prevIdx = idx <= 0 ? articles.length - 1 : idx - 1;
-    openReader(articles[prevIdx].id);
+    openReader(articles[prevIdx]!.id);
   },
 }));

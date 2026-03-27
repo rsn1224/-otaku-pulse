@@ -117,8 +117,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
         {/* Header */}
         <div className="px-6 pt-4 pb-2">
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">{STEPS[step].title}</h2>
-          <p className="text-sm mt-1 text-[var(--text-secondary)]">{STEPS[step].subtitle}</p>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">{STEPS[step]!.title}</h2>
+          <p className="text-sm mt-1 text-[var(--text-secondary)]">{STEPS[step]!.subtitle}</p>
         </div>
 
         {/* Content */}

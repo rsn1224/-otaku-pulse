@@ -116,3 +116,21 @@ pub async fn answer_question(
         citations: response.citations,
     })
 }
+
+const CACHE_TTL_DAYS: i64 = 7;
+
+/// Delete deepdive cache entries older than `CACHE_TTL_DAYS`.
+pub async fn cleanup_expired_cache(db: &SqlitePool) -> Result<u64, AppError> {
+    let result = sqlx::query(
+        "DELETE FROM deepdive_cache WHERE created_at < datetime('now', ?1)",
+    )
+    .bind(format!("-{CACHE_TTL_DAYS} days"))
+    .execute(db)
+    .await?;
+
+    let deleted = result.rows_affected();
+    if deleted > 0 {
+        tracing::info!(deleted, "Expired deepdive cache entries cleaned up");
+    }
+    Ok(deleted)
+}

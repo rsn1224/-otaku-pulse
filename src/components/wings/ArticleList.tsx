@@ -59,7 +59,7 @@ export const ArticleList: React.FC<ArticleListProps> = ({
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
-      const target = entries[0];
+      const target = entries[0]!;
       if (target.isIntersecting && hasMore && !isLoading) {
         loadMore();
       }
@@ -92,7 +92,7 @@ export const ArticleList: React.FC<ArticleListProps> = ({
         {isLoading && filteredArticles.length === 0 ? (
           <CardSkeletonGrid />
         ) : (
-          <div className="card-grid">
+          <div className="card-grid" role="feed" aria-label="Article feed">
             {filteredArticles.map((article, i) => (
               <DiscoverCard
                 key={article.id}

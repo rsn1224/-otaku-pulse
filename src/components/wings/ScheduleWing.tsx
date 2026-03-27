@@ -110,7 +110,7 @@ export const ScheduleWing: React.FC = () => {
       });
     if (viewMode === 'month')
       return startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
-    return `${fmtDate(dates[0])} — ${fmtDate(dates[dates.length - 1])}`;
+    return `${fmtDate(dates[0]!)} — ${fmtDate(dates[dates.length - 1]!)}`;
   }, [viewMode, startDate, dates]);
 
   const renderContent = (): React.ReactNode => {
@@ -134,12 +134,12 @@ export const ScheduleWing: React.FC = () => {
     if (tab === 'anime') {
       if (viewMode === 'day')
         return (
-          <ScheduleDayView date={dates[0]} entries={groupedAiring.get(dateKey(dates[0])) ?? []} />
+          <ScheduleDayView date={dates[0]!} entries={groupedAiring.get(dateKey(dates[0]!)) ?? []} />
         );
       return <ScheduleGridView dates={dates} grouped={groupedAiring} viewMode={viewMode} />;
     }
     if (viewMode === 'day')
-      return <GameDayView date={dates[0]} games={groupedGames.get(dateKey(dates[0])) ?? []} />;
+      return <GameDayView date={dates[0]!} games={groupedGames.get(dateKey(dates[0]!)) ?? []} />;
     return <GameGridView dates={dates} grouped={groupedGames} viewMode={viewMode} />;
   };
 

@@ -48,7 +48,7 @@ export const LibraryWing: React.FC = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasMore && !isLoading) {
+        if (entry!.isIntersecting && hasMore && !isLoading) {
           fetchLibrary(false);
         }
       },

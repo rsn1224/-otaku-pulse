@@ -72,6 +72,7 @@ impl LlmClient for OllamaClient {
             .http
             .post(&url)
             .header("Content-Type", "application/json")
+            .timeout(std::time::Duration::from_secs(120))
             .json(&request_body)
             .send()
             .await

@@ -6,6 +6,18 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig({
   plugins: [tailwindcss()],
   clearScreen: false,
+  build: {
+    target: 'ES2022',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'zustand-vendor': ['zustand'],
+        },
+      },
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,

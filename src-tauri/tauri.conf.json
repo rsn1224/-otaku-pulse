@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'self' http://localhost:11434 https://api.openai.com"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'self' http://localhost:11434 https://api.perplexity.ai https://graphql.anilist.co https://api.rawg.io"
     },
     "trayIcon": {
       "iconPath": "icons/icon.png",

@@ -49,7 +49,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry!.isIntersecting) {
           if (dwellStart.current === 0) dwellStart.current = Date.now();
           if (!summary && !summaryLoading && !summaryAttempted) {
             setSummaryLoading(true);
@@ -114,6 +114,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
   return (
     <div
       ref={cardRef}
+      role="article"
       className={`discover-card cursor-pointer ${featured ? 'featured' : ''} ${article.isRead ? 'opacity-50' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button, a, .deepdive-panel')) return;

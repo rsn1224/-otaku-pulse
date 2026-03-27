@@ -45,13 +45,15 @@ export const UniversalTabs: React.FC = () => {
   );
 
   return (
-    <div ref={tabsRef} className="universal-tabs overflow-x-auto">
+    <div ref={tabsRef} className="universal-tabs overflow-x-auto" role="tablist">
       {TABS.map((t) => {
         const count = unreadCounts[t.countKey] ?? 0;
         return (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={tab === t.id ? 'true' : 'false'}
             onClick={() => setTab(t.id)}
             onContextMenu={(e) => handleContextMenu(e, t.id)}
             className={`tab-item focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:rounded ${tab === t.id ? 'active' : ''}`}

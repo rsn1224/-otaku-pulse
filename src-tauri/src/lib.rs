@@ -25,6 +25,10 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {
+            tracing::info!("Another instance attempted to launch; focusing existing window");
+        }))
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             tracing::info!("OtakuPulse starting up");
 
@@ -78,6 +82,14 @@ pub fn run() {
 
             let app_state_for_scheduler = app_state.clone();
             app.manage(app_state);
+
+            // 起動時にキャッシュクリーンアップ
+            let db_for_cleanup = app_state_for_scheduler.db.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = crate::services::deepdive_service::cleanup_expired_cache(&db_for_cleanup).await {
+                    tracing::warn!(error = %e, "Failed to clean up deepdive cache");
+                }
+            });
 
             // スケジューラーを起動
             let scheduler_config = crate::services::scheduler::SchedulerConfig::default();

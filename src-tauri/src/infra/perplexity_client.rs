@@ -89,6 +89,7 @@ impl LlmClient for PerplexitySonarClient {
             .post("https://api.perplexity.ai/chat/completions")
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
+            .timeout(std::time::Duration::from_secs(60))
             .json(&request_body)
             .send()
             .await?;

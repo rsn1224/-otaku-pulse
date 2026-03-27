@@ -74,8 +74,8 @@ export const sanitizeHtml = (html: string): string =>
       const attrs: string[] = [];
       const attrRe = /([a-z][a-z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
       for (let m = attrRe.exec(match); m !== null; m = attrRe.exec(match)) {
-        const name = m[1].toLowerCase();
-        const value = m[2] ?? m[3];
+        const name = m[1]!.toLowerCase();
+        const value = m[2] ?? m[3] ?? '';
         if (!ALLOWED_ATTRS.has(name)) continue;
         if (URL_ATTRS.has(name) && !isSafeUrl(value)) continue;
         attrs.push(`${name}="${value}"`);
