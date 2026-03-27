@@ -1,7 +1,5 @@
 use crate::error::AppError;
-use crate::models::{Article, DigestDto};
-#[cfg(test)]
-use crate::models::Digest;
+use crate::models::{Article, Digest, DigestDto};
 use sqlx::{Row, SqlitePool};
 
 fn row_to_digest_dto(row: sqlx::sqlite::SqliteRow) -> DigestDto {
@@ -41,7 +39,6 @@ pub async fn list_digests(
     Ok(rows.into_iter().map(row_to_digest_dto).collect())
 }
 
-#[cfg(test)]
 pub async fn insert_digest(db: &SqlitePool, digest: &Digest) -> Result<i64, AppError> {
     let result = sqlx::query(
         "INSERT INTO digests (category, title, content_markdown, content_html, 

@@ -69,5 +69,66 @@ pub async fn setup_test_db() -> SqlitePool {
     .await
     .unwrap();
 
+    sqlx::query(
+        "CREATE TABLE user_profile (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            display_name TEXT NOT NULL DEFAULT 'オタク',
+            favorite_titles TEXT NOT NULL DEFAULT '[]',
+            favorite_genres TEXT NOT NULL DEFAULT '[]',
+            favorite_creators TEXT NOT NULL DEFAULT '[]',
+            total_read INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query("INSERT OR IGNORE INTO user_profile (id) VALUES (1)")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE article_interactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            article_id INTEGER NOT NULL,
+            action TEXT NOT NULL,
+            dwell_seconds INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE article_scores (
+            article_id INTEGER PRIMARY KEY,
+            base_score REAL NOT NULL DEFAULT 0.0,
+            personal_score REAL NOT NULL DEFAULT 0.0,
+            total_score REAL NOT NULL DEFAULT 0.0,
+            scored_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE deepdive_cache (
+            article_id INTEGER NOT NULL,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            follow_ups TEXT NOT NULL DEFAULT '[]',
+            provider TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (article_id, question)
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
     pool
 }

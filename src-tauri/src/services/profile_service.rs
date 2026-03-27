@@ -67,3 +67,57 @@ pub async fn reset_learning_data(db: &SqlitePool) -> Result<(), AppError> {
 fn parse_json_array(json: &str) -> Vec<String> {
     serde_json::from_str(json).unwrap_or_default()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::test_helpers::setup_test_db;
+
+    #[tokio::test]
+    async fn get_profile_returns_defaults() {
+        let db = setup_test_db().await;
+        let profile = get_profile(&db).await.unwrap();
+        assert_eq!(profile.display_name, "オタク");
+        assert!(profile.favorite_titles.is_empty());
+        assert_eq!(profile.total_read, 0);
+    }
+
+    #[tokio::test]
+    async fn update_profile_persists_changes() {
+        let db = setup_test_db().await;
+        let dto = UserProfileDto {
+            display_name: "テストユーザー".to_string(),
+            favorite_titles: vec!["進撃の巨人".to_string()],
+            favorite_genres: vec!["アクション".to_string()],
+            favorite_creators: vec!["諫山創".to_string()],
+            total_read: 0,
+        };
+        update_profile(&db, &dto).await.unwrap();
+
+        let profile = get_profile(&db).await.unwrap();
+        assert_eq!(profile.display_name, "テストユーザー");
+        assert_eq!(profile.favorite_titles, vec!["進撃の巨人"]);
+        assert_eq!(profile.favorite_genres, vec!["アクション"]);
+        assert_eq!(profile.favorite_creators, vec!["諫山創"]);
+    }
+
+    #[tokio::test]
+    async fn increment_read_count_adds_one() {
+        let db = setup_test_db().await;
+        increment_read_count(&db).await.unwrap();
+        increment_read_count(&db).await.unwrap();
+
+        let profile = get_profile(&db).await.unwrap();
+        assert_eq!(profile.total_read, 2);
+    }
+
+    #[tokio::test]
+    async fn reset_learning_data_clears_state() {
+        let db = setup_test_db().await;
+        increment_read_count(&db).await.unwrap();
+        reset_learning_data(&db).await.unwrap();
+
+        let profile = get_profile(&db).await.unwrap();
+        assert_eq!(profile.total_read, 0);
+    }
+}

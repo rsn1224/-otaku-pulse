@@ -5,6 +5,8 @@ use tauri::{AppHandle, Emitter};
 use tokio::time::{interval, sleep};
 use tracing::{info, warn};
 
+use crate::state::AppState;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SchedulerConfig {
     /// フィード収集間隔（分）。デフォルト 60
@@ -40,6 +42,7 @@ pub fn start(
     config: SchedulerConfig,
     db_pool: Arc<sqlx::SqlitePool>,
     http_client: Arc<reqwest::Client>,
+    app_state: AppState,
 ) {
     let config_clone = config.clone();
     let app_handle_clone = app_handle.clone();
@@ -52,7 +55,7 @@ pub fn start(
     // ダイジェストループ
     let app_handle_clone = app_handle.clone();
     tauri::async_runtime::spawn(async move {
-        digest_loop(app_handle_clone, config).await;
+        digest_loop(app_handle_clone, config, app_state).await;
     });
 }
 
@@ -108,7 +111,7 @@ async fn collect_loop(
 }
 
 /// ダイジェスト生成ループ
-async fn digest_loop(app_handle: AppHandle, config: SchedulerConfig) {
+async fn digest_loop(app_handle: AppHandle, config: SchedulerConfig, state: AppState) {
     loop {
         // 次の digest_hour:digest_minute まで待機
         let wait = seconds_until(config.digest_hour, config.digest_minute);
@@ -118,22 +121,82 @@ async fn digest_loop(app_handle: AppHandle, config: SchedulerConfig) {
             continue;
         }
 
-        info!("スケジューラ: ダイジェスト生成開始");
+        info!("スケジューラー: ダイジェスト生成開始");
+
+        // LLM クライアントを構築
+        let llm_client = match build_scheduler_llm_client(&state) {
+            Ok(client) => client,
+            Err(e) => {
+                warn!(error = %e, "スケジューラー: LLM クライアント構築失敗、スキップ");
+                continue;
+            }
+        };
 
         // 4カテゴリーを順番に生成
         for category in &["anime", "manga", "game", "pc"] {
-            // STUB: generate_llm_digest 統合予定（LLM プロバイダー設定後に実装）
-            info!("ダイジェスト生成対象: {}", category);
+            match super::digest_generator::generate(&state.db, &*llm_client, category, 24).await {
+                Ok(result) => {
+                    info!(category, article_count = result.article_count, "ダイジェスト生成完了");
 
-            // STUB: 記事数は digest 生成結果から取得予定
-            crate::infra::notification::notify_digest_ready(
-                &app_handle,
-                category,
-                0,
-            );
+                    // DB に保存
+                    let digest = crate::models::Digest {
+                        id: 0,
+                        category: result.category.clone(),
+                        title: format!("{}ダイジェスト", category),
+                        content_markdown: result.summary,
+                        content_html: None,
+                        article_ids: String::new(),
+                        model_used: result.model,
+                        token_count: None,
+                        generated_at: result.generated_at,
+                    };
+                    if let Err(e) = super::digest_queries::insert_digest(&state.db, &digest).await {
+                        warn!(error = %e, category, "ダイジェスト DB 保存失敗");
+                    }
+
+                    crate::infra::notification::notify_digest_ready(
+                        &app_handle,
+                        category,
+                        result.article_count,
+                    );
+                }
+                Err(e) => {
+                    warn!(error = %e, category, "ダイジェスト生成失敗");
+                }
+            }
         }
 
-        info!("スケジューラ: ダイジェスト生成完了");
+        info!("スケジューラー: ダイジェスト生成完了");
+    }
+}
+
+/// スケジューラー用 LLM クライアント構築
+fn build_scheduler_llm_client(
+    state: &AppState,
+) -> Result<Box<dyn crate::infra::llm_client::LlmClient>, crate::error::AppError> {
+    let settings = state
+        .llm
+        .read()
+        .map_err(|e| crate::error::AppError::Internal(format!("LLM settings lock: {e}")))?;
+
+    match settings.provider {
+        crate::infra::llm_client::LlmProvider::PerplexitySonar => {
+            let api_key = settings
+                .perplexity_api_key
+                .clone()
+                .ok_or_else(|| crate::error::AppError::Llm("Perplexity API キーが未設定です".into()))?;
+            Ok(Box::new(crate::infra::perplexity_client::PerplexitySonarClient::new(
+                api_key,
+                (*state.http).clone(),
+            )))
+        }
+        crate::infra::llm_client::LlmProvider::Ollama => {
+            Ok(Box::new(crate::infra::ollama_client::OllamaClient::new(
+                settings.ollama_base_url.clone(),
+                settings.ollama_model.clone(),
+                (*state.http).clone(),
+            )))
+        }
     }
 }
 

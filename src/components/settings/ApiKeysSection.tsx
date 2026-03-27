@@ -2,11 +2,18 @@ import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { PerplexitySettings } from './PerplexitySettings';
 import { RawgSettings } from './RawgSettings';
+
+interface LlmSettingsResponse {
+  perplexity_api_key_set: boolean;
+}
 
 export const ApiKeysSection: React.FC = () => {
   const [rawgApiKey, setRawgApiKey] = useState('');
   const [rawgKeySet, setRawgKeySet] = useState(false);
+  const [perplexityApiKey, setPerplexityApiKey] = useState('');
+  const [perplexityKeySet, setPerplexityKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const checkRawgKey = async () => {
@@ -18,14 +25,23 @@ export const ApiKeysSection: React.FC = () => {
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: checkRawgKey は安定
+  const checkPerplexityKey = async () => {
+    try {
+      const settings = await invoke<LlmSettingsResponse>('get_llm_settings');
+      setPerplexityKeySet(settings.perplexity_api_key_set);
+    } catch (error) {
+      logger.error({ error }, 'Failed to check Perplexity API key status');
+    }
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: check functions are stable
   useEffect(() => {
     checkRawgKey();
+    checkPerplexityKey();
   }, []);
 
-  const handleSave = async () => {
+  const handleRawgSave = async () => {
     if (!rawgApiKey.trim()) return;
-
     setIsLoading(true);
     try {
       await invoke('set_rawg_api_key', { apiKey: rawgApiKey });
@@ -38,7 +54,7 @@ export const ApiKeysSection: React.FC = () => {
     }
   };
 
-  const handleClear = async () => {
+  const handleRawgClear = async () => {
     setIsLoading(true);
     try {
       await invoke('clear_rawg_api_key');
@@ -50,16 +66,50 @@ export const ApiKeysSection: React.FC = () => {
     }
   };
 
+  const handlePerplexitySave = async () => {
+    if (!perplexityApiKey.trim()) return;
+    setIsLoading(true);
+    try {
+      await invoke('set_perplexity_api_key', { apiKey: perplexityApiKey });
+      await checkPerplexityKey();
+      setPerplexityApiKey('');
+    } catch (error) {
+      logger.error({ error }, 'Failed to save Perplexity API key');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePerplexityClear = async () => {
+    setIsLoading(true);
+    try {
+      await invoke('clear_perplexity_api_key');
+      await checkPerplexityKey();
+    } catch (error) {
+      logger.error({ error }, 'Failed to clear Perplexity API key');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">API キー管理</h3>
+      <PerplexitySettings
+        apiKey={perplexityApiKey}
+        setApiKey={setPerplexityApiKey}
+        isLoading={isLoading}
+        apiKeySet={perplexityKeySet}
+        onSave={handlePerplexitySave}
+        onClear={handlePerplexityClear}
+      />
       <RawgSettings
         apiKey={rawgApiKey}
         setApiKey={setRawgApiKey}
         isLoading={isLoading}
         apiKeySet={rawgKeySet}
-        onSave={handleSave}
-        onClear={handleClear}
+        onSave={handleRawgSave}
+        onClear={handleRawgClear}
       />
     </div>
   );

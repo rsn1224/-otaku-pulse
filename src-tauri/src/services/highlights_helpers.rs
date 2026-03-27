@@ -86,3 +86,60 @@ pub async fn get_trending_keywords(db: &SqlitePool) -> Result<Vec<TrendKeyword>,
 
     Ok(keywords)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::test_helpers::setup_test_db;
+
+    #[test]
+    fn parse_numbered_lines_extracts_items() {
+        let raw = "1. First\n2. Second\n3. Third";
+        let result = parse_numbered_lines(raw, 3);
+        assert_eq!(result, vec!["First", "Second", "Third"]);
+    }
+
+    #[test]
+    fn parse_numbered_lines_pads_missing() {
+        let result = parse_numbered_lines("1. Only one", 3);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0], "Only one");
+        assert_eq!(result[1], "注目");
+    }
+
+    #[tokio::test]
+    async fn get_trending_keywords_returns_empty_for_no_articles() {
+        let db = setup_test_db().await;
+        let keywords = get_trending_keywords(&db).await.unwrap();
+        assert!(keywords.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_trending_keywords_extracts_repeated_words() {
+        let db = setup_test_db().await;
+
+        sqlx::query(
+            "INSERT INTO feeds (id, name, url, feed_type, category, created_at, updated_at)
+             VALUES (1, 'test', 'http://test', 'rss', 'anime', datetime('now'), datetime('now'))",
+        )
+        .execute(&db)
+        .await
+        .unwrap();
+
+        // 同じキーワード "pokemon" を3回以上含む記事を挿入
+        for i in 0..4 {
+            sqlx::query(
+                "INSERT INTO articles (feed_id, title, published_at, created_at)
+                 VALUES (1, ?1, datetime('now'), datetime('now'))",
+            )
+            .bind(format!("Pokemon news update {i}"))
+            .execute(&db)
+            .await
+            .unwrap();
+        }
+
+        let keywords = get_trending_keywords(&db).await.unwrap();
+        let has_pokemon = keywords.iter().any(|k| k.keyword == "pokemon");
+        assert!(has_pokemon, "Expected 'pokemon' in trending: {:?}", keywords);
+    }
+}

@@ -134,3 +134,72 @@ pub async fn cleanup_expired_cache(db: &SqlitePool) -> Result<u64, AppError> {
     }
     Ok(deleted)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::test_helpers::setup_test_db;
+
+    async fn seed_article(db: &SqlitePool) -> i64 {
+        sqlx::query(
+            "INSERT INTO feeds (id, name, url, feed_type, category, created_at, updated_at)
+             VALUES (1, 'test', 'http://test', 'rss', 'anime', datetime('now'), datetime('now'))",
+        )
+        .execute(db)
+        .await
+        .unwrap();
+
+        let result = sqlx::query(
+            "INSERT INTO articles (feed_id, title, content, created_at)
+             VALUES (1, 'テスト記事', 'テスト内容', datetime('now'))",
+        )
+        .execute(db)
+        .await
+        .unwrap();
+
+        result.last_insert_rowid()
+    }
+
+    #[tokio::test]
+    async fn cleanup_deletes_old_entries() {
+        let db = setup_test_db().await;
+        let article_id = seed_article(&db).await;
+
+        // 10日前のキャッシュを挿入
+        sqlx::query(
+            "INSERT INTO deepdive_cache (article_id, question, answer, created_at)
+             VALUES (?1, 'old question', 'old answer', datetime('now', '-10 days'))",
+        )
+        .bind(article_id)
+        .execute(&db)
+        .await
+        .unwrap();
+
+        // 最近のキャッシュを挿入
+        sqlx::query(
+            "INSERT INTO deepdive_cache (article_id, question, answer, created_at)
+             VALUES (?1, 'new question', 'new answer', datetime('now'))",
+        )
+        .bind(article_id)
+        .execute(&db)
+        .await
+        .unwrap();
+
+        let deleted = cleanup_expired_cache(&db).await.unwrap();
+        assert_eq!(deleted, 1);
+
+        // 最近のエントリーは残る
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM deepdive_cache")
+            .fetch_one(&db)
+            .await
+            .unwrap();
+        assert_eq!(count.0, 1);
+    }
+
+    #[tokio::test]
+    async fn cleanup_returns_zero_when_nothing_expired() {
+        let db = setup_test_db().await;
+        let deleted = cleanup_expired_cache(&db).await.unwrap();
+        assert_eq!(deleted, 0);
+    }
+}

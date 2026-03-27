@@ -98,6 +98,7 @@ pub fn run() {
                 scheduler_config,
                 app_state_for_scheduler.db.clone(),
                 app_state_for_scheduler.http.clone(),
+                app_state_for_scheduler,
             );
 
             Ok(())

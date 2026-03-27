@@ -49,7 +49,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry!.isIntersecting) {
+        if (entry?.isIntersecting) {
           if (dwellStart.current === 0) dwellStart.current = Date.now();
           if (!summary && !summaryLoading && !summaryAttempted) {
             setSummaryLoading(true);

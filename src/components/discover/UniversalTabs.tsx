@@ -53,7 +53,7 @@ export const UniversalTabs: React.FC = () => {
             key={t.id}
             type="button"
             role="tab"
-            aria-selected={tab === t.id ? 'true' : 'false'}
+            aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             onContextMenu={(e) => handleContextMenu(e, t.id)}
             className={`tab-item focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:rounded ${tab === t.id ? 'active' : ''}`}
