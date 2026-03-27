@@ -47,5 +47,27 @@ pub async fn setup_test_db() -> SqlitePool {
     .await
     .unwrap();
 
+    sqlx::query(
+        "CREATE TABLE keyword_filters (
+            id INTEGER PRIMARY KEY, keyword TEXT NOT NULL,
+            filter_type TEXT NOT NULL DEFAULT 'mute',
+            category TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE settings (
+            key TEXT PRIMARY KEY, value TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
     pool
 }
