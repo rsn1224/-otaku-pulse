@@ -70,6 +70,19 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
     }
   };
 
+  const handleApiKeyClear = async () => {
+    setIsLoading(true);
+    try {
+      await invoke('clear_perplexity_api_key');
+      await loadSettings();
+      onSettingsChange?.();
+    } catch (error) {
+      logger.error({ error }, 'Failed to clear API key');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleModelChange = async (model: string) => {
     setSelectedModel(model);
     if (settings) {
@@ -143,6 +156,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
           isLoading={isLoading}
           apiKeySet={settings.perplexity_api_key_set}
           onSave={handleApiKeySave}
+          onClear={handleApiKeyClear}
         />
       )}
 

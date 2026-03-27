@@ -112,6 +112,13 @@ pub fn run() {
             commands::llm::clear_perplexity_api_key,
             commands::llm::set_ollama_settings,
             commands::llm::check_ollama_status,
+            // Digest
+            commands::digest::get_digests,
+            commands::digest::get_latest_digest,
+            commands::digest::delete_digest,
+            // Settings
+            commands::settings::get_settings,
+            commands::settings::update_setting,
             // Scheduler
             commands::scheduler::get_scheduler_config,
             commands::scheduler::set_scheduler_config,

@@ -6,6 +6,7 @@ interface PerplexitySettingsProps {
   isLoading: boolean;
   apiKeySet: boolean;
   onSave: () => void;
+  onClear: () => void;
 }
 
 export const PerplexitySettings: React.FC<PerplexitySettingsProps> = ({
@@ -14,6 +15,7 @@ export const PerplexitySettings: React.FC<PerplexitySettingsProps> = ({
   isLoading,
   apiKeySet,
   onSave,
+  onClear,
 }) => (
   <div className="space-y-2 p-4 border rounded">
     <div>
@@ -37,6 +39,18 @@ export const PerplexitySettings: React.FC<PerplexitySettingsProps> = ({
         >
           保存
         </button>
+        {apiKeySet && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('APIキーを削除しますか？')) onClear();
+            }}
+            disabled={isLoading}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+          >
+            削除
+          </button>
+        )}
       </div>
       <div className="text-sm mt-1">
         {apiKeySet ? (
