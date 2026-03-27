@@ -15,6 +15,7 @@ use std::sync::Arc;
 use super::reddit_json::parse_reddit_json;
 
 #[cfg(test)]
+#[allow(dead_code)]
 pub struct RedditFetcher {
     client: Arc<Client>,
     user_agent: String,

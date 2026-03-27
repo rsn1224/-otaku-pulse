@@ -115,9 +115,8 @@ mod tests {
 
     #[test]
     fn test_build_http_client() {
-        let client = build_http_client();
-        // Just verify the client is created successfully
-        assert!(true);
+        let _client = build_http_client();
+        // Succeeds if no panic during construction
     }
 
     #[tokio::test]
@@ -140,7 +139,7 @@ mod tests {
             .await;
 
         let response = execute_with_retry(&client, || {
-            client.get(&format!("{}/test", mock_server.uri())).send()
+            client.get(format!("{}/test", mock_server.uri())).send()
         })
         .await;
 
@@ -163,7 +162,7 @@ mod tests {
         let start = std::time::Instant::now();
         let result = execute_with_retry(&client, || {
             client
-                .get(&format!("{}/rate-limited", mock_server.uri()))
+                .get(format!("{}/rate-limited", mock_server.uri()))
                 .send()
         })
         .await;

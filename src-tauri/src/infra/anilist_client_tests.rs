@@ -76,7 +76,7 @@ async fn test_fetch_seasonal_anime() {
         .await;
 
     let client = Arc::new(http_client::build_http_client());
-    let anilist_client = AniListClient::new(Arc::clone(&client));
+    let _anilist_client = AniListClient::new(Arc::clone(&client));
 
     // We need to mock the actual HTTP call, so we'll create a custom implementation
     let test_client = MockAniListClient::new(&mock_server.uri());

@@ -138,6 +138,6 @@ mod tests {
     fn test_score_clamped() {
         let article = make_article("a", None, None);
         let score = calculate_importance(&article, "unknown");
-        assert!(score >= 0.0 && score <= 1.0);
+        assert!((0.0..=1.0).contains(&score));
     }
 }
