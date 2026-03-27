@@ -2,6 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import type { LlmProvider } from '../../types';
+import { OllamaSettings } from './OllamaSettings';
+import { PerplexitySettings } from './PerplexitySettings';
 
 interface LlmSettings {
   provider: LlmProvider;
@@ -133,82 +135,25 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
         </div>
       </div>
 
-      {/* Perplexity Sonar 選択時 */}
       {settings.provider === 'perplexity_sonar' && (
-        <div className="space-y-2 p-4 border rounded">
-          <div>
-            <label htmlFor="perplexity-api-key" className="block text-sm font-medium mb-2">
-              API キー:
-            </label>
-            <div className="flex items-center space-x-2">
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="pplx-..."
-                className="flex-1 px-3 py-2 border rounded"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={handleApiKeySave}
-                disabled={isLoading || !apiKey.trim()}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-              >
-                保存
-              </button>
-            </div>
-            <div className="text-sm mt-1">
-              {settings.perplexity_api_key_set ? (
-                <span className="text-green-600">✅ 設定済み</span>
-              ) : (
-                <span className="text-yellow-600">⚠️ 未設定</span>
-              )}
-              <span className="text-gray-500 ml-2">取得先: console.perplexity.ai</span>
-            </div>
-          </div>
-        </div>
+        <PerplexitySettings
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          isLoading={isLoading}
+          apiKeySet={settings.perplexity_api_key_set}
+          onSave={handleApiKeySave}
+        />
       )}
 
-      {/* Ollama 選択時 */}
       {settings.provider === 'ollama' && (
-        <div className="space-y-2 p-4 border rounded">
-          <div>
-            <label htmlFor="ollama-model" className="block text-sm font-medium mb-2">
-              モデル:
-            </label>
-            <select
-              value={selectedModel}
-              onChange={(e) => handleModelChange(e.target.value)}
-              disabled={isLoading || !settings.ollama_running}
-              className="w-full px-3 py-2 border rounded disabled:opacity-50"
-            >
-              {settings.available_ollama_models.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="text-sm">
-            {settings.ollama_running ? (
-              <span className="text-green-600">
-                🟢 起動中（{settings.available_ollama_models.length}モデル利用可能）
-              </span>
-            ) : (
-              <span className="text-red-600">🔴 未起動</span>
-            )}
-            <div className="text-gray-500 mt-1">未起動時: ollama serve を実行してください</div>
-            <button
-              type="button"
-              onClick={handleStatusRefresh}
-              disabled={isLoading}
-              className="mt-2 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
-            >
-              ステータス再確認
-            </button>
-          </div>
-        </div>
+        <OllamaSettings
+          selectedModel={selectedModel}
+          availableModels={settings.available_ollama_models}
+          isRunning={settings.ollama_running}
+          isLoading={isLoading}
+          onModelChange={handleModelChange}
+          onRefresh={handleStatusRefresh}
+        />
       )}
     </div>
   );

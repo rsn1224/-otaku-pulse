@@ -1,0 +1,46 @@
+# Tauri + React プロジェクト .claudeignore
+
+# ビルド成果物
+dist/
+build/
+target/
+src-tauri/target/
+*.exe
+*.dll
+
+# 依存関係
+node_modules/
+.pnpm-store/
+
+# ロックファイル
+package-lock.json
+pnpm-lock.yaml
+Cargo.lock
+
+# メディア・データ
+*.mp3
+*.mp4
+*.wav
+*.zip
+*.rar
+*.sqlite
+*.db
+
+# IDE / 環境
+.vscode/settings.json
+.idea/
+.env
+.env.*
+*.pem
+*.key
+
+# テストカバレッジ・ログ
+coverage/
+*.log
+logs/
+tmp/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini

@@ -4,24 +4,9 @@ import { useCallback, useState } from 'react';
 import { logger } from '../../lib/logger';
 import { useProfileStore } from '../../stores/useProfileStore';
 import type { UserProfileDto } from '../../types';
-
-const GENRE_PRESETS = [
-  'アクション',
-  'ファンタジー',
-  'SF',
-  'ラブコメ',
-  'ホラー',
-  'RPG',
-  'FPS',
-  'オープンワールド',
-  'ストラテジー',
-  'インディー',
-  '少年漫画',
-  '少女漫画',
-  'ダークファンタジー',
-  '日常系',
-  'ロボット',
-];
+import { StepCreators } from './StepCreators';
+import { StepGenres } from './StepGenres';
+import { StepTitles } from './StepTitles';
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -134,50 +119,24 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
         {/* Content */}
         <div className="px-6 pb-4 min-h-[200px]">
           {step === 0 && (
-            <TagInputStep
-              tags={titles}
-              tagSetter={setTitles}
-              input={titleInput}
-              inputSetter={setTitleInput}
+            <StepTitles
+              titles={titles}
+              setTitles={setTitles}
+              titleInput={titleInput}
+              setTitleInput={setTitleInput}
               addTag={addTag}
               removeTag={removeTag}
-              placeholder="作品名を入力..."
             />
           )}
-          {step === 1 && (
-            <div>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {GENRE_PRESETS.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => toggleGenre(g)}
-                    className="tag-chip"
-                    style={
-                      genres.includes(g)
-                        ? {
-                            background: 'var(--accent-soft)',
-                            borderColor: 'var(--accent)',
-                            color: 'var(--accent)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {step === 1 && <StepGenres genres={genres} toggleGenre={toggleGenre} />}
           {step === 2 && (
-            <TagInputStep
-              tags={creators}
-              tagSetter={setCreators}
-              input={creatorInput}
-              inputSetter={setCreatorInput}
+            <StepCreators
+              creators={creators}
+              setCreators={setCreators}
+              creatorInput={creatorInput}
+              setCreatorInput={setCreatorInput}
               addTag={addTag}
               removeTag={removeTag}
-              placeholder="クリエイター名を入力..."
             />
           )}
         </div>
@@ -214,59 +173,3 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     </div>
   );
 };
-
-// Tag input sub-component
-const TagInputStep: React.FC<{
-  tags: string[];
-  tagSetter: (v: string[]) => void;
-  input: string;
-  inputSetter: (v: string) => void;
-  addTag: (
-    input: string,
-    setter: (v: string) => void,
-    list: string[],
-    listSetter: (v: string[]) => void,
-  ) => void;
-  removeTag: (tag: string, list: string[], listSetter: (v: string[]) => void) => void;
-  placeholder: string;
-}> = ({ tags, tagSetter, input, inputSetter, addTag, removeTag, placeholder }) => (
-  <div>
-    <div className="flex flex-wrap gap-2 mb-3 min-h-[2rem]">
-      {tags.map((tag) => (
-        <span key={tag} className="tag-chip">
-          {tag}
-          <button
-            type="button"
-            className="tag-chip-remove"
-            onClick={() => removeTag(tag, tags, tagSetter)}
-          >
-            ✕
-          </button>
-        </span>
-      ))}
-    </div>
-    <div className="flex gap-2">
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => inputSetter(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            addTag(input, inputSetter, tags, tagSetter);
-          }
-        }}
-        placeholder={placeholder}
-        maxLength={100}
-        className="flex-1 px-3 py-2 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)]"
-      />
-      <button
-        type="button"
-        onClick={() => addTag(input, inputSetter, tags, tagSetter)}
-        className="card-action-btn primary"
-      >
-        追加
-      </button>
-    </div>
-  </div>
-);

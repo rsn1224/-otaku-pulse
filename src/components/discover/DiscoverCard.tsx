@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useDeepDive } from '../../hooks/useDeepDive';
 import { logger } from '../../lib/logger';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useReaderStore } from '../../stores/useReaderStore';
@@ -27,8 +28,6 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
   const [summary, setSummary] = useState<string | null>(article.aiSummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryAttempted, setSummaryAttempted] = useState(!!article.aiSummary);
-  const [questions, setQuestions] = useState<string[]>([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const dwellStart = useRef<number>(0);
 
@@ -37,6 +36,13 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
   const recordInteraction = useArticleStore((s) => s.recordInteraction);
   const updateArticleSummary = useArticleStore((s) => s.updateArticleSummary);
   const openReader = useReaderStore((s) => s.openReader);
+
+  const { questions, questionsLoading, handleDeepDive, setQuestions } = useDeepDive(
+    article.id,
+    state,
+    setState,
+    recordInteraction,
+  );
 
   useEffect(() => {
     if (summary || summaryAttempted) setState('summary');
@@ -100,26 +106,6 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
       bookmarkingRef.current = false;
     }, 500);
   }, [article.id, toggleBookmark, recordInteraction]);
-
-  const handleDeepDive = useCallback(async (): Promise<void> => {
-    if (state === 'deepdive') {
-      setState('summary');
-      return;
-    }
-    setQuestions([]);
-    setState('deepdive');
-    setQuestionsLoading(true);
-    recordInteraction(article.id, 'deepdive');
-    try {
-      const qs = await invoke<string[]>('get_deepdive_questions', { articleId: article.id });
-      setQuestions(qs);
-    } catch (e) {
-      logger.warn({ error: e }, 'getDeepDiveQuestions failed');
-      setQuestions(['この記事の詳細は？', '関連作品は？', '今後の展開は？']);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  }, [article.id, state, recordInteraction]);
 
   const handleMarkRead = useCallback(() => {
     markRead(article.id);

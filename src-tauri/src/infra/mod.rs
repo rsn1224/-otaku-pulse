@@ -7,6 +7,7 @@ pub mod ollama_client;
 pub mod perplexity_client;
 pub mod rate_limiter;
 pub mod rawg_client;
+pub(crate) mod reddit_json;
 pub mod reddit_fetcher;
 pub mod rss_fetcher;
 pub mod steam_client;
