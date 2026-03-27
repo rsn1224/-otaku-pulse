@@ -11,6 +11,90 @@ pub use error::AppError;
 use tauri::Manager;
 use tracing_subscriber::{EnvFilter, fmt};
 
+/// セットアップロジック本体。エラーは `?` 演算子で伝播する。
+/// WebView がマウントされる前に呼ばれるため、エラー表示は呼び出し元の
+/// OS ネイティブダイアログに委ねる（D-01, D-02, D-03）。
+fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    tracing::info!("OtakuPulse starting up");
+
+    let app_data_dir = app.path().app_data_dir().map_err(|e| {
+        tracing::error!(error = %e, "致命的: app_data_dir 取得失敗");
+        Box::<dyn std::error::Error>::from(
+            format!("アプリのデータフォルダが取得できませんでした: {e}")
+        )
+    })?;
+
+    if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
+        tracing::warn!(path = %app_data_dir.display(), error = %e, "Failed to create app data dir");
+    }
+    let db_path = app_data_dir.join("otaku_pulse.db");
+
+    // Use block_on for async DB init inside sync setup closure
+    let db_pool = tauri::async_runtime::block_on(async {
+        infra::database::init_pool(&db_path).await
+    })
+    .map_err(|e| {
+        tracing::error!(error = %e, "致命的: データベース初期化失敗");
+        Box::<dyn std::error::Error>::from(
+            format!("データベースの初期化に失敗しました: {e}")
+        )
+    })?;
+
+    let db_arc = std::sync::Arc::new(db_pool);
+    app.manage((*db_arc).clone());
+
+    let http_client = infra::http_client::build_http_client();
+    let http_arc = http_client.clone();
+    app.manage(http_client);
+
+    let app_state = state::AppState::new(db_arc, http_arc);
+
+    // Load persisted API key from OS credential store
+    match infra::credential_store::load_credential(
+        infra::credential_store::PERPLEXITY_ACCOUNT,
+    ) {
+        Ok(Some(key)) => {
+            // D-11: lock poisoning は map_err でハンドリングし、panic しない
+            let mut llm = app_state.llm.write().map_err(|e| {
+                Box::<dyn std::error::Error>::from(
+                    format!("LLM 設定の書き込みロックが汚染されています: {e}")
+                )
+            })?;
+            llm.perplexity_api_key = Some(key);
+            tracing::info!("Perplexity API key loaded from credential store");
+        }
+        Ok(None) => {
+            tracing::debug!("No Perplexity API key found in credential store");
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "Failed to load API key from credential store");
+        }
+    }
+
+    let app_state_for_scheduler = app_state.clone();
+    app.manage(app_state);
+
+    // 起動時にキャッシュクリーンアップ
+    let db_for_cleanup = app_state_for_scheduler.db.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = crate::services::deepdive_service::cleanup_expired_cache(&db_for_cleanup).await {
+            tracing::warn!(error = %e, "Failed to clean up deepdive cache");
+        }
+    });
+
+    // スケジューラーを起動
+    let scheduler_config = crate::services::scheduler::SchedulerConfig::default();
+    crate::services::scheduler::start(
+        app.handle().clone(),
+        scheduler_config,
+        app_state_for_scheduler.db.clone(),
+        app_state_for_scheduler.http.clone(),
+        app_state_for_scheduler,
+    );
+
+    Ok(())
+}
+
 /// Application entry point. Called from main.rs.
 pub fn run() {
     // Initialize structured logging (tracing)
@@ -30,77 +114,16 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            tracing::info!("OtakuPulse starting up");
-
-            let app_data_dir = app.path().app_data_dir().unwrap_or_else(|e| {
-                tracing::error!(error = %e, "Failed to get app data dir");
-                panic!("Failed to get app data dir: {e}");
-            });
-
-            if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
-                tracing::warn!(path = %app_data_dir.display(), error = %e, "Failed to create app data dir");
+            // D-02: セットアップが失敗した場合、WebView がマウントされる前に
+            // OS ネイティブダイアログでエラーを表示してからアプリを終了する
+            if let Err(e) = run_setup(app) {
+                rfd::MessageDialog::new()
+                    .set_level(rfd::MessageLevel::Error)
+                    .set_title("致命的なエラー")
+                    .set_description(&format!("OtakuPulse 起動エラー\n\n{e}"))
+                    .show();
+                return Err(e);
             }
-            let db_path = app_data_dir.join("otaku_pulse.db");
-
-            // Use block_on for async DB init inside sync setup closure
-            let db_pool = tauri::async_runtime::block_on(async {
-                infra::database::init_pool(&db_path).await
-            })
-            .unwrap_or_else(|e| {
-                tracing::error!(error = %e, "Failed to initialize database");
-                panic!("Failed to initialize database: {e}");
-            });
-
-            let db_arc = std::sync::Arc::new(db_pool);
-            app.manage((*db_arc).clone());
-
-            let http_client = infra::http_client::build_http_client();
-            let http_arc = http_client.clone();
-            app.manage(http_client);
-
-            let app_state = state::AppState::new(db_arc, http_arc);
-
-            // Load persisted API key from OS credential store
-            match infra::credential_store::load_credential(
-                infra::credential_store::PERPLEXITY_ACCOUNT,
-            ) {
-                Ok(Some(key)) => {
-                    let mut llm = app_state
-                        .llm
-                        .write()
-                        .expect("LLM settings lock poisoned during startup");
-                    llm.perplexity_api_key = Some(key);
-                    tracing::info!("Perplexity API key loaded from credential store");
-                }
-                Ok(None) => {
-                    tracing::debug!("No Perplexity API key found in credential store");
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "Failed to load API key from credential store");
-                }
-            }
-
-            let app_state_for_scheduler = app_state.clone();
-            app.manage(app_state);
-
-            // 起動時にキャッシュクリーンアップ
-            let db_for_cleanup = app_state_for_scheduler.db.clone();
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = crate::services::deepdive_service::cleanup_expired_cache(&db_for_cleanup).await {
-                    tracing::warn!(error = %e, "Failed to clean up deepdive cache");
-                }
-            });
-
-            // スケジューラーを起動
-            let scheduler_config = crate::services::scheduler::SchedulerConfig::default();
-            crate::services::scheduler::start(
-                app.handle().clone(),
-                scheduler_config,
-                app_state_for_scheduler.db.clone(),
-                app_state_for_scheduler.http.clone(),
-                app_state_for_scheduler,
-            );
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

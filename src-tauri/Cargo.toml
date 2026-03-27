@@ -35,6 +35,7 @@ sha2 = "0.10"
 regex = "1.10"
 unicode-normalization = "0.1"
 keyring = "3"
+rfd = "0.15"
 
 [dev-dependencies]
 wiremock = "0.6"
