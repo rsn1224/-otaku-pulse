@@ -122,6 +122,7 @@ pub fn run() {
             // Scheduler
             commands::scheduler::get_scheduler_config,
             commands::scheduler::set_scheduler_config,
+            commands::scheduler::run_digest_now,
             // Schedule
             commands::schedule::get_airing_schedule,
             commands::schedule::get_game_releases,

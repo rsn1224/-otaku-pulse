@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::error::AppError;
 use crate::infra::llm_client::{LlmClient, LlmRequest};
 use crate::models::DiscoverArticleDto;

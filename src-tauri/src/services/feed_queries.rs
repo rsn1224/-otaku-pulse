@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::error::AppError;
 use crate::models::{ArticleDetailDto, Feed, FeedDto};
 use sqlx::{Row, SqlitePool};
@@ -56,6 +55,8 @@ pub async fn update_feed_success(
     Ok(())
 }
 
+/// TODO: collector::refresh_all から呼び出される予定
+#[allow(dead_code)]
 pub async fn update_feed_failure(
     db: &SqlitePool,
     feed_id: i64,
@@ -132,12 +133,3 @@ pub async fn get_article_detail(
     })
 }
 
-pub async fn get_unread_count(db: &SqlitePool) -> Result<i64, AppError> {
-    let count = sqlx::query(
-        "SELECT COUNT(*) as count FROM articles WHERE is_read = 0 AND is_duplicate = 0",
-    )
-    .fetch_one(db)
-    .await?;
-
-    Ok(count.get("count"))
-}

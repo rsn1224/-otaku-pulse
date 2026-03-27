@@ -1,8 +1,10 @@
-#![allow(dead_code)]
 use crate::error::AppError;
-use crate::models::{Article, ArticleDto};
+use crate::models::Article;
+#[cfg(test)]
+use crate::models::ArticleDto;
 use sqlx::SqlitePool;
 
+#[cfg(test)]
 pub async fn list_articles(
     db: &SqlitePool,
     category: Option<&str>,
@@ -110,6 +112,7 @@ pub async fn recent_articles_for_dedup(
     Ok(rows)
 }
 
+#[cfg(test)]
 pub async fn mark_all_as_read(db: &SqlitePool, category: Option<&str>) -> Result<u32, AppError> {
     let result = if let Some(cat) = category {
         sqlx::query(
@@ -127,6 +130,7 @@ pub async fn mark_all_as_read(db: &SqlitePool, category: Option<&str>) -> Result
     Ok(result.rows_affected() as u32)
 }
 
+#[cfg(test)]
 pub async fn mark_as_read(db: &SqlitePool, article_id: i64) -> Result<(), AppError> {
     sqlx::query("UPDATE articles SET is_read = 1 WHERE id = ?")
         .bind(article_id)

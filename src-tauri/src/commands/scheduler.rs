@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::commands::llm;
 use crate::error::AppError;
 use crate::services::digest_generator;
