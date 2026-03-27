@@ -89,13 +89,45 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (Populated during roadmap creation) | | |
+| SAFE-01 | Phase 1 | Pending |
+| SAFE-02 | Phase 1 | Pending |
+| SAFE-03 | Phase 1 | Pending |
+| SAFE-04 | Phase 1 | Pending |
+| BUG-01 | Phase 1 | Pending |
+| BUG-02 | Phase 1 | Pending |
+| BUG-03 | Phase 1 | Pending |
+| BUG-04 | Phase 1 | Pending |
+| PERF-01 | Phase 1 | Pending |
+| DEP-01 | Phase 1 | Pending |
+| DEP-02 | Phase 1 | Pending |
+| DEP-03 | Phase 1 | Pending |
+| FRNT-01 | Phase 1 | Pending |
+| RESL-01 | Phase 2 | Pending |
+| RESL-02 | Phase 2 | Pending |
+| RESL-03 | Phase 2 | Pending |
+| RESL-04 | Phase 2 | Pending |
+| RESL-05 | Phase 2 | Pending |
+| SEC-01 | Phase 2 | Pending |
+| SEC-02 | Phase 2 | Pending |
+| SEC-03 | Phase 2 | Pending |
+| PERF-02 | Phase 3 | Pending |
+| PERF-03 | Phase 3 | Pending |
+| PERF-04 | Phase 3 | Pending |
+| PERF-05 | Phase 3 | Pending |
+| PERF-06 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Pending |
+| TEST-02 | Phase 3 | Pending |
+| TEST-03 | Phase 3 | Pending |
+| TEST-04 | Phase 3 | Pending |
+| TEST-05 | Phase 3 | Pending |
+| TEST-06 | Phase 3 | Pending |
+| TEST-07 | Phase 3 | Pending |
 
 **Coverage:**
-- v1 requirements: 31 total
-- Mapped to phases: 0
-- Unmapped: 31 ⚠️
+- v1 requirements: 33 total
+- Mapped to phases: 33
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-27 after roadmap creation*
