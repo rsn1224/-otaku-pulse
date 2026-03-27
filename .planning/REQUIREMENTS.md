@@ -38,9 +38,9 @@
 
 - [x] **RESL-01**: scheduler の collect_loop / digest_loop に CancellationToken を導入し、グレースフルシャットダウンを実装する
 - [x] **RESL-02**: SchedulerConfig を Arc<RwLock> でラップし、設定変更を Tauri event で稼働中ループに即時通知する
-- [ ] **RESL-03**: RSS パースエラーを (成功記事, 失敗記事, エラー) のタプルで返し、フィードエラーを可視化する
-- [ ] **RESL-04**: LLM プロバイダー切り替え時に進行中の DeepDive 会話を保護する（プロバイダー ID 検証）
-- [ ] **RESL-05**: オフラインモードを実装し、API 不達時にキャッシュ済みコンテンツ（72h TTL）で動作する
+- [x] **RESL-03**: RSS パースエラーを (成功記事, 失敗記事, エラー) のタプルで返し、フィードエラーを可視化する
+- [x] **RESL-04**: LLM プロバイダー切り替え時に進行中の DeepDive 会話を保護する（プロバイダー ID 検証）
+- [x] **RESL-05**: オフラインモードを実装し、API 不達時にキャッシュ済みコンテンツ（72h TTL）で動作する
 
 ### Test Coverage
 
@@ -104,9 +104,9 @@
 | FRNT-01 | Phase 1 | Complete |
 | RESL-01 | Phase 2 | Complete |
 | RESL-02 | Phase 2 | Complete |
-| RESL-03 | Phase 2 | Pending |
-| RESL-04 | Phase 2 | Pending |
-| RESL-05 | Phase 2 | Pending |
+| RESL-03 | Phase 2 | Complete |
+| RESL-04 | Phase 2 | Complete |
+| RESL-05 | Phase 2 | Complete |
 | SEC-01 | Phase 2 | Pending |
 | SEC-02 | Phase 2 | Pending |
 | SEC-03 | Phase 2 | Pending |
