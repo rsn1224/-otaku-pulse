@@ -1,12 +1,17 @@
 #![allow(dead_code)]
 use crate::commands::llm;
 use crate::error::AppError;
+use crate::services::digest_generator;
 use crate::services::scheduler::SchedulerConfig;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
+use tauri_plugin_store::StoreExt;
 
-#[derive(Debug, Serialize, Deserialize)]
+const STORE_PATH: &str = "scheduler.json";
+const STORE_KEY: &str = "scheduler_config";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchedulerSettings {
     pub collect_interval_minutes: u64,
     pub digest_hour: u32,
@@ -36,49 +41,76 @@ impl From<SchedulerSettings> for SchedulerConfig {
     }
 }
 
-/// 現在のスケジューラー設定を取得
+/// 現在のスケジューラー設定を取得（tauri-plugin-store から読み込み）
 #[tauri::command]
-pub async fn get_scheduler_config(_app_handle: AppHandle) -> Result<SchedulerSettings, AppError> {
-    // TODO: tauri-plugin-storeから読み込む（現在一時的実装）
-    Ok(SchedulerConfig::default().into())
+pub async fn get_scheduler_config(app_handle: AppHandle) -> Result<SchedulerSettings, AppError> {
+    let store = app_handle
+        .store(STORE_PATH)
+        .map_err(|e| AppError::Internal(format!("Store open error: {e}")))?;
+
+    if let Some(value) = store.get(STORE_KEY) {
+        let settings: SchedulerSettings = serde_json::from_value(value)
+            .unwrap_or_else(|e| {
+                tracing::warn!(error = %e, "Failed to parse scheduler config from store, using defaults");
+                SchedulerConfig::default().into()
+            });
+        Ok(settings)
+    } else {
+        Ok(SchedulerConfig::default().into())
+    }
 }
 
-/// スケジューラー設定を保存（tauri-plugin-storeに永続化）
+/// スケジューラー設定を保存（tauri-plugin-store に永続化）
 #[tauri::command]
 pub async fn set_scheduler_config(
-    _app_handle: AppHandle,
+    app_handle: AppHandle,
     _state: State<'_, AppState>,
     config: SchedulerSettings,
 ) -> Result<(), AppError> {
-    // TODO: tauri-plugin-storeに保存（現在一時的実装）
-    tracing::info!("スケジューラー設定更新: {:?}", config);
+    let store = app_handle
+        .store(STORE_PATH)
+        .map_err(|e| AppError::Internal(format!("Store open error: {e}")))?;
+
+    let value = serde_json::to_value(&config)
+        .map_err(|e| AppError::Internal(format!("Serialize error: {e}")))?;
+
+    store.set(STORE_KEY, value);
+    store
+        .save()
+        .map_err(|e| AppError::Internal(format!("Store save error: {e}")))?;
+
+    tracing::info!(?config, "Scheduler config saved to store");
     Ok(())
 }
 
 /// 手動で今すぐダイジェスト生成（スケジュールを待たずに実行）
 #[tauri::command]
 pub async fn run_digest_now(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
 ) -> Result<Vec<llm::DigestResult>, AppError> {
     let categories = ["anime", "manga", "game", "pc"];
+
+    // LLM クライアントを構築
+    let settings = llm::clone_llm_settings(&state)?;
+    let client_box = llm::build_llm_client(&settings, &state.http)?;
+    let client = llm::as_llm_client(&client_box);
+
     let mut results = Vec::new();
-
     for category in &categories {
-        // TODO: generate_llm_digestを呼ぶ実装が必要
-        tracing::info!("手動ダイジェスト生成対象: {}", category);
+        tracing::info!(category, "Generating digest");
 
-        // 現時点ではスタブ実装
-        let stub_result = llm::DigestResult {
-            category: category.to_string(),
-            summary: format!("{}のスタブ要約", category),
-            article_count: 0,
-            generated_at: chrono::Utc::now().to_rfc3339(),
-            is_ai_generated: false,
-            provider: None,
-            model: None,
-            fallback_reason: Some("手動生成スタブ".to_string()),
-        };
-        results.push(stub_result);
+        let digest = digest_generator::generate(&state.db, client, category, 24).await?;
+
+        results.push(llm::DigestResult {
+            category: digest.category,
+            summary: digest.summary,
+            article_count: digest.article_count,
+            generated_at: digest.generated_at,
+            is_ai_generated: digest.is_ai_generated,
+            provider: digest.provider,
+            model: digest.model,
+            fallback_reason: digest.fallback_reason,
+        });
     }
 
     Ok(results)
