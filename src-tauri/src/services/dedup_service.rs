@@ -20,10 +20,10 @@ pub fn normalize_url(url: &str) -> String {
     }
 
     if let Some(query_pos) = normalized.find('?') {
-        let base_url = &normalized[..query_pos];
+        let base_url = normalized[..query_pos].to_string();
         let query = &normalized[query_pos + 1..];
 
-        let tracking_params = [
+        let tracking_params: HashSet<&str> = [
             "utm_source",
             "utm_medium",
             "utm_campaign",
@@ -36,21 +36,30 @@ pub fn normalize_url(url: &str) -> String {
             "msclkid",
             "mc_cid",
             "mc_eid",
-        ];
+        ]
+        .iter()
+        .copied()
+        .collect();
 
-        let mut filtered_params: Vec<&str> = query
+        // Parse query parameters into (key, value) tuples, filtering tracking params
+        let mut params: Vec<(&str, &str)> = query
             .split('&')
-            .filter(|p| {
-                p.split_once('=')
-                    .is_none_or(|(k, _)| !tracking_params.contains(&k))
-            })
+            .filter(|p| !p.is_empty())
+            .filter_map(|p| p.split_once('='))
+            .filter(|(k, _)| !tracking_params.contains(k))
             .collect();
-        filtered_params.sort();
+        // Sort by key name (stable sort preserves order for same-key params)
+        params.sort_by_key(|(k, _)| *k);
 
-        if !filtered_params.is_empty() {
-            normalized = format!("{}?{}", base_url, filtered_params.join("&"));
+        if !params.is_empty() {
+            let sorted_query: String = params
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect::<Vec<_>>()
+                .join("&");
+            normalized = format!("{}?{}", base_url, sorted_query);
         } else {
-            normalized = base_url.to_string();
+            normalized = base_url;
         }
     }
 
@@ -76,7 +85,7 @@ pub fn normalize_url(url: &str) -> String {
 
 /// タイトル正規化: NFKC + 記号除去 + 小文字化
 pub fn normalize_title(title: &str) -> String {
-    let normalized = title.nfc().collect::<String>();
+    let normalized = title.nfkc().collect::<String>();
     let symbols = [
         '「', '」', '『', '』', '【', '】', '（', '）', '(', ')', '[', ']', '<', '>', '・', '、',
         '。', ',', '.', '!', '?', '！', '？', '　',
@@ -116,9 +125,11 @@ pub fn jaccard_bigram_similarity(a: &str, b: &str) -> f64 {
     intersection as f64 / union as f64
 }
 
-/// Layer 3: コンテンツハッシュ生成
+/// Layer 3: コンテンツハッシュ生成 (NFKC 正規化後にハッシュ化)
 pub fn generate_content_hash(content: &str) -> String {
-    let normalized: String = content.chars().take(200).collect();
+    // Apply NFKC normalization so half-width and full-width variants produce identical hashes
+    let normalized: String = content.nfkc().collect::<String>();
+    let normalized: String = normalized.chars().take(200).collect();
     let normalized = normalized.trim();
     format!("{:x}", Sha256::digest(normalized.as_bytes()))
 }
@@ -188,5 +199,51 @@ mod tests {
         assert_eq!(hash.len(), 64); // SHA-256 hex
         // 同じ入力 → 同じ出力
         assert_eq!(hash, generate_content_hash("Hello World"));
+    }
+
+    #[test]
+    fn test_nfkc_half_width_katakana() {
+        // Half-width katakana should normalize to full-width
+        let half = "\u{FF76}\u{FF9E}\u{FF9D}\u{FF80}\u{FF9E}\u{FF91}";
+        let full = "ガンダム";
+        assert_eq!(normalize_title(half), normalize_title(full));
+    }
+
+    #[test]
+    fn test_nfkc_fullwidth_ascii() {
+        // Full-width ASCII should normalize to half-width
+        assert_eq!(
+            normalize_title("\u{FF21}\u{FF4E}\u{FF49}\u{FF4D}\u{FF45}"),
+            normalize_title("Anime")
+        );
+    }
+
+    #[test]
+    fn test_url_param_order_independent() {
+        let url1 = "https://example.com/page?b=2&a=1";
+        let url2 = "https://example.com/page?a=1&b=2";
+        assert_eq!(normalize_url(url1), normalize_url(url2));
+    }
+
+    #[test]
+    fn test_url_tracking_params_removed() {
+        let url = "https://example.com/page?id=1&utm_source=rss&tab=news";
+        let normalized = normalize_url(url);
+        assert!(!normalized.contains("utm_source"));
+        assert!(normalized.contains("id=1"));
+        assert!(normalized.contains("tab=news"));
+    }
+
+    #[test]
+    fn test_nfkc_content_hash_consistency() {
+        // Same content in different Unicode forms MUST produce same hash
+        // because generate_content_hash applies NFKC normalization internally
+        let hash1 = generate_content_hash("\u{FF76}\u{FF9E}\u{FF9D}\u{FF80}\u{FF9E}\u{FF91}");
+        let hash2 = generate_content_hash("ガンダム");
+        assert_eq!(
+            hash1,
+            hash2,
+            "NFKC normalization must propagate through generate_content_hash"
+        );
     }
 }
