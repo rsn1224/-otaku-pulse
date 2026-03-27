@@ -35,6 +35,23 @@ regex = "1.10"
 wiremock = "0.6"
 http = "1.1"
 unicode-normalization = "0.1"
+ahash = "0.8"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+
+# ---------------------------------------------------------------------------
+# リリースプロファイル (.claude/rules/rust-perf.md 参照)
+# ---------------------------------------------------------------------------
+[profile.release]
+opt-level = 3
+lto = "fat"          # リンク時最適化 — バイナリサイズ削減・実行速度向上
+codegen-units = 1    # 最大最適化 (コンパイル時間増加とのトレードオフ)
+panic = "abort"      # unwind コードを除去しバイナリ軽量化
+strip = true         # デバッグシンボル除去
+
+# cargo build --profile profiling でフレームグラフ取得用ビルド
+[profile.profiling]
+inherits = "release"
+debug = true         # デバッグシンボルを残す
+strip = false
