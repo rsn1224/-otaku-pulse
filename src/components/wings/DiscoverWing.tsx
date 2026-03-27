@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useKeyboardStore } from '../../stores/useKeyboardStore';
 import { useReaderStore } from '../../stores/useReaderStore';
+import { useSchedulerStore } from '../../stores/useSchedulerStore';
 import { useSearchStore } from '../../stores/useSearchStore';
 import { ArticleReader } from '../common/ArticleReader';
 import { CitationFooter } from '../discover/CitationFooter';
@@ -26,6 +27,7 @@ export const DiscoverWing: React.FC = () => {
   } = useArticleStore();
   const { searchMode, searchResults, aiAnswer, aiCitations, isSearching } = useSearchStore();
   const { readerArticle, closeReader } = useReaderStore();
+  const { isOffline } = useSchedulerStore();
   const { focusedIndex } = useKeyboardStore();
 
   useEffect(() => {
@@ -99,6 +101,12 @@ export const DiscoverWing: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       <UniversalTabs />
+
+      {isOffline && (
+        <div className="bg-amber-900/50 text-amber-200 px-4 py-2 text-sm text-center shrink-0">
+          Network unavailable — showing cached articles
+        </div>
+      )}
 
       <ArticleList
         tab={tab}

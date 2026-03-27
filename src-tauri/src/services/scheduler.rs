@@ -112,16 +112,17 @@ async fn collect_loop(
                         info!(saved, error_count = errors.len(), "スケジューラ: フィード収集完了");
 
                         // If all feeds failed and nothing was saved, emit collect-failed
-                        if !errors.is_empty() && saved == 0 {
-                            if let Err(e) = app_handle.emit(
+                        if !errors.is_empty()
+                            && saved == 0
+                            && let Err(e) = app_handle.emit(
                                 "collect-failed",
                                 serde_json::json!({
                                     "message": "All feeds failed to fetch",
                                     "errorCount": errors.len()
                                 }),
-                            ) {
-                                warn!("collect-failed イベント送信失敗: {}", e);
-                            }
+                            )
+                        {
+                            warn!("collect-failed イベント送信失敗: {}", e);
                         }
 
                         CollectResult {

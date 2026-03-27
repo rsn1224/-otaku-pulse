@@ -1,8 +1,9 @@
 use super::llm::{as_llm_client, build_llm_client, clone_llm_settings};
-use crate::error::CmdResult;
+use crate::error::{AppError, CmdResult};
 use crate::models::DeepDiveResult;
 use crate::services::{deepdive_service, fts_queries, highlights_service, summary_service};
 use crate::state::AppState;
+use sqlx::Row;
 
 // ---------------------------------------------------------------------------
 // AI Summary
@@ -23,6 +24,35 @@ pub async fn get_or_generate_summary(
 // Deep Dive
 // ---------------------------------------------------------------------------
 
+/// Check if existing DeepDive cache entries for this article used a different
+/// LLM provider. If so, return an error asking the user to start a new conversation.
+async fn check_deepdive_provider_consistency(
+    db: &sqlx::SqlitePool,
+    article_id: i64,
+    current_provider: &str,
+) -> CmdResult<()> {
+    let row = sqlx::query(
+        "SELECT provider FROM deepdive_cache
+         WHERE article_id = ?1 AND provider IS NOT NULL
+         LIMIT 1",
+    )
+    .bind(article_id)
+    .fetch_optional(db)
+    .await?;
+
+    if let Some(row) = row {
+        let cached_provider: String = row.get("provider");
+        if cached_provider != current_provider {
+            return Err(AppError::InvalidInput(
+                "LLM provider changed since conversation started. Please start a new conversation."
+                    .to_string(),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn get_deepdive_questions(
     state: tauri::State<'_, AppState>,
@@ -41,10 +71,39 @@ pub async fn ask_deepdive(
     question: String,
 ) -> CmdResult<DeepDiveResult> {
     let settings = clone_llm_settings(&state)?;
+    let current_provider = format!("{:?}", settings.provider);
     let client = build_llm_client(&settings, &state.http)?;
+
+    // Guard: reject if provider changed mid-conversation
+    check_deepdive_provider_consistency(&state.db, article_id, &current_provider).await?;
 
     deepdive_service::answer_question(&state.db, article_id, &question, as_llm_client(&client))
         .await
+}
+
+#[tauri::command]
+#[allow(dead_code)]
+pub async fn ask_deepdive_followup(
+    state: tauri::State<'_, AppState>,
+    article_id: i64,
+    question: String,
+    history: Vec<crate::infra::llm_client::ChatMessage>,
+) -> CmdResult<DeepDiveResult> {
+    let settings = clone_llm_settings(&state)?;
+    let current_provider = format!("{:?}", settings.provider);
+    let client = build_llm_client(&settings, &state.http)?;
+
+    // Guard: reject if provider changed mid-conversation
+    check_deepdive_provider_consistency(&state.db, article_id, &current_provider).await?;
+
+    deepdive_service::answer_followup(
+        &state.db,
+        article_id,
+        &question,
+        history,
+        as_llm_client(&client),
+    )
+    .await
 }
 
 // ---------------------------------------------------------------------------

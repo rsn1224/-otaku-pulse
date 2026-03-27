@@ -29,18 +29,25 @@ interface DigestReadyPayload {
   };
 }
 
+interface CollectFailedPayload {
+  message: string;
+  errorCount: number;
+}
+
 interface SchedulerState {
   config: SchedulerConfig;
   lastCollectedAt: string | null;
   lastCollectResult: CollectResult | null;
   collectError: string | null;
   isListening: boolean;
+  isOffline: boolean;
 
   // アクション
   loadConfig: () => Promise<void>;
   saveConfig: (config: SchedulerConfig) => Promise<void>;
   startListening: () => Promise<() => void>;
   runDigestNow: () => Promise<DigestReadyPayload[]>;
+  setOffline: (offline: boolean) => void;
 }
 
 export const useSchedulerStore = create<SchedulerState>((set) => ({
@@ -54,6 +61,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
   lastCollectResult: null,
   collectError: null,
   isListening: false,
+  isOffline: false,
 
   loadConfig: async () => {
     try {
@@ -80,10 +88,16 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
         lastCollectedAt: new Date().toISOString(),
         lastCollectResult: event.payload,
         collectError: null,
+        isOffline: false,
       });
 
       const { useArticleStore } = await import('./useArticleStore');
       useArticleStore.getState().fetchFeed(true);
+    });
+
+    const unlistenFailed = await listen<CollectFailedPayload>('collect-failed', (event) => {
+      logger.warn({ payload: event.payload }, 'All feeds failed to fetch');
+      set({ isOffline: true, collectError: event.payload.message });
     });
 
     const unlistenError = await listen<string>('collect-error', (event) => {
@@ -100,10 +114,15 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
     // アンリスン関数を返す（コンポーネントのクリーンアップ用）
     return () => {
       unlistenCollect();
+      unlistenFailed();
       unlistenError();
       unlistenDigest();
       set({ isListening: false });
     };
+  },
+
+  setOffline: (offline: boolean) => {
+    set({ isOffline: offline });
   },
 
   runDigestNow: async () => {
