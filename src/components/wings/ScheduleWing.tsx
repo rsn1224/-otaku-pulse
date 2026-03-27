@@ -27,6 +27,7 @@ export const ScheduleWing: React.FC = () => {
   const [entries, setEntries] = useState<AiringEntry[]>([]);
   const [games, setGames] = useState<GameReleaseEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [rawgKeySet, setRawgKeySet] = useState<boolean | null>(null);
 
   const startDate = useMemo(() => {
     if (viewMode === 'day') return getDayStart(offset);
@@ -40,6 +41,18 @@ export const ScheduleWing: React.FC = () => {
     return d;
   }, [startDate, viewMode]);
 
+  const checkRawgKey = useCallback(async () => {
+    try {
+      const isSet = await invoke<boolean>('is_rawg_api_key_set');
+      setRawgKeySet(isSet);
+      return isSet;
+    } catch (e) {
+      logger.warn({ error: e }, 'Failed to check RAWG API key status');
+      setRawgKeySet(false);
+      return false;
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -51,6 +64,11 @@ export const ScheduleWing: React.FC = () => {
         });
         setEntries(result);
       } else {
+        const keySet = await checkRawgKey();
+        if (!keySet) {
+          setGames([]);
+          return;
+        }
         const result = await invoke<GameReleaseEntry[]>('get_game_releases', {
           startDate: fmtISO(startDate),
           endDate: fmtISO(endDate),
@@ -64,7 +82,7 @@ export const ScheduleWing: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [tab, startDate, endDate, viewMode]);
+  }, [tab, startDate, endDate, viewMode, checkRawgKey]);
 
   useEffect(() => {
     fetchData();
@@ -100,6 +118,16 @@ export const ScheduleWing: React.FC = () => {
       return (
         <div className="flex justify-center py-12">
           <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
+        </div>
+      );
+    }
+    if (tab === 'game' && rawgKeySet === false) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+          <p className="text-[var(--text-secondary)] text-sm">RAWG API キーが未設定です</p>
+          <p className="text-[var(--text-tertiary)] text-xs">
+            プロフィール &gt; API キー タブから設定してください
+          </p>
         </div>
       );
     }

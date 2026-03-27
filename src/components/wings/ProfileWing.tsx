@@ -3,14 +3,16 @@ import { useState } from 'react';
 import { AdvancedSection } from '../profile/AdvancedSection';
 import { FeedsSection } from '../profile/FeedsSection';
 import { ProfileSection } from '../profile/ProfileSection';
+import { ApiKeysSection } from '../settings/ApiKeysSection';
 import { LlmSettingsSection } from '../settings/LlmSettingsSection';
 
-type ProfileTab = 'profile' | 'feeds' | 'ai' | 'advanced';
+type ProfileTab = 'profile' | 'feeds' | 'ai' | 'apikeys' | 'advanced';
 
 const TABS: { id: ProfileTab; label: string }[] = [
   { id: 'profile', label: 'プロフィール' },
   { id: 'feeds', label: 'フィード' },
   { id: 'ai', label: 'AI 設定' },
+  { id: 'apikeys', label: 'API キー' },
   { id: 'advanced', label: '詳細' },
 ];
 
@@ -39,6 +41,11 @@ export const ProfileWing: React.FC = () => {
           {activeTab === 'ai' && (
             <div className="discover-card">
               <LlmSettingsSection />
+            </div>
+          )}
+          {activeTab === 'apikeys' && (
+            <div className="discover-card">
+              <ApiKeysSection />
             </div>
           )}
           {activeTab === 'advanced' && <AdvancedSection />}
