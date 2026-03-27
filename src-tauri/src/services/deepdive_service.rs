@@ -1,9 +1,17 @@
 use crate::error::AppError;
 use crate::infra::llm_client::{ChatMessage, LlmClient, LlmRequest};
 use crate::models::DeepDiveResult;
+use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 
 use super::deepdive_helpers::{parse_answer_with_followups, parse_question_array};
+
+/// Compute SHA-256 hash of a summary string for cache validation.
+fn hash_summary(summary: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(summary.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
 
 pub async fn generate_questions(
     db: &SqlitePool,
@@ -41,9 +49,9 @@ pub async fn answer_question(
     question: &str,
     llm: &dyn LlmClient,
 ) -> Result<DeepDiveResult, AppError> {
-    // キャッシュチェック
-    let cached: Option<(String, String, Option<String>)> = sqlx::query_as(
-        "SELECT answer, follow_ups, provider FROM deepdive_cache
+    // キャッシュチェック (summary_hash を使ってキャッシュ有効性を検証)
+    let cached: Option<(String, String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT answer, follow_ups, provider, summary_hash FROM deepdive_cache
          WHERE article_id = ?1 AND question = ?2",
     )
     .bind(article_id)
@@ -51,18 +59,43 @@ pub async fn answer_question(
     .fetch_optional(db)
     .await?;
 
-    if let Some((answer, follow_ups_json, provider)) = cached {
-        let follow_ups: Vec<String> = serde_json::from_str(&follow_ups_json).unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "DeepDive キャッシュの JSON デシリアライズに失敗、デフォルト値を使用");
-            Default::default()
-        });
-        return Ok(DeepDiveResult {
-            question: question.to_string(),
-            answer,
-            follow_up_questions: follow_ups,
-            provider: provider.unwrap_or_default(),
-            citations: vec![],
-        });
+    if let Some((answer, follow_ups_json, provider, cached_summary_hash)) = cached {
+        // Fetch current summary and validate cache hash
+        let current_summary: Option<String> =
+            sqlx::query_scalar("SELECT summary FROM articles WHERE id = ?1")
+                .bind(article_id)
+                .fetch_optional(db)
+                .await?;
+
+        let current_hash = current_summary.as_deref().map(hash_summary);
+
+        if cached_summary_hash.as_ref() == current_hash.as_ref() {
+            // Cache is valid
+            let follow_ups: Vec<String> =
+                serde_json::from_str(&follow_ups_json).unwrap_or_else(|e| {
+                    tracing::warn!(error = %e, "DeepDive キャッシュの JSON デシリアライズに失敗、デフォルト値を使用");
+                    Default::default()
+                });
+            return Ok(DeepDiveResult {
+                question: question.to_string(),
+                answer,
+                follow_up_questions: follow_ups,
+                provider: provider.unwrap_or_default(),
+                citations: vec![],
+            });
+        }
+
+        // Cache invalidated -- delete stale entry
+        if let Err(e) = sqlx::query(
+            "DELETE FROM deepdive_cache WHERE article_id = ?1 AND question = ?2",
+        )
+        .bind(article_id)
+        .bind(question)
+        .execute(db)
+        .await
+        {
+            tracing::warn!(article_id, error = %e, "Failed to delete stale deepdive cache entry");
+        }
     }
 
     let row: (String, Option<String>) =
@@ -73,6 +106,9 @@ pub async fn answer_question(
 
     let (title, summary) = row;
     let context = summary.as_deref().unwrap_or("");
+
+    // Compute summary hash for storage
+    let summary_hash = summary.as_deref().map(hash_summary);
 
     let req = LlmRequest {
         system_prompt: "あなたはアニメ・ゲーム・漫画に詳しい情報アシスタントです。\
@@ -94,17 +130,19 @@ pub async fn answer_question(
     let (answer, follow_ups) = parse_answer_with_followups(&response.content);
     let provider_str = format!("{:?}", llm.provider());
 
-    // キャッシュに保存
+    // キャッシュに保存 (summary_hash も記録)
     let follow_ups_json = serde_json::to_string(&follow_ups).unwrap_or_default();
     if let Err(e) = sqlx::query(
-        "INSERT OR REPLACE INTO deepdive_cache (article_id, question, answer, follow_ups, provider)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
+        "INSERT OR REPLACE INTO deepdive_cache
+         (article_id, question, answer, follow_ups, provider, summary_hash)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
     )
     .bind(article_id)
     .bind(question)
     .bind(&answer)
     .bind(&follow_ups_json)
     .bind(&provider_str)
+    .bind(&summary_hash)
     .execute(db)
     .await
     {
@@ -138,6 +176,9 @@ pub async fn answer_followup(
     let (title, summary) = row;
     let context = summary.as_deref().unwrap_or("");
 
+    // Compute summary hash for storage
+    let summary_hash = summary.as_deref().map(hash_summary);
+
     let req = LlmRequest {
         system_prompt: "あなたはアニメ・ゲーム・漫画に詳しい情報アシスタントです。\
             質問に対して、正確で簡潔な回答を日本語で提供してください。\
@@ -160,14 +201,16 @@ pub async fn answer_followup(
 
     let follow_ups_json = serde_json::to_string(&follow_ups).unwrap_or_default();
     if let Err(e) = sqlx::query(
-        "INSERT OR REPLACE INTO deepdive_cache (article_id, question, answer, follow_ups, provider)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
+        "INSERT OR REPLACE INTO deepdive_cache
+         (article_id, question, answer, follow_ups, provider, summary_hash)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
     )
     .bind(article_id)
     .bind(question)
     .bind(&answer)
     .bind(&follow_ups_json)
     .bind(&provider_str)
+    .bind(&summary_hash)
     .execute(db)
     .await
     {
@@ -183,7 +226,7 @@ pub async fn answer_followup(
     })
 }
 
-const CACHE_TTL_DAYS: i64 = 7;
+const CACHE_TTL_DAYS: i64 = 1;
 
 /// Delete deepdive cache entries older than `CACHE_TTL_DAYS`.
 pub async fn cleanup_expired_cache(db: &SqlitePool) -> Result<u64, AppError> {
@@ -265,5 +308,67 @@ mod tests {
         let db = setup_test_db().await;
         let deleted = cleanup_expired_cache(&db).await.unwrap();
         assert_eq!(deleted, 0);
+    }
+
+    #[tokio::test]
+    async fn test_cache_invalidated_on_summary_change() {
+        let db = setup_test_db().await;
+        let article_id = seed_article(&db).await;
+
+        // Give the article an initial summary
+        sqlx::query("UPDATE articles SET summary = 'Original summary' WHERE id = ?1")
+            .bind(article_id)
+            .execute(&db)
+            .await
+            .unwrap();
+
+        // Compute summary_hash for "Original summary"
+        let original_hash = hash_summary("Original summary");
+
+        // Insert a cache entry with that summary_hash
+        sqlx::query(
+            "INSERT INTO deepdive_cache
+             (article_id, question, answer, summary_hash, created_at)
+             VALUES (?1, 'test question', 'cached answer', ?2, datetime('now'))",
+        )
+        .bind(article_id)
+        .bind(&original_hash)
+        .execute(&db)
+        .await
+        .unwrap();
+
+        // Now change the article summary
+        sqlx::query("UPDATE articles SET summary = 'Updated summary' WHERE id = ?1")
+            .bind(article_id)
+            .execute(&db)
+            .await
+            .unwrap();
+
+        // Verify: new hash differs from original
+        let new_hash = hash_summary("Updated summary");
+        assert_ne!(
+            original_hash,
+            new_hash,
+            "Different summaries must produce different hashes"
+        );
+
+        // Verify the stored hash no longer matches current summary hash
+        let stored: Option<String> = sqlx::query_scalar(
+            "SELECT summary_hash FROM deepdive_cache
+             WHERE article_id = ?1 AND question = 'test question'",
+        )
+        .bind(article_id)
+        .fetch_optional(&db)
+        .await
+        .unwrap();
+
+        // The stale cache entry still has the original hash (not yet cleaned up by query)
+        assert_eq!(stored.as_deref(), Some(original_hash.as_str()));
+        // But the stored hash must differ from the new summary hash (cache is stale)
+        assert_ne!(
+            stored.as_deref(),
+            Some(new_hash.as_str()),
+            "Stale cache hash must not match new summary hash"
+        );
     }
 }

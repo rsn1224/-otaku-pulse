@@ -122,6 +122,7 @@ pub async fn setup_test_db() -> SqlitePool {
             answer TEXT NOT NULL,
             follow_ups TEXT NOT NULL DEFAULT '[]',
             provider TEXT,
+            summary_hash TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             PRIMARY KEY (article_id, question)
         )",
