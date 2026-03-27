@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. When all external APIs are unreachable, the Feed shows articles from the last 72 hours rather than an empty screen
   4. A Perplexity API key cannot be reconstructed from the application log files
   5. Broken RSS feeds surface a visible error in Settings rather than silently disappearing from the feed
-**Plans**: TBD
+**Plans**: 02-01 (Scheduler Lifecycle — Shutdown + Hot-Reload), 02-02 (Resilience — Error Visibility + Offline Mode), 02-03 (Security Hardening)
 
 ### Phase 3: Performance & Test Coverage
 **Goal**: The digest generates in parallel, DB round-trips are minimized, FTS search does not load all matches into memory, and a comprehensive test suite guards all the Phase 1–2 fixes.
@@ -62,6 +62,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Correctness | 1/3 | In Progress|  |
-| 2. Resilience & Security | 0/? | Not started | - |
+| 1. Foundation Correctness | 3/3 | Complete |  |
+| 2. Resilience & Security | 0/3 | Planned | - |
 | 3. Performance & Test Coverage | 0/? | Not started | - |
