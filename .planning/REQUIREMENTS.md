@@ -7,17 +7,17 @@
 
 ### Error Handling & Safety
 
-- [ ] **SAFE-01**: setup コードの panic を構造化エラーに置換し、起動失敗時にユーザーにメッセージを表示する
-- [ ] **SAFE-02**: Mutex/RwLock の lock poisoning を AppError::Internal で処理し、expect() を排除する
-- [ ] **SAFE-03**: DeepDive キャッシュの unwrap_or_default を警告ログ付きエラーハンドリングに改善する
-- [ ] **SAFE-04**: personal_scoring の JSON デシリアライズに入力検証を追加し、破損時に AppError::InvalidInput を返す
+- [x] **SAFE-01**: setup コードの panic を構造化エラーに置換し、起動失敗時にユーザーにメッセージを表示する
+- [x] **SAFE-02**: Mutex/RwLock の lock poisoning を AppError::Internal で処理し、expect() を排除する
+- [x] **SAFE-03**: DeepDive キャッシュの unwrap_or_default を警告ログ付きエラーハンドリングに改善する
+- [x] **SAFE-04**: personal_scoring の JSON デシリアライズに入力検証を追加し、破損時に AppError::InvalidInput を返す
 
 ### Bug Fixes
 
 - [ ] **BUG-01**: URL クエリパラメータの順序に依存しない dedup を実装する（全パラメータのソート統一）
 - [ ] **BUG-02**: DeepDive キャッシュに summary_hash + TTL（24h）を追加し、サマリー変更時にキャッシュを無効化する
 - [ ] **BUG-03**: dedup の Unicode 正規化を NFC → NFKC に統一し、半角カタカナ・互換文字を正しく処理する
-- [ ] **BUG-04**: rate_limiter のトークンカウンタを u32 → f64 に変更し、端数トークンの喪失を防ぐ
+- [x] **BUG-04**: rate_limiter のトークンカウンタを u32 → f64 に変更し、端数トークンの喪失を防ぐ
 
 ### Security
 
@@ -27,7 +27,7 @@
 
 ### Performance
 
-- [ ] **PERF-01**: SQLite に WAL モードを設定し、読み書きの並行実行を可能にする
+- [x] **PERF-01**: SQLite に WAL モードを設定し、読み書きの並行実行を可能にする
 - [ ] **PERF-02**: digest_loop の4カテゴリ処理を tokio::join! で並列化し、カテゴリ毎にタイムアウトを設定する
 - [ ] **PERF-03**: personal_scoring の3回の DB クエリを1回の LEFT JOIN クエリに統合する
 - [ ] **PERF-04**: FTS 検索にサブクエリ内 LIMIT/OFFSET を追加し、全件メモリロードを回避する
@@ -89,15 +89,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SAFE-01 | Phase 1 | Pending |
-| SAFE-02 | Phase 1 | Pending |
-| SAFE-03 | Phase 1 | Pending |
-| SAFE-04 | Phase 1 | Pending |
+| SAFE-01 | Phase 1 | Complete |
+| SAFE-02 | Phase 1 | Complete |
+| SAFE-03 | Phase 1 | Complete |
+| SAFE-04 | Phase 1 | Complete |
 | BUG-01 | Phase 1 | Pending |
 | BUG-02 | Phase 1 | Pending |
 | BUG-03 | Phase 1 | Pending |
-| BUG-04 | Phase 1 | Pending |
-| PERF-01 | Phase 1 | Pending |
+| BUG-04 | Phase 1 | Complete |
+| PERF-01 | Phase 1 | Complete |
 | DEP-01 | Phase 1 | Pending |
 | DEP-02 | Phase 1 | Pending |
 | DEP-03 | Phase 1 | Pending |

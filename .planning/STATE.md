@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context updated with codebase scout
-last_updated: "2026-03-27T13:58:29.271Z"
-last_activity: 2026-03-27 — Roadmap created, requirements mapped, ready for plan-phase 1
+status: executing
+stopped_at: Completed 01-foundation-correctness/01-01-PLAN.md
+last_updated: "2026-03-27T16:08:15.689Z"
+last_activity: 2026-03-27
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** 既存機能が正しく・速く・安全に動作すること
-**Current focus:** Phase 1 — Foundation Correctness
+**Current focus:** Phase 01 — foundation-correctness
 
 ## Current Position
 
-Phase: 1 of 3 (Foundation Correctness)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-27 — Roadmap created, requirements mapped, ready for plan-phase 1
+Phase: 01 (foundation-correctness) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-03-27
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation-correctness P01 | 6 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Recent decisions affecting current work:
 - Phase 1: NFKC migration requires UPDATE articles SET is_duplicate = 0 + dedup re-run after normalization switch
 - Phase 1: setup() panic fix must use Err return, not dialog — WebView not mounted during setup()
 - Phase 2: CancellationToken stored as tauri::State<CancellationToken> independently (not inside AppState) to avoid circular Arc
+- [Phase 01-foundation-correctness]: Used rfd 0.15 for OS native dialog (Option B) — tauri-plugin-dialog not in Cargo.toml
+- [Phase 01-foundation-correctness]: personal_scoring.rs tracing::warn already present on all 3 JSON deserialization fields — no changes needed
+- [Phase 01-foundation-correctness]: setup() Err return + rfd dialog before exit satisfies both STATE.md note (Err return) and PLAN must_have (OS dialog)
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T13:58:29.269Z
-Stopped at: Phase 1 context updated with codebase scout
-Resume file: .planning/phases/01-foundation-correctness/01-CONTEXT.md
+Last session: 2026-03-27T16:08:15.687Z
+Stopped at: Completed 01-foundation-correctness/01-01-PLAN.md
+Resume file: None
