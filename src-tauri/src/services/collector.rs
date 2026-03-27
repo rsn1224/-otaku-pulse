@@ -1,7 +1,7 @@
 use crate::error::AppError;
 use crate::models::Feed;
 use crate::services::{dedup_service, feed_queries, scoring_service};
-use sqlx::SqlitePool;
+use sqlx::{Row, SqlitePool};
 use std::sync::Arc;
 
 use super::collectors::{AniListCollector, Collector, RssCollector, SteamCollector};
@@ -10,13 +10,30 @@ const FEED_SELECT: &str = "SELECT id, name, url, feed_type, category, enabled, f
      last_fetched_at, consecutive_errors, disabled_reason, last_error, \
      etag, last_modified, created_at, updated_at FROM feeds";
 
+/// Per-feed error details surfaced to the frontend.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedError {
+    pub feed_id: i64,
+    pub feed_name: String,
+    pub error_message: String,
+    pub consecutive_errors: i64,
+}
+
 /// Refresh all enabled feeds. Called from the scheduler's `collect_loop`.
-pub async fn refresh_all(db: &SqlitePool, http: &reqwest::Client) -> Result<u32, AppError> {
+///
+/// Returns `(articles_saved, feeds_processed, per_feed_errors)`.
+pub async fn refresh_all(
+    db: &SqlitePool,
+    http: &reqwest::Client,
+) -> Result<(u32, u32, Vec<FeedError>), AppError> {
     let sql = format!("{FEED_SELECT} WHERE enabled = 1");
     let feeds: Vec<Feed> = sqlx::query_as::<_, Feed>(&sql).fetch_all(db).await?;
 
     let http = Arc::new(http.clone());
     let mut total = 0u32;
+    let feeds_processed = feeds.len() as u32;
+    let mut errors: Vec<FeedError> = Vec::new();
 
     for feed in &feeds {
         match collect_feed(db, &http, feed).await {
@@ -26,14 +43,33 @@ pub async fn refresh_all(db: &SqlitePool, http: &reqwest::Client) -> Result<u32,
             }
             Err(e) => {
                 tracing::error!(feed_id = feed.id, error = %e, "Feed refresh failed");
-                if let Err(e2) = feed_queries::update_feed_failure(db, feed.id, &e.to_string()).await {
+                let mut consecutive = feed.consecutive_errors + 1;
+                if let Err(e2) =
+                    feed_queries::update_feed_failure(db, feed.id, &e.to_string()).await
+                {
                     tracing::warn!(feed_id = feed.id, error = %e2, "Failed to record feed failure");
+                } else {
+                    // Read the updated consecutive_errors from DB
+                    if let Ok(row) =
+                        sqlx::query("SELECT consecutive_errors FROM feeds WHERE id = ?")
+                            .bind(feed.id)
+                            .fetch_one(db)
+                            .await
+                    {
+                        consecutive = row.get("consecutive_errors");
+                    }
                 }
+                errors.push(FeedError {
+                    feed_id: feed.id,
+                    feed_name: feed.name.clone(),
+                    error_message: e.to_string(),
+                    consecutive_errors: consecutive,
+                });
             }
         }
     }
 
-    Ok(total)
+    Ok((total, feeds_processed, errors))
 }
 
 pub async fn refresh_one(

@@ -108,8 +108,22 @@ async fn collect_loop(
                 info!("スケジューラ: フィード収集開始");
 
                 let result = match super::collector::refresh_all(&db_pool, &http_client).await {
-                    Ok(saved) => {
-                        info!(saved, "スケジューラ: フィード収集完了");
+                    Ok((saved, _processed, errors)) => {
+                        info!(saved, error_count = errors.len(), "スケジューラ: フィード収集完了");
+
+                        // If all feeds failed and nothing was saved, emit collect-failed
+                        if !errors.is_empty() && saved == 0 {
+                            if let Err(e) = app_handle.emit(
+                                "collect-failed",
+                                serde_json::json!({
+                                    "message": "All feeds failed to fetch",
+                                    "errorCount": errors.len()
+                                }),
+                            ) {
+                                warn!("collect-failed イベント送信失敗: {}", e);
+                            }
+                        }
+
                         CollectResult {
                             fetched: saved as usize,
                             saved: saved as usize,
@@ -117,6 +131,18 @@ async fn collect_loop(
                     }
                     Err(e) => {
                         warn!(error = %e, "スケジューラ: フィード収集失敗");
+
+                        // Fatal error — emit collect-failed
+                        if let Err(e2) = app_handle.emit(
+                            "collect-failed",
+                            serde_json::json!({
+                                "message": format!("Feed collection error: {e}"),
+                                "errorCount": 0
+                            }),
+                        ) {
+                            warn!("collect-failed イベント送信失敗: {}", e2);
+                        }
+
                         CollectResult {
                             fetched: 0,
                             saved: 0,
