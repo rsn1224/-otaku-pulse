@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { logger } from '../../lib/logger';
 import { useSchedulerStore } from '../../stores/useSchedulerStore';
 import { useToast } from '../common/Toast';
 import { CollectInterval, DigestTime, SchedulerStatus, SchedulerToggle } from './SchedulerControls';
@@ -88,7 +89,9 @@ export const SchedulerSection: React.FC<SchedulerSectionProps> = ({ onSettingsCh
 
     const promise = cleanup();
     return () => {
-      promise.then((unlisten) => unlisten()).catch(console.error);
+      promise
+        .then((unlisten) => unlisten())
+        .catch((e) => logger.warn({ error: e }, 'Cleanup failed'));
     };
   }, [startListening]);
 
@@ -102,7 +105,7 @@ export const SchedulerSection: React.FC<SchedulerSectionProps> = ({ onSettingsCh
       showToast('success', '設定を保存しました');
       onSettingsChange?.();
     } catch (error) {
-      console.error('Failed to save scheduler config:', error);
+      logger.error({ error }, 'Failed to save scheduler config');
       showToast('error', '設定の保存に失敗しました');
     }
   };
@@ -113,7 +116,7 @@ export const SchedulerSection: React.FC<SchedulerSectionProps> = ({ onSettingsCh
       await runDigestNow();
       showToast('success', 'ダイジェスト生成を開始しました');
     } catch (error) {
-      console.error('Failed to run digest now:', error);
+      logger.error({ error }, 'Failed to run digest now');
       showToast('error', 'ダイジェスト生成に失敗しました');
     } finally {
       setIsGenerating(false);

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { create } from 'zustand';
+import { logger } from '../lib/logger';
 
 interface SchedulerConfig {
   collect_interval_minutes: number;
@@ -59,7 +60,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
       const config = await invoke<SchedulerConfig>('get_scheduler_config');
       set({ config });
     } catch (error) {
-      console.error('Failed to load scheduler config:', error);
+      logger.error({ error }, 'Failed to load scheduler config');
     }
   },
 
@@ -68,7 +69,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
       await invoke('set_scheduler_config', { config });
       set({ config });
     } catch (error) {
-      console.error('Failed to save scheduler config:', error);
+      logger.error({ error }, 'Failed to save scheduler config');
       throw error;
     }
   },
@@ -86,7 +87,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
     });
 
     const unlistenError = await listen<string>('collect-error', (event) => {
-      console.error('Collect error:', event.payload);
+      logger.error({ payload: event.payload }, 'Collect error');
       set({ collectError: event.payload });
     });
 
@@ -114,7 +115,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
 
       return results;
     } catch (error) {
-      console.error('Failed to run digest now:', error);
+      logger.error({ error }, 'Failed to run digest now');
       throw error;
     }
   },

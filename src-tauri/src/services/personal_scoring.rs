@@ -109,9 +109,18 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
     .fetch_one(db)
     .await?;
 
-    let fav_titles: Vec<String> = serde_json::from_str(&profile.0).unwrap_or_default();
-    let fav_genres: Vec<String> = serde_json::from_str(&profile.1).unwrap_or_default();
-    let fav_creators: Vec<String> = serde_json::from_str(&profile.2).unwrap_or_default();
+    let fav_titles: Vec<String> = serde_json::from_str(&profile.0).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, field = "favorite_titles", "Failed to parse user profile JSON");
+        Vec::new()
+    });
+    let fav_genres: Vec<String> = serde_json::from_str(&profile.1).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, field = "favorite_genres", "Failed to parse user profile JSON");
+        Vec::new()
+    });
+    let fav_creators: Vec<String> = serde_json::from_str(&profile.2).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, field = "favorite_creators", "Failed to parse user profile JSON");
+        Vec::new()
+    });
 
     let interaction_bonuses = batch_interaction_bonuses(db).await?;
 

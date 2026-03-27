@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { logger } from '../../lib/logger';
 import type { LlmProvider } from '../../types';
 import { OllamaSettings } from './OllamaSettings';
 import { PerplexitySettings } from './PerplexitySettings';
@@ -30,7 +31,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
       setSettings(llmSettings);
       setSelectedModel(llmSettings.ollama_model);
     } catch (error) {
-      console.error('Failed to load LLM settings:', error);
+      logger.error({ error }, 'Failed to load LLM settings');
     }
   };
 
@@ -47,7 +48,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
       await loadSettings();
       onSettingsChange?.();
     } catch (error) {
-      console.error('Failed to set provider:', error);
+      logger.error({ error }, 'Failed to set provider');
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +64,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
       onSettingsChange?.();
       setApiKey(''); // 入力クリア
     } catch (error) {
-      console.error('Failed to save API key:', error);
+      logger.error({ error }, 'Failed to save API key');
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +82,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
         await loadSettings();
         onSettingsChange?.();
       } catch (error) {
-        console.error('Failed to set Ollama model:', error);
+        logger.error({ error }, 'Failed to set Ollama model');
       } finally {
         setIsLoading(false);
       }
@@ -93,7 +94,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
     try {
       await loadSettings();
     } catch (error) {
-      console.error('Failed to refresh status:', error);
+      logger.error({ error }, 'Failed to refresh status');
     } finally {
       setIsLoading(false);
     }

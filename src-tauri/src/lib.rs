@@ -28,10 +28,10 @@ pub fn run() {
         .setup(|app| {
             tracing::info!("OtakuPulse starting up");
 
-            let app_data_dir = app
-                .path()
-                .app_data_dir()
-                .expect("Failed to get app data dir");
+            let app_data_dir = app.path().app_data_dir().unwrap_or_else(|e| {
+                tracing::error!(error = %e, "Failed to get app data dir");
+                panic!("Failed to get app data dir: {e}");
+            });
 
             if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
                 tracing::warn!(path = %app_data_dir.display(), error = %e, "Failed to create app data dir");
@@ -42,7 +42,10 @@ pub fn run() {
             let db_pool = tauri::async_runtime::block_on(async {
                 infra::database::init_pool(&db_path).await
             })
-            .expect("Failed to initialize database");
+            .unwrap_or_else(|e| {
+                tracing::error!(error = %e, "Failed to initialize database");
+                panic!("Failed to initialize database: {e}");
+            });
 
             let db_arc = std::sync::Arc::new(db_pool);
             app.manage((*db_arc).clone());
@@ -124,5 +127,8 @@ pub fn run() {
             commands::discover_profile::suggest_preferences,
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run OtakuPulse");
+        .unwrap_or_else(|e| {
+            tracing::error!(error = %e, "Failed to run OtakuPulse");
+            panic!("Failed to run OtakuPulse: {e}");
+        });
 }

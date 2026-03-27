@@ -16,14 +16,16 @@ function AppContent(): React.JSX.Element {
         const unlisten = await startListening();
         return unlisten;
       } catch (error) {
-        console.error('Failed to start scheduler listener:', error);
+        logger.error({ error }, 'Failed to start scheduler listener');
         return () => {};
       }
     };
 
     const cleanup = setupListener();
     return () => {
-      cleanup.then((unlisten) => unlisten()).catch(console.error);
+      cleanup
+        .then((unlisten) => unlisten())
+        .catch((e) => logger.warn({ error: e }, 'Cleanup failed'));
     };
   }, [startListening]);
 
@@ -61,7 +63,9 @@ function AppContent(): React.JSX.Element {
 
     const cleanup = setupSchedulerEvents();
     return () => {
-      cleanup.then((unlisten) => unlisten()).catch(console.error);
+      cleanup
+        .then((unlisten) => unlisten())
+        .catch((e) => logger.warn({ error: e }, 'Cleanup failed'));
     };
   }, [showToast]);
 
