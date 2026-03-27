@@ -2,6 +2,11 @@ use crate::error::AppError;
 use crate::models::DiscoverArticleDto;
 use sqlx::SqlitePool;
 
+/// トレンドキーワード抽出の最小単語長
+const MIN_KEYWORD_LENGTH: usize = 4;
+/// トレンドキーワードとして採用する最小出現回数
+const MIN_KEYWORD_COUNT: i64 = 3;
+
 const STOP_WORDS: &[&str] = &[
     "the", "and", "for", "that", "this", "with", "from", "your", "have", "are", "was", "will",
     "can", "has", "more", "about", "into", "than", "its", "been", "most", "just", "over", "also",
@@ -64,7 +69,7 @@ pub async fn get_trending_keywords(db: &SqlitePool) -> Result<Vec<TrendKeyword>,
     for (title,) in &rows {
         for word in title.split(|c: char| !c.is_alphanumeric() && c != '\'' && c != '-') {
             let w = word.trim().to_lowercase();
-            if w.len() >= 4 && !is_stop_word(&w) {
+            if w.len() >= MIN_KEYWORD_LENGTH && !is_stop_word(&w) {
                 *word_counts.entry(w).or_insert(0) += 1;
             }
         }
@@ -72,7 +77,7 @@ pub async fn get_trending_keywords(db: &SqlitePool) -> Result<Vec<TrendKeyword>,
 
     let mut keywords: Vec<TrendKeyword> = word_counts
         .into_iter()
-        .filter(|(_, count)| *count >= 3)
+        .filter(|(_, count)| *count >= MIN_KEYWORD_COUNT)
         .map(|(keyword, count)| TrendKeyword { keyword, count })
         .collect();
 

@@ -3,6 +3,9 @@ use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 
+/// スコアリング対象の最新記事数上限
+const SCORING_ARTICLE_LIMIT: i64 = 2000;
+
 fn calc_base_score(published_at: &Option<String>) -> f64 {
     match published_at {
         Some(date_str) => {
@@ -86,8 +89,9 @@ async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>,
 
     let feed_articles: Vec<(i64, i64)> = sqlx::query_as(
         "SELECT id, feed_id FROM articles WHERE is_duplicate = 0
-         ORDER BY published_at DESC LIMIT 2000",
+         ORDER BY published_at DESC LIMIT ?",
     )
+    .bind(SCORING_ARTICLE_LIMIT)
     .fetch_all(db)
     .await?;
 
@@ -129,8 +133,9 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
          FROM articles
          WHERE is_duplicate = 0
          ORDER BY published_at DESC
-         LIMIT 2000",
+         LIMIT ?",
     )
+    .bind(SCORING_ARTICLE_LIMIT)
     .fetch_all(db)
     .await?;
 
