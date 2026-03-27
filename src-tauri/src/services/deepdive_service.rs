@@ -1,5 +1,5 @@
 use crate::error::AppError;
-use crate::infra::llm_client::{LlmClient, LlmRequest};
+use crate::infra::llm_client::{ChatMessage, LlmClient, LlmRequest};
 use crate::models::DeepDiveResult;
 use sqlx::SqlitePool;
 
@@ -52,7 +52,10 @@ pub async fn answer_question(
     .await?;
 
     if let Some((answer, follow_ups_json, provider)) = cached {
-        let follow_ups: Vec<String> = serde_json::from_str(&follow_ups_json).unwrap_or_default();
+        let follow_ups: Vec<String> = serde_json::from_str(&follow_ups_json).unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "DeepDive キャッシュの JSON デシリアライズに失敗、デフォルト値を使用");
+            Default::default()
+        });
         return Ok(DeepDiveResult {
             question: question.to_string(),
             answer,
@@ -117,16 +120,77 @@ pub async fn answer_question(
     })
 }
 
+/// マルチターン会話付き DeepDive 回答
+#[allow(dead_code)]
+pub async fn answer_followup(
+    db: &SqlitePool,
+    article_id: i64,
+    question: &str,
+    history: Vec<ChatMessage>,
+    llm: &dyn LlmClient,
+) -> Result<DeepDiveResult, AppError> {
+    let row: (String, Option<String>) =
+        sqlx::query_as("SELECT title, summary FROM articles WHERE id = ?1")
+            .bind(article_id)
+            .fetch_one(db)
+            .await?;
+
+    let (title, summary) = row;
+    let context = summary.as_deref().unwrap_or("");
+
+    let req = LlmRequest {
+        system_prompt: "あなたはアニメ・ゲーム・漫画に詳しい情報アシスタントです。\
+            質問に対して、正確で簡潔な回答を日本語で提供してください。\
+            回答はMarkdown形式で、200文字以内にしてください。\
+            回答の最後に、関連する追加質問を2つ提案してください。\
+            形式:\n回答本文\n\n---FOLLOWUP---\n[\"追加質問1\", \"追加質問2\"]"
+            .to_string(),
+        user_prompt: format!(
+            "元の記事:\nタイトル: {}\nサマリー: {}\n\n質問: {}",
+            title, context, question
+        ),
+        max_tokens: 400,
+        web_search: true,
+        conversation: Some(history),
+    };
+
+    let response = llm.complete(req).await?;
+    let (answer, follow_ups) = parse_answer_with_followups(&response.content);
+    let provider_str = format!("{:?}", llm.provider());
+
+    let follow_ups_json = serde_json::to_string(&follow_ups).unwrap_or_default();
+    if let Err(e) = sqlx::query(
+        "INSERT OR REPLACE INTO deepdive_cache (article_id, question, answer, follow_ups, provider)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+    )
+    .bind(article_id)
+    .bind(question)
+    .bind(&answer)
+    .bind(&follow_ups_json)
+    .bind(&provider_str)
+    .execute(db)
+    .await
+    {
+        tracing::warn!(article_id, error = %e, "deepdive followup cache write failed");
+    }
+
+    Ok(DeepDiveResult {
+        question: question.to_string(),
+        answer,
+        follow_up_questions: follow_ups,
+        provider: provider_str,
+        citations: response.citations,
+    })
+}
+
 const CACHE_TTL_DAYS: i64 = 7;
 
 /// Delete deepdive cache entries older than `CACHE_TTL_DAYS`.
 pub async fn cleanup_expired_cache(db: &SqlitePool) -> Result<u64, AppError> {
-    let result = sqlx::query(
-        "DELETE FROM deepdive_cache WHERE created_at < datetime('now', ?1)",
-    )
-    .bind(format!("-{CACHE_TTL_DAYS} days"))
-    .execute(db)
-    .await?;
+    let result = sqlx::query("DELETE FROM deepdive_cache WHERE created_at < datetime('now', ?1)")
+        .bind(format!("-{CACHE_TTL_DAYS} days"))
+        .execute(db)
+        .await?;
 
     let deleted = result.rows_affected();
     if deleted > 0 {

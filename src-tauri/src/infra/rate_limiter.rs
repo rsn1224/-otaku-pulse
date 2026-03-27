@@ -7,8 +7,8 @@ use tracing::{info, warn};
 pub struct TokenBucket {
     /// Maximum number of tokens
     max_tokens: u32,
-    /// Current number of tokens
-    tokens: Arc<Mutex<u32>>,
+    /// Current number of tokens (f64 to prevent fractional token loss during refill)
+    tokens: Arc<Mutex<f64>>,
     /// Token refill rate (tokens per second)
     refill_rate: f64,
     /// Last refill time
@@ -26,7 +26,7 @@ impl TokenBucket {
     pub fn new(max_tokens: u32, refill_rate: f64, min_interval_ms: u64) -> Self {
         Self {
             max_tokens,
-            tokens: Arc::new(Mutex::new(max_tokens)),
+            tokens: Arc::new(Mutex::new(max_tokens as f64)),
             refill_rate,
             last_refill: Arc::new(Mutex::new(Instant::now())),
             min_interval_ms,
@@ -44,9 +44,10 @@ impl TokenBucket {
         let elapsed = now.duration_since(*last_refill);
 
         if elapsed.as_secs_f64() > 0.0 {
-            let tokens_to_add = (elapsed.as_secs_f64() * self.refill_rate) as u32;
+            // D-13: f64 演算で小数トークンの精度を保持する（as u32 による切り捨てを排除）
+            let tokens_to_add = elapsed.as_secs_f64() * self.refill_rate;
             let mut tokens = self.tokens.lock().await;
-            *tokens = (*tokens + tokens_to_add).min(self.max_tokens);
+            *tokens = (*tokens + tokens_to_add).min(self.max_tokens as f64);
             *last_refill = now;
         }
     }
@@ -90,10 +91,10 @@ impl TokenBucket {
         // Refill tokens
         self.refill_tokens().await;
 
-        // Try to acquire a token
+        // Try to acquire a token (requires at least 1.0 whole token)
         let mut tokens = self.tokens.lock().await;
-        if *tokens > 0 {
-            *tokens -= 1;
+        if *tokens >= 1.0 {
+            *tokens -= 1.0;
             Ok(())
         } else {
             warn!("Rate limit exceeded: no tokens available");
@@ -127,7 +128,7 @@ impl TokenBucket {
             .and_then(|s| s.parse::<u32>().ok())
         {
             let mut tokens_lock = self.tokens.blocking_lock();
-            *tokens_lock = remaining.min(self.max_tokens);
+            *tokens_lock = (remaining as f64).min(self.max_tokens as f64);
             info!("Updated remaining tokens to {}", remaining);
         }
     }
