@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyMuteFilters, getHighlightKeywords } from '../../lib/articleFilter';
+import { getHighlightKeywords } from '../../lib/articleFilter';
 import type { DiscoverArticleDto } from '../../types';
 
 const makeArticle = (overrides: Partial<DiscoverArticleDto> = {}): DiscoverArticleDto => ({
@@ -19,54 +19,6 @@ const makeArticle = (overrides: Partial<DiscoverArticleDto> = {}): DiscoverArtic
   totalScore: null,
   category: null,
   ...overrides,
-});
-
-describe('applyMuteFilters', () => {
-  it('returns all articles when no mute keywords', () => {
-    const articles = [makeArticle()];
-    expect(applyMuteFilters(articles, [])).toEqual(articles);
-  });
-
-  it('filters articles matching mute keyword in title', () => {
-    const articles = [
-      makeArticle({ id: 1, title: 'Spoiler Alert' }),
-      makeArticle({ id: 2, title: 'Normal News' }),
-    ];
-    const result = applyMuteFilters(articles, ['spoiler']);
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(2);
-  });
-
-  it('filters articles matching mute keyword in summary', () => {
-    const articles = [makeArticle({ summary: 'Contains blocked content' })];
-    expect(applyMuteFilters(articles, ['blocked'])).toHaveLength(0);
-  });
-
-  it('filters articles matching mute keyword in aiSummary', () => {
-    const articles = [makeArticle({ aiSummary: 'AI says this is spoiler' })];
-    expect(applyMuteFilters(articles, ['spoiler'])).toHaveLength(0);
-  });
-
-  it('is case insensitive', () => {
-    const articles = [makeArticle({ title: 'UPPERCASE Title' })];
-    expect(applyMuteFilters(articles, ['uppercase'])).toHaveLength(0);
-  });
-
-  it('handles null summary and aiSummary', () => {
-    const articles = [makeArticle({ title: 'No Match', summary: null, aiSummary: null })];
-    expect(applyMuteFilters(articles, ['blocked'])).toHaveLength(1);
-  });
-
-  it('handles multiple mute keywords', () => {
-    const articles = [
-      makeArticle({ id: 1, title: 'Anime Review' }),
-      makeArticle({ id: 2, title: 'Game Update' }),
-      makeArticle({ id: 3, title: 'Manga Chapter' }),
-    ];
-    const result = applyMuteFilters(articles, ['review', 'chapter']);
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(2);
-  });
 });
 
 describe('getHighlightKeywords', () => {

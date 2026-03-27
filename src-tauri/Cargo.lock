@@ -1187,13 +1187,13 @@ dependencies = [
 
 [[package]]
 name = "feed-rs"
-version = "2.3.1"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4c0591d23efd0d595099af69a31863ac1823046b1b021e3b06ba3aae7e00991"
+checksum = "6511d29ecf291f32688d546c33d8e62bbebd4fe60ef40b52b20e3f3a0ec6eb56"
 dependencies = [
  "chrono",
  "mediatype",
- "quick-xml 0.37.5",
+ "quick-xml 0.36.2",
  "regex",
  "serde",
  "serde_json",
@@ -2566,9 +2566,6 @@ name = "mediatype"
 version = "0.19.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33746aadcb41349ec291e7f2f0a3aa6834d1d7c58066fb4b01f68efc4c4b7631"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "memchr"
@@ -3551,11 +3548,20 @@ checksum = "007d8adb5ddab6f8e3f491ac63566a7d5002cc7ed73901f72057943fa71ae1ae"
 
 [[package]]
 name = "quick-xml"
+version = "0.36.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7649a7b4df05aed9ea7ec6f628c67c9953a43869b8bc50929569b2999d443fe"
+dependencies = [
+ "encoding_rs",
+ "memchr",
+]
+
+[[package]]
+name = "quick-xml"
 version = "0.37.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "331e97a1af0bf59823e6eadffe373d7b27f485be8748f71471c662c1f269b7fb"
 dependencies = [
- "encoding_rs",
  "memchr",
 ]
 

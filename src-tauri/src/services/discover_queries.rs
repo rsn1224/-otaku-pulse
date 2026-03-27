@@ -48,6 +48,13 @@ async fn get_for_you(
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN article_scores s ON a.id = s.article_id
          WHERE a.is_duplicate = 0
+           AND NOT EXISTS (
+               SELECT 1 FROM keyword_filters kf
+               WHERE kf.filter_type = 'mute'
+                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
+           )
          ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -75,6 +82,13 @@ async fn get_trending(
          LEFT JOIN article_scores s ON a.id = s.article_id
          LEFT JOIN article_interactions ai ON a.id = ai.article_id
          WHERE a.is_duplicate = 0 AND a.published_at >= datetime('now', '-12 hours')
+           AND NOT EXISTS (
+               SELECT 1 FROM keyword_filters kf
+               WHERE kf.filter_type = 'mute'
+                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
+           )
          GROUP BY a.id ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -105,6 +119,13 @@ async fn get_by_category(
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN article_scores s ON a.id = s.article_id
          WHERE a.is_duplicate = 0 AND f.category = ?1
+           AND NOT EXISTS (
+               SELECT 1 FROM keyword_filters kf
+               WHERE kf.filter_type = 'mute'
+                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
+           )
          ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?2 OFFSET ?3"
     );
@@ -148,6 +169,13 @@ async fn get_popular(
              WHEN action='deepdive' THEN 2.5 WHEN action='open' THEN 1.0 ELSE 0 END) AS eng
              FROM article_interactions GROUP BY article_id) ai ON ai.article_id = a.id
          WHERE a.is_duplicate = 0
+           AND NOT EXISTS (
+               SELECT 1 FROM keyword_filters kf
+               WHERE kf.filter_type = 'mute'
+                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
+           )
          ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -170,6 +198,13 @@ async fn get_most_viewed(
          LEFT JOIN (SELECT article_id, COUNT(*) AS vc FROM article_interactions
              WHERE action = 'open' GROUP BY article_id) ai ON ai.article_id = a.id
          WHERE a.is_duplicate = 0
+           AND NOT EXISTS (
+               SELECT 1 FROM keyword_filters kf
+               WHERE kf.filter_type = 'mute'
+                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
+                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
+           )
          ORDER BY COALESCE(ai.vc, 0) DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );

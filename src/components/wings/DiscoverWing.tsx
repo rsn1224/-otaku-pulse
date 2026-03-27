@@ -1,8 +1,6 @@
 import type React from 'react';
-import { useEffect, useMemo } from 'react';
-import { applyMuteFilters } from '../../lib/articleFilter';
+import { useEffect } from 'react';
 import { useArticleStore } from '../../stores/useArticleStore';
-import { useFilterStore } from '../../stores/useFilterStore';
 import { useKeyboardStore } from '../../stores/useKeyboardStore';
 import { useReaderStore } from '../../stores/useReaderStore';
 import { useSearchStore } from '../../stores/useSearchStore';
@@ -29,12 +27,6 @@ export const DiscoverWing: React.FC = () => {
   const { searchMode, searchResults, aiAnswer, aiCitations, isSearching } = useSearchStore();
   const { readerArticle, closeReader } = useReaderStore();
   const { focusedIndex } = useKeyboardStore();
-
-  const { muteKeywords } = useFilterStore();
-  const filteredArticles = useMemo(
-    () => applyMuteFilters(articles, muteKeywords),
-    [articles, muteKeywords],
-  );
 
   useEffect(() => {
     fetchFeed(true);
@@ -110,7 +102,7 @@ export const DiscoverWing: React.FC = () => {
 
       <ArticleList
         tab={tab}
-        filteredArticles={filteredArticles}
+        filteredArticles={articles}
         isLoading={isLoading}
         hasMore={hasMore}
         error={error}
