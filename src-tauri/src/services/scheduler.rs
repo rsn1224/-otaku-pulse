@@ -60,8 +60,8 @@ pub fn start(
 async fn collect_loop(
     app_handle: AppHandle,
     config: SchedulerConfig,
-    _db_pool: Arc<sqlx::SqlitePool>,
-    _http_client: Arc<reqwest::Client>,
+    db_pool: Arc<sqlx::SqlitePool>,
+    http_client: Arc<reqwest::Client>,
 ) {
     let mut interval_timer = interval(Duration::from_secs(config.collect_interval_minutes * 60));
 
@@ -72,19 +72,24 @@ async fn collect_loop(
             continue;
         }
 
-        // STUB: フィード収集は commands/collect.rs の collect_feeds を直接呼ぶ形に統合予定
         info!("スケジューラ: フィード収集開始");
 
-        let result = CollectResult {
-            fetched: 0,
-            saved: 0,
+        let result = match super::collector::refresh_all(&db_pool, &http_client).await {
+            Ok(saved) => {
+                info!(saved, "スケジューラ: フィード収集完了");
+                CollectResult {
+                    fetched: saved as usize,
+                    saved: saved as usize,
+                }
+            }
+            Err(e) => {
+                warn!(error = %e, "スケジューラ: フィード収集失敗");
+                CollectResult {
+                    fetched: 0,
+                    saved: 0,
+                }
+            }
         };
-
-        info!(
-            fetched = result.fetched,
-            saved = result.saved,
-            "スケジューラ: フィード収集完了"
-        );
 
         // FE にイベント送信
         if let Err(e) = app_handle.emit("collect-completed", &result) {

@@ -10,9 +10,7 @@ const FEED_SELECT: &str = "SELECT id, name, url, feed_type, category, enabled, f
      last_fetched_at, consecutive_errors, disabled_reason, last_error, \
      etag, last_modified, created_at, updated_at FROM feeds";
 
-/// Refresh all enabled feeds. Currently unused — will be called from
-/// the scheduler's `collect_loop` once background task scheduling is implemented.
-#[allow(dead_code)]
+/// Refresh all enabled feeds. Called from the scheduler's `collect_loop`.
 pub async fn refresh_all(db: &SqlitePool, http: &reqwest::Client) -> Result<u32, AppError> {
     let sql = format!("{FEED_SELECT} WHERE enabled = 1");
     let feeds: Vec<Feed> = sqlx::query_as::<_, Feed>(&sql).fetch_all(db).await?;

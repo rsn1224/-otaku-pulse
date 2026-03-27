@@ -55,9 +55,7 @@ pub async fn update_feed_success(
     Ok(())
 }
 
-/// Record a feed fetch failure. Currently unused -- called from
-/// `collector::refresh_all` which awaits scheduler integration.
-#[allow(dead_code)]
+/// Record a feed fetch failure. Called from `collector::refresh_all`.
 pub async fn update_feed_failure(
     db: &SqlitePool,
     feed_id: i64,
