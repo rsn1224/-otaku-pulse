@@ -120,7 +120,7 @@ pub fn run() {
                 rfd::MessageDialog::new()
                     .set_level(rfd::MessageLevel::Error)
                     .set_title("致命的なエラー")
-                    .set_description(&format!("OtakuPulse 起動エラー\n\n{e}"))
+                    .set_description(format!("OtakuPulse 起動エラー\n\n{e}"))
                     .show();
                 return Err(e);
             }
