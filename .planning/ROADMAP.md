@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Japanese titles using half-width katakana and their full-width equivalents collapse into a single deduplicated article
   4. DeepDive Q&A answers update when the underlying article summary changes rather than returning stale cached answers
   5. The CI build completes without a live SQLite database present (sqlx offline mode)
-**Plans**: TBD
+**Plans**: 01-01 (Safety & Infrastructure), 01-02 (Data Correctness), 01-03 (Dependencies & Frontend)
 
 ### Phase 2: Resilience & Security
 **Goal**: The scheduler shuts down cleanly without risking DB corruption, Settings changes take effect immediately, the app serves cached content when offline, and no API key leaks into logs.
@@ -62,6 +62,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Correctness | 0/? | Not started | - |
+| 1. Foundation Correctness | 3/3 | Planned | - |
 | 2. Resilience & Security | 0/? | Not started | - |
 | 3. Performance & Test Coverage | 0/? | Not started | - |
