@@ -7,11 +7,16 @@
 **Phase:** 01-foundation-correctness
 **Areas discussed:** 起動失敗時のユーザー体験, NFKC 移行, DeepDive キャッシュ, フィルタ移行, WAL モード, lock poisoning, エラーハンドリング, rate_limiter, 依存ピンニング, sqlx オフラインモード
 
+**Updated:** 2026-03-27
+**Update areas:** マイグレーション戦略, 起動エラーの実現方法, 依存ピンニングの範囲, Phase 1 のテスト範囲
+
 ---
 
-## 起動失敗時のユーザー体験 (SAFE-01)
+## Session 1 (Initial)
 
-### Q1: DB 初期化が失敗したとき、アプリはどうすべきですか？
+### 起動失敗時のユーザー体験 (SAFE-01)
+
+#### Q1: DB 初期化が失敗したとき、アプリはどうすべきですか？
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -21,7 +26,7 @@
 
 **User's choice:** エラー画面で表示
 
-### Q2: エラー画面に「リトライ」ボタンを付けますか？
+#### Q2: エラー画面に「リトライ」ボタンを付けますか？
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -31,7 +36,7 @@
 
 **User's choice:** リトライ + ログフォルダ表示
 
-### Q3: エラーメッセージの言語は？
+#### Q3: エラーメッセージの言語は？
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -43,7 +48,7 @@
 
 ---
 
-## NFKC 移行と既存データ戦略 (BUG-03)
+### NFKC 移行と既存データ戦略 (BUG-03)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -55,7 +60,7 @@
 
 ---
 
-## DeepDive キャッシュ無効化ポリシー (BUG-02)
+### DeepDive キャッシュ無効化ポリシー (BUG-02)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -67,7 +72,7 @@
 
 ---
 
-## フィルタ移行 (FRNT-01)
+### フィルタ移行 (FRNT-01)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -79,7 +84,7 @@
 
 ---
 
-## WAL モード有効化 (PERF-01)
+### WAL モード有効化 (PERF-01)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -91,7 +96,7 @@
 
 ---
 
-## Lock Poisoning 対処 (SAFE-02)
+### Lock Poisoning 対処 (SAFE-02)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -103,7 +108,7 @@
 
 ---
 
-## エラーハンドリング改善 (SAFE-03, SAFE-04)
+### エラーハンドリング改善 (SAFE-03, SAFE-04)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -115,7 +120,7 @@
 
 ---
 
-## Rate Limiter 精度修正 (BUG-04)
+### Rate Limiter 精度修正 (BUG-04)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -126,7 +131,7 @@
 
 ---
 
-## 依存ピンニング (DEP-01, DEP-02)
+### 依存ピンニング (DEP-01, DEP-02)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -138,7 +143,7 @@
 
 ---
 
-## sqlx オフラインモード (DEP-03)
+### sqlx オフラインモード (DEP-03)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
@@ -150,12 +155,66 @@
 
 ---
 
+## Session 2 (Update — コードベーススカウト反映)
+
+### マイグレーション戦略
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| 単一 008（推奨） | 008_phase1_foundation.sql に全変更をまとめる。Phase 1 の変更は論理的に一体で、部分適用すると不整合になる | ✓ |
+| 分割（008 + 009） | 008 で summary_hash 追加、009 で NFKC 移行 + content_hash 再計算。ロールバックの粒度が細かい | |
+
+**User's choice:** 単一 008
+**Notes:** 現在 007 まで存在。全スキーマ変更を単一マイグレーションにまとめる
+
+---
+
+### 起動エラーの実現方法（D-01〜D-03 更新）
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Tauri エラーダイアログ | setup() が Err を返し、Tauri が OS ネイティブのエラーダイアログを表示。最もシンプルだが「再試行」ボタンなし | |
+| 段階的起動（推奨） | DB 失敗などの回復可能エラーはトースト表示で継続、致命的エラーのみ Err で停止 | ✓ |
+| D-01〜D-03 維持 | 既存の決定通り、エラーページを WebView で表示する方針を維持する | |
+
+**User's choice:** 段階的起動
+**Notes:** コードベーススカウトで WebView が setup() 中に未マウントであることを確認。D-01〜D-03 を更新し、段階的起動戦略に変更
+
+---
+
+### 依存ピンニングの範囲（D-14 精緻化）
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| 外部 I/O のみ（推奨） | feed-rs/reqwest/sqlx のみ `~` でピン。tokio/serde/chrono は Cargo.lock が守るのでそのまま | ✓ |
+| 全主要依存 | tokio, serde, chrono, tauri 含めて全て `~` でピン | |
+| = で完全固定 | 全依存を `=` で完全固定 | |
+
+**User's choice:** 外部 I/O のみ
+**Notes:** D-14 の範囲を明確化。コアライブラリは Cargo.lock に任せる方針
+
+---
+
+### Phase 1 のテスト範囲（新規 D-17）
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| 変更に対応する最低限（推奨） | dedup NFKC テスト 5〜10 ケース、DeepDive cache 無効化テスト、WAL モード確認テスト | ✓ |
+| Phase 3 に全委任 | Phase 1 は実装のみ。テストは Phase 3 でまとめて書く | |
+| 包括的テストも Phase 1 | TEST-01 (dedup 20+ ケース) を Phase 1 に前倒し | |
+
+**User's choice:** 変更に対応する最低限
+**Notes:** D-17 として新規追加。包括テストスイートは Phase 3 の TEST-01〜07 で実施
+
+---
+
 ## Claude's Discretion
 
 - URL クエリパラメータのソートアルゴリズムの具体的実装（BUG-01）
 - content_hash 再計算のバッチサイズとタイミング
-- エラーページの具体的な HTML/CSS デザイン
+- 段階的起動のエラー分類（どのエラーが「回復可能」か「致命的」か）
 - NFKC マイグレーション SQL の具体的な実装
+- 最低限テストの具体的なテストケース選定
 
 ## Deferred Ideas
 

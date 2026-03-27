@@ -1,6 +1,7 @@
 # Phase 1: Foundation Correctness - Context
 
 **Gathered:** 2026-03-27
+**Updated:** 2026-03-27
 **Status:** Ready for planning
 
 <domain>
@@ -14,8 +15,8 @@
 ## Implementation Decisions
 
 ### 起動失敗時のユーザー体験 (SAFE-01)
-- **D-01:** setup() は Err を返し、Tauri がエラーを受けた後、最小限の WebView でエラーページを表示する（WebView は setup() 中に未マウントのためダイアログは使えない）
-- **D-02:** エラーページに「再試行」ボタンと「ログフォルダを開く」リンクを表示する
+- **D-01:** 段階的起動戦略を採用する。回復可能なエラー（DB 接続失敗等）はトースト通知で表示しアプリを継続起動する。致命的エラー（app_data_dir 取得不可等）のみ setup() が Err を返してアプリを停止する
+- **D-02:** 致命的エラー時は Tauri の OS ネイティブエラーダイアログを表示する（setup() 中に WebView は未マウントのため、WebView ベースのエラーページは使えない）
 - **D-03:** エラーメッセージは日本語のみで表示する
 
 ### NFKC 移行と既存データ戦略 (BUG-03)
@@ -24,7 +25,7 @@
 
 ### DeepDive キャッシュ無効化ポリシー (BUG-02)
 - **D-06:** キャッシュキーに summary_hash を追加し、サマリー変更時は TTL に関係なく即座にキャッシュを無効化する
-- **D-07:** TTL は 24 時間に設定する
+- **D-07:** TTL は 24 時間に設定する（現行 7 日から短縮）
 
 ### フィルタ移行 (FRNT-01)
 - **D-08:** applyMuteFilters のみ Rust バックエンド（get_discover_feed クエリ）に移動し、DB レベルでミュートキーワード除外を行う
@@ -34,7 +35,7 @@
 - **D-10:** database.rs の init_pool() で接続時に PRAGMA journal_mode=WAL を実行する（マイグレーションではなく接続時 PRAGMA）
 
 ### Lock Poisoning 対処 (SAFE-02)
-- **D-11:** 全ての lock().expect() を lock().map_err(|e| AppError::Internal(...)) に置換し、? 演算子でエラーを伝搬する
+- **D-11:** lib.rs:71 の `llm.write().expect()` を `map_err(|e| AppError::Internal(...))` に置換する。commands/ 層は既に安全なパターンを使用しているため変更不要
 
 ### エラーハンドリング改善 (SAFE-03, SAFE-04)
 - **D-12:** DeepDive と personal_scoring の unwrap_or_default を tracing::warn! でログ出力 + デフォルト値で継続に改善する（UX を壊さず問題を可視化）
@@ -43,16 +44,23 @@
 - **D-13:** トークンカウンタを u32 → f64 に変更し、acquire 時にのみ整数判定する
 
 ### 依存ピンニング (DEP-01, DEP-02)
-- **D-14:** feed-rs / reqwest / sqlx のバージョンを Cargo.toml で `~` (マイナーバージョン固定) にピンニングする。パッチは自動受入、メジャー更新は手動。代替クレート評価は Phase 1 では行わない
+- **D-14:** 外部 I/O に関わる feed-rs / reqwest / sqlx のみ `~`（マイナーバージョン固定）でピンニングする。tokio / serde / chrono 等のコアライブラリは Cargo.lock に任せる。代替クレート評価は Phase 1 では行わない
 
 ### sqlx オフラインモード (DEP-03)
 - **D-15:** .sqlx/ ディレクトリを Git にコミットし、CI で DB なしビルドを可能にする。スキーマ変更時は cargo sqlx prepare で再生成する
 
+### マイグレーション戦略
+- **D-16:** Phase 1 の全スキーマ変更を単一の `008_phase1_foundation.sql` にまとめる（summary_hash 追加 + NFKC 移行 + content_hash 再計算 + is_duplicate リセット）。部分適用は不整合の原因になるため分割しない
+
+### Phase 1 テスト方針
+- **D-17:** Phase 1 で変更したロジックに対する最低限のテストを含める（dedup NFKC テスト 5-10 ケース、DeepDive cache 無効化テスト、WAL モード確認テスト）。包括テストスイート（20+ ケース）は Phase 3 の TEST-01〜07 で実施
+
 ### Claude's Discretion
 - URL クエリパラメータのソートアルゴリズムの具体的実装（BUG-01）
 - content_hash 再計算のバッチサイズとタイミング
-- エラーページの具体的な HTML/CSS デザイン
+- 段階的起動のエラー分類（どのエラーが「回復可能」か「致命的」か）
 - NFKC マイグレーション SQL の具体的な実装
+- 最低限テストの具体的なテストケース選定
 
 </decisions>
 
@@ -89,21 +97,25 @@
 ## Existing Code Insights
 
 ### Reusable Assets
-- `src-tauri/src/services/dedup_service.rs` — normalize_title(), normalize_url(), generate_content_hash() が既存。NFKC 化はここを修正
+- `src-tauri/src/services/dedup_service.rs` — normalize_title(), normalize_url(), generate_content_hash() が既存。NFKC 化は normalize_title() の NFC 呼び出しを NFKC に変更
 - `src-tauri/src/infra/database.rs` — init_pool() が既存。WAL PRAGMA はここに追加
-- `src-tauri/src/infra/rate_limiter.rs` — トークンバケットアルゴリズムが既存。f64 化はここを修正
-- `src/lib/articleFilter.ts` — applyMuteFilters() と getHighlightKeywords() の2関数のみ。ミュートのみ Rust 移行対象
+- `src-tauri/src/infra/rate_limiter.rs` — TokenBucket（u32 トークン + f64 refill_rate）が既存。トークン型を f64 に変更
+- `src/lib/articleFilter.ts` — applyMuteFilters() と getHighlightKeywords() の2関数。ミュートのみ Rust 移行対象
+- `src-tauri/src/services/deepdive_service.rs` — CACHE_TTL_DAYS = 7（24h に変更対象）、cleanup_expired_cache() が既存
 
 ### Established Patterns
 - エラー型: AppError enum（Database, Http, FeedParse, ..., Internal）で統一
 - 状態管理: 個別 manage() パターン（Mutex<AppState> 禁止）
 - ロギング: tracing（Rust）、pino（TypeScript）
 - Tauri コマンド: commands/ は薄いラッパー、ロジックは services/ に委譲
+- Lock 安全パターン: commands/ 層は既に `.read().map_err()` / `.write().map_err()` を使用
 
 ### Integration Points
-- `src-tauri/src/lib.rs` setup() — 起動エラー処理の改修ポイント
+- `src-tauri/src/lib.rs` setup() — 起動エラー処理の改修ポイント（現在 unwrap_or_else → panic）
+- `src-tauri/src/lib.rs:71` — 唯一の lock poisoning サイト（`llm.write().expect()`）
 - `src-tauri/src/commands/discover_ai.rs` — ミュートフィルタの DB クエリ統合先
-- `src-tauri/migrations/` — NFKC マイグレーション、.sqlx/ 生成の起点
+- `src-tauri/migrations/` — 008_phase1_foundation.sql を追加（007 まで既存）
+- `.sqlx/` — 新規作成（cargo sqlx prepare で生成）
 
 </code_context>
 
@@ -112,7 +124,9 @@
 
 - エラーページは日本語 UI で統一（アプリ全体のターゲットが日本語話者）
 - NFKC 移行はマイグレーションで一括処理し、漸進的移行はしない
-- DeepDive キャッシュの TTL は REQUIREMENTS.md の BUG-02 で提案された 24h を採用
+- DeepDive キャッシュの TTL は REQUIREMENTS.md の BUG-02 で提案された 24h を採用（現行 7 日から短縮）
+- 起動時の段階的エラーハンドリング: DB 失敗 → トースト＋継続、app_data_dir 失敗 → OS ダイアログ＋停止
+- 依存ピンニングは外部 I/O クレートに限定し、コアライブラリは Cargo.lock に任せる
 
 </specifics>
 
@@ -127,3 +141,4 @@ None — discussion stayed within phase scope
 
 *Phase: 01-foundation-correctness*
 *Context gathered: 2026-03-27*
+*Context updated: 2026-03-27*
