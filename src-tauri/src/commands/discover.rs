@@ -75,21 +75,7 @@ pub struct UnreadCounts {
 
 #[tauri::command]
 pub async fn get_unread_counts(state: tauri::State<'_, AppState>) -> CmdResult<UnreadCounts> {
-    let row: (i64, i64, i64, i64, i64, i64) = sqlx::query_as(
-        "SELECT
-           COUNT(*) AS total,
-           SUM(CASE WHEN a.published_at >= datetime('now', '-12 hours') THEN 1 ELSE 0 END),
-           SUM(CASE WHEN f.category = 'anime' THEN 1 ELSE 0 END),
-           SUM(CASE WHEN f.category = 'game' THEN 1 ELSE 0 END),
-           SUM(CASE WHEN f.category = 'manga' THEN 1 ELSE 0 END),
-           SUM(CASE WHEN f.category = 'pc' THEN 1 ELSE 0 END)
-         FROM articles a
-         JOIN feeds f ON a.feed_id = f.id
-         WHERE a.is_duplicate = 0 AND a.is_read = 0",
-    )
-    .fetch_one(&*state.db)
-    .await?;
-
+    let row = discover_queries::get_unread_counts(&state.db).await?;
     Ok(UnreadCounts {
         for_you: row.0,
         trending: row.1,
@@ -105,33 +91,7 @@ pub async fn mark_all_read_category(
     state: tauri::State<'_, AppState>,
     category: String,
 ) -> CmdResult<i64> {
-    let result = if category == "for_you" || category == "all" {
-        sqlx::query("UPDATE articles SET is_read = 1 WHERE is_read = 0")
-            .execute(&*state.db)
-            .await?
-    } else if category == "trending" {
-        sqlx::query(
-            "UPDATE articles SET is_read = 1
-             WHERE is_read = 0 AND published_at >= datetime('now', '-12 hours')",
-        )
-        .execute(&*state.db)
-        .await?
-    } else {
-        let cat = if category == "hardware" {
-            "pc"
-        } else {
-            &category
-        };
-        sqlx::query(
-            "UPDATE articles SET is_read = 1
-             WHERE is_read = 0 AND feed_id IN (SELECT id FROM feeds WHERE category = ?1)",
-        )
-        .bind(cat)
-        .execute(&*state.db)
-        .await?
-    };
-
-    Ok(result.rows_affected() as i64)
+    discover_queries::mark_all_read_category(&state.db, &category).await
 }
 
 #[tauri::command]
@@ -139,22 +99,5 @@ pub async fn get_related_articles(
     state: tauri::State<'_, AppState>,
     article_id: i64,
 ) -> CmdResult<Vec<crate::models::DiscoverArticleDto>> {
-    let articles = sqlx::query_as::<_, crate::models::DiscoverArticleDto>(
-        "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author,
-                a.published_at, a.is_read, a.is_bookmarked, a.language,
-                a.thumbnail_url, a.ai_summary,
-                f.name AS feed_name, f.category AS category,
-                a.importance_score AS total_score
-         FROM articles a
-         JOIN feeds f ON a.feed_id = f.id
-         WHERE a.is_duplicate = 0 AND a.id != ?1
-           AND f.category = (SELECT f2.category FROM articles a2 JOIN feeds f2 ON a2.feed_id = f2.id WHERE a2.id = ?1)
-         ORDER BY a.published_at DESC
-         LIMIT 3",
-    )
-    .bind(article_id)
-    .fetch_all(&*state.db)
-    .await?;
-
-    Ok(articles)
+    discover_queries::get_related_articles(&state.db, article_id).await
 }

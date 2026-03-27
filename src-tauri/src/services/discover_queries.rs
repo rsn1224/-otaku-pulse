@@ -181,5 +181,86 @@ async fn get_most_viewed(
     Ok((articles, count_all(db).await?))
 }
 
+// ---------------------------------------------------------------------------
+// Unread Counts / Bulk Read / Related Articles
+// ---------------------------------------------------------------------------
+
+pub async fn get_unread_counts(
+    db: &SqlitePool,
+) -> Result<(i64, i64, i64, i64, i64, i64), AppError> {
+    let row: (i64, i64, i64, i64, i64, i64) = sqlx::query_as(
+        "SELECT
+           COUNT(*) AS total,
+           SUM(CASE WHEN a.published_at >= datetime('now', '-12 hours') THEN 1 ELSE 0 END),
+           SUM(CASE WHEN f.category = 'anime' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN f.category = 'game' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN f.category = 'manga' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN f.category = 'pc' THEN 1 ELSE 0 END)
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         WHERE a.is_duplicate = 0 AND a.is_read = 0",
+    )
+    .fetch_one(db)
+    .await?;
+    Ok(row)
+}
+
+pub async fn mark_all_read_category(
+    db: &SqlitePool,
+    category: &str,
+) -> Result<i64, AppError> {
+    let result = if category == "for_you" || category == "all" {
+        sqlx::query("UPDATE articles SET is_read = 1 WHERE is_read = 0")
+            .execute(db)
+            .await?
+    } else if category == "trending" {
+        sqlx::query(
+            "UPDATE articles SET is_read = 1
+             WHERE is_read = 0 AND published_at >= datetime('now', '-12 hours')",
+        )
+        .execute(db)
+        .await?
+    } else {
+        let cat = if category == "hardware" {
+            "pc"
+        } else {
+            category
+        };
+        sqlx::query(
+            "UPDATE articles SET is_read = 1
+             WHERE is_read = 0 AND feed_id IN (SELECT id FROM feeds WHERE category = ?1)",
+        )
+        .bind(cat)
+        .execute(db)
+        .await?
+    };
+
+    Ok(result.rows_affected() as i64)
+}
+
+pub async fn get_related_articles(
+    db: &SqlitePool,
+    article_id: i64,
+) -> Result<Vec<DiscoverArticleDto>, AppError> {
+    let articles = sqlx::query_as::<_, DiscoverArticleDto>(
+        "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author,
+                a.published_at, a.is_read, a.is_bookmarked, a.language,
+                a.thumbnail_url, a.ai_summary,
+                f.name AS feed_name, f.category AS category,
+                a.importance_score AS total_score
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         WHERE a.is_duplicate = 0 AND a.id != ?1
+           AND f.category = (SELECT f2.category FROM articles a2 JOIN feeds f2 ON a2.feed_id = f2.id WHERE a2.id = ?1)
+         ORDER BY a.published_at DESC
+         LIMIT 3",
+    )
+    .bind(article_id)
+    .fetch_all(db)
+    .await?;
+
+    Ok(articles)
+}
+
 pub use super::article_queries::record_interaction;
 pub use super::library_queries::get_library_articles;
