@@ -1,6 +1,9 @@
-use crate::error::CmdResult;
+use crate::error::{AppError, CmdResult};
 use sqlx::{Row, SqlitePool};
 use tauri::State;
+
+const VALID_FILTER_TYPES: &[&str] = &["mute", "highlight"];
+const MAX_KEYWORD_LENGTH: usize = 200;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +46,21 @@ pub async fn add_keyword_filter(
     filter_type: String,
     category: Option<String>,
 ) -> CmdResult<KeywordFilter> {
+    let keyword = keyword.trim().to_string();
+    if keyword.is_empty() || keyword.len() > MAX_KEYWORD_LENGTH {
+        return Err(AppError::InvalidInput(format!(
+            "キーワードは1〜{}文字で入力してください",
+            MAX_KEYWORD_LENGTH
+        )));
+    }
+    if !VALID_FILTER_TYPES.contains(&filter_type.as_str()) {
+        return Err(AppError::InvalidInput(format!(
+            "無効なフィルタータイプ: {}（有効: {}）",
+            filter_type,
+            VALID_FILTER_TYPES.join(", ")
+        )));
+    }
+
     let result = sqlx::query(
         "INSERT INTO keyword_filters (keyword, filter_type, category) 
          VALUES (?, ?, ?)",
