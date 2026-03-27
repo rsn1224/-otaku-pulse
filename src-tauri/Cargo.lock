@@ -3039,9 +3039,11 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-cron-scheduler",
+ "tokio-util",
  "tracing",
  "tracing-subscriber",
  "unicode-normalization",
+ "url",
  "wiremock",
 ]
 
@@ -5585,6 +5587,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]

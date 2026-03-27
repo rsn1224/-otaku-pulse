@@ -2,7 +2,8 @@ use chrono::{Local, Timelike};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
-use tokio::time::{interval, sleep};
+use tokio::sync::watch;
+use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
 use crate::state::AppState;
@@ -37,86 +38,147 @@ pub struct CollectResult {
 }
 
 /// アプリ起動時に呼び出す。tokio::spawn でバックグラウンド実行。
+/// CancellationToken でグレースフルシャットダウン、watch::Receiver で設定ホットリロードを実現。
 pub fn start(
     app_handle: AppHandle,
-    config: SchedulerConfig,
+    _config: SchedulerConfig,
     db_pool: Arc<sqlx::SqlitePool>,
     http_client: Arc<reqwest::Client>,
     app_state: AppState,
+    token: CancellationToken,
+    config_rx: watch::Receiver<SchedulerConfig>,
 ) {
-    let config_clone = config.clone();
     let app_handle_clone = app_handle.clone();
+    let token_clone = token.clone();
+    let config_rx_clone = config_rx.clone();
 
     // 収集ループ (tauri::async_runtime はsetup()内でも利用可能)
     tauri::async_runtime::spawn(async move {
-        collect_loop(app_handle_clone, config_clone, db_pool, http_client).await;
+        collect_loop(app_handle_clone, db_pool, http_client, token_clone, config_rx_clone).await;
     });
 
     // ダイジェストループ
     let app_handle_clone = app_handle.clone();
     tauri::async_runtime::spawn(async move {
-        digest_loop(app_handle_clone, config, app_state).await;
+        digest_loop(app_handle_clone, app_state, token, config_rx).await;
     });
 }
 
-/// 収集ループ
+/// 収集ループ — tokio::select! で CancellationToken / config 変更 / タイマーを多重待ちする
 async fn collect_loop(
     app_handle: AppHandle,
-    config: SchedulerConfig,
     db_pool: Arc<sqlx::SqlitePool>,
     http_client: Arc<reqwest::Client>,
+    token: CancellationToken,
+    mut config_rx: watch::Receiver<SchedulerConfig>,
 ) {
-    let mut interval_timer = interval(Duration::from_secs(config.collect_interval_minutes * 60));
+    let initial_config = config_rx.borrow_and_update().clone();
+    let interval_dur = Duration::from_secs(initial_config.collect_interval_minutes * 60);
+    let mut timer = tokio::time::interval_at(
+        tokio::time::Instant::now() + interval_dur,
+        interval_dur,
+    );
 
     loop {
-        interval_timer.tick().await;
+        tokio::select! {
+            _ = token.cancelled() => {
+                info!("collect_loop: shutdown signal received");
+                break;
+            }
+            result = config_rx.changed() => {
+                if result.is_err() {
+                    // Sender dropped — shut down
+                    info!("collect_loop: config channel closed, shutting down");
+                    break;
+                }
+                let new_config = config_rx.borrow_and_update().clone();
+                let dur = Duration::from_secs(new_config.collect_interval_minutes * 60);
+                timer = tokio::time::interval_at(tokio::time::Instant::now() + dur, dur);
+                info!(
+                    interval_min = new_config.collect_interval_minutes,
+                    "collect_loop: config updated"
+                );
+            }
+            _ = timer.tick() => {
+                let config = config_rx.borrow().clone();
+                if !config.enabled {
+                    continue;
+                }
 
-        if !config.enabled {
-            continue;
-        }
+                info!("スケジューラ: フィード収集開始");
 
-        info!("スケジューラ: フィード収集開始");
+                let result = match super::collector::refresh_all(&db_pool, &http_client).await {
+                    Ok(saved) => {
+                        info!(saved, "スケジューラ: フィード収集完了");
+                        CollectResult {
+                            fetched: saved as usize,
+                            saved: saved as usize,
+                        }
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "スケジューラ: フィード収集失敗");
+                        CollectResult {
+                            fetched: 0,
+                            saved: 0,
+                        }
+                    }
+                };
 
-        let result = match super::collector::refresh_all(&db_pool, &http_client).await {
-            Ok(saved) => {
-                info!(saved, "スケジューラ: フィード収集完了");
-                CollectResult {
-                    fetched: saved as usize,
-                    saved: saved as usize,
+                // FE にイベント送信
+                if let Err(e) = app_handle.emit("collect-completed", &result) {
+                    warn!("収集完了イベント送信失敗: {}", e);
+                }
+
+                // 新着記事通知 (saved > 0 の場合のみ)
+                if result.saved > 0 {
+                    crate::infra::notification::notify_important_article(
+                        &app_handle,
+                        "新着記事",
+                        &format!("{}件の新着記事", result.saved),
+                    );
                 }
             }
-            Err(e) => {
-                warn!(error = %e, "スケジューラ: フィード収集失敗");
-                CollectResult {
-                    fetched: 0,
-                    saved: 0,
-                }
-            }
-        };
-
-        // FE にイベント送信
-        if let Err(e) = app_handle.emit("collect-completed", &result) {
-            warn!("収集完了イベント送信失敗: {}", e);
-        }
-
-        // 新着記事通知 (saved > 0 の場合のみ)
-        if result.saved > 0 {
-            crate::infra::notification::notify_important_article(
-                &app_handle,
-                "新着記事",
-                &format!("{}件の新着記事", result.saved),
-            );
         }
     }
 }
 
-/// ダイジェスト生成ループ
-async fn digest_loop(app_handle: AppHandle, config: SchedulerConfig, state: AppState) {
+/// ダイジェスト生成ループ — tokio::select! で CancellationToken / config 変更 / タイマーを多重待ちする
+async fn digest_loop(
+    app_handle: AppHandle,
+    state: AppState,
+    token: CancellationToken,
+    mut config_rx: watch::Receiver<SchedulerConfig>,
+) {
     loop {
+        let config = config_rx.borrow().clone();
         // 次の digest_hour:digest_minute まで待機
         let wait = seconds_until(config.digest_hour, config.digest_minute);
-        sleep(Duration::from_secs(wait)).await;
 
+        tokio::select! {
+            _ = token.cancelled() => {
+                info!("digest_loop: shutdown signal received");
+                break;
+            }
+            result = config_rx.changed() => {
+                if result.is_err() {
+                    info!("digest_loop: config channel closed, shutting down");
+                    break;
+                }
+                let new_config = config_rx.borrow_and_update().clone();
+                info!(
+                    digest_hour = new_config.digest_hour,
+                    digest_minute = new_config.digest_minute,
+                    "digest_loop: config updated, recalculating schedule"
+                );
+                // Loop restarts, recalculating wait from new config
+                continue;
+            }
+            _ = tokio::time::sleep(Duration::from_secs(wait)) => {
+                // Time to generate digest
+            }
+        }
+
+        let config = config_rx.borrow().clone();
         if !config.enabled {
             continue;
         }

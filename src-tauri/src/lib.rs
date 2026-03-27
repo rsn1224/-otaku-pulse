@@ -9,6 +9,8 @@ mod state;
 pub use error::AppError;
 
 use tauri::Manager;
+use tokio::sync::watch;
+use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{EnvFilter, fmt};
 
 /// セットアップロジック本体。エラーは `?` 演算子で伝播する。
@@ -82,14 +84,24 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // CancellationToken — グレースフルシャットダウン用 (D-01: AppState の外で独立管理)
+    let token = CancellationToken::new();
+    app.manage(token.clone());
+
+    // SchedulerConfig watch channel — 設定ホットリロード用 (D-06, D-07)
+    let initial_scheduler_config = crate::services::scheduler::SchedulerConfig::default();
+    let (config_tx, config_rx) = watch::channel(initial_scheduler_config.clone());
+    app.manage(std::sync::Arc::new(config_tx));
+
     // スケジューラーを起動
-    let scheduler_config = crate::services::scheduler::SchedulerConfig::default();
     crate::services::scheduler::start(
         app.handle().clone(),
-        scheduler_config,
+        initial_scheduler_config,
         app_state_for_scheduler.db.clone(),
         app_state_for_scheduler.http.clone(),
         app_state_for_scheduler,
+        token,
+        config_rx,
     );
 
     Ok(())
@@ -125,6 +137,27 @@ pub fn run() {
                 return Err(e);
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let handle = window.app_handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    // D-04: CancellationToken 発火 → 5秒タイムアウト → プロセス終了
+                    if let Some(token) = handle.try_state::<CancellationToken>() {
+                        token.cancel();
+                        tracing::info!("Shutdown: CancellationToken cancelled, waiting up to 5s");
+                    }
+                    // Fixed grace period — loops break on CancellationToken nearly instantly;
+                    // this timeout is the safety net for in-flight DB writes (D-03).
+                    let _ = tokio::time::timeout(
+                        std::time::Duration::from_secs(5),
+                        tokio::time::sleep(std::time::Duration::from_secs(5)),
+                    )
+                    .await;
+                    handle.exit(0);
+                });
+            }
         })
         .invoke_handler(tauri::generate_handler![
             // Collection

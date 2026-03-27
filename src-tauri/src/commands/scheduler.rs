@@ -4,8 +4,10 @@ use crate::services::digest_generator;
 use crate::services::scheduler::SchedulerConfig;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_store::StoreExt;
+use tokio::sync::watch;
 
 const STORE_PATH: &str = "scheduler.json";
 const STORE_KEY: &str = "scheduler_config";
@@ -59,11 +61,12 @@ pub async fn get_scheduler_config(app_handle: AppHandle) -> Result<SchedulerSett
     }
 }
 
-/// スケジューラー設定を保存（tauri-plugin-store に永続化）
+/// スケジューラー設定を保存（tauri-plugin-store に永続化 + watch channel で稼働中ループに通知）
 #[tauri::command]
 pub async fn set_scheduler_config(
     app_handle: AppHandle,
     _state: State<'_, AppState>,
+    tx: State<'_, Arc<watch::Sender<SchedulerConfig>>>,
     config: SchedulerSettings,
 ) -> Result<(), AppError> {
     let store = app_handle
@@ -78,7 +81,17 @@ pub async fn set_scheduler_config(
         .save()
         .map_err(|e| AppError::Internal(format!("Store save error: {e}")))?;
 
-    tracing::info!(?config, "Scheduler config saved to store");
+    // D-06: watch channel で稼働中の collect_loop / digest_loop に即時通知
+    let scheduler_config: SchedulerConfig = config.clone().into();
+    tx.send(scheduler_config)
+        .map_err(|e| AppError::Internal(format!("Failed to broadcast config: {e}")))?;
+
+    // D-07: フロントエンドにも Tauri event で通知
+    app_handle
+        .emit("scheduler-config-changed", &config)
+        .map_err(|e| AppError::Internal(format!("Failed to emit config event: {e}")))?;
+
+    tracing::info!(?config, "Scheduler config saved and broadcast");
     Ok(())
 }
 
