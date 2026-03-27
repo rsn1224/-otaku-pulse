@@ -14,9 +14,9 @@
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: URL クエリパラメータの順序に依存しない dedup を実装する（全パラメータのソート統一）
-- [ ] **BUG-02**: DeepDive キャッシュに summary_hash + TTL（24h）を追加し、サマリー変更時にキャッシュを無効化する
-- [ ] **BUG-03**: dedup の Unicode 正規化を NFC → NFKC に統一し、半角カタカナ・互換文字を正しく処理する
+- [x] **BUG-01**: URL クエリパラメータの順序に依存しない dedup を実装する（全パラメータのソート統一）
+- [x] **BUG-02**: DeepDive キャッシュに summary_hash + TTL（24h）を追加し、サマリー変更時にキャッシュを無効化する
+- [x] **BUG-03**: dedup の Unicode 正規化を NFC → NFKC に統一し、半角カタカナ・互換文字を正しく処理する
 - [x] **BUG-04**: rate_limiter のトークンカウンタを u32 → f64 に変更し、端数トークンの喪失を防ぐ
 
 ### Security
@@ -54,13 +54,13 @@
 
 ### Dependencies
 
-- [ ] **DEP-01**: feedrs のバージョンを固定し、代替クレート（rss, atom_syndication）を評価する
-- [ ] **DEP-02**: reqwest のバージョンを固定し、各外部 API の統合テストを追加する
-- [ ] **DEP-03**: sqlx のオフラインモード（.sqlx/ ディレクトリ）を設定し、CI ビルドを安定化する
+- [x] **DEP-01**: feedrs のバージョンを固定し、代替クレート（rss, atom_syndication）を評価する
+- [x] **DEP-02**: reqwest のバージョンを固定し、各外部 API の統合テストを追加する
+- [x] **DEP-03**: sqlx のオフラインモード（.sqlx/ ディレクトリ）を設定し、CI ビルドを安定化する
 
 ### Frontend Consistency
 
-- [ ] **FRNT-01**: articleFilter のフィルタリングロジックを Rust バックエンドに移動し、フロント/バック間の重複を解消する
+- [x] **FRNT-01**: articleFilter のフィルタリングロジックを Rust バックエンドに移動し、フロント/バック間の重複を解消する
 
 ## v2 Requirements
 
@@ -93,15 +93,15 @@
 | SAFE-02 | Phase 1 | Complete |
 | SAFE-03 | Phase 1 | Complete |
 | SAFE-04 | Phase 1 | Complete |
-| BUG-01 | Phase 1 | Pending |
-| BUG-02 | Phase 1 | Pending |
-| BUG-03 | Phase 1 | Pending |
+| BUG-01 | Phase 1 | Complete |
+| BUG-02 | Phase 1 | Complete |
+| BUG-03 | Phase 1 | Complete |
 | BUG-04 | Phase 1 | Complete |
 | PERF-01 | Phase 1 | Complete |
-| DEP-01 | Phase 1 | Pending |
-| DEP-02 | Phase 1 | Pending |
-| DEP-03 | Phase 1 | Pending |
-| FRNT-01 | Phase 1 | Pending |
+| DEP-01 | Phase 1 | Complete |
+| DEP-02 | Phase 1 | Complete |
+| DEP-03 | Phase 1 | Complete |
+| FRNT-01 | Phase 1 | Complete |
 | RESL-01 | Phase 2 | Pending |
 | RESL-02 | Phase 2 | Pending |
 | RESL-03 | Phase 2 | Pending |
