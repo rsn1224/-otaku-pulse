@@ -1,5 +1,6 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect } from 'react';
+import { logger } from '../lib/logger';
 import { useArticleStore } from '../stores/useArticleStore';
 import { useKeyboardStore } from '../stores/useKeyboardStore';
 import { useReaderStore } from '../stores/useReaderStore';
@@ -29,7 +30,7 @@ export function useKeyboardShortcuts(): void {
         case 'o':
         case 'O':
           if (focused?.url) {
-            openUrl(focused.url).catch(() => {});
+            openUrl(focused.url).catch((e) => logger.debug({ error: e }, 'openUrl via keyboard failed'));
           }
           break;
         case 'm':

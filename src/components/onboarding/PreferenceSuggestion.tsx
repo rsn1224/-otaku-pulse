@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { logger } from '../../lib/logger';
 import { useProfileStore } from '../../stores/useProfileStore';
 
 interface Suggestion {
@@ -23,7 +24,10 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
   useEffect(() => {
     invoke<Suggestion>('suggest_preferences')
       .then(setSuggestion)
-      .catch(() => onClose())
+      .catch((e) => {
+        logger.warn({ error: e }, 'suggestPreferences failed');
+        onClose();
+      })
       .finally(() => setLoading(false));
   }, [onClose]);
 
@@ -43,8 +47,8 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
     await updateProfile(merged);
     try {
       await invoke('rescore_articles');
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'rescoreArticles after preference update failed');
     }
     setSaving(false);
     onClose();

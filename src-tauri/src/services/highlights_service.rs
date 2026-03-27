@@ -102,14 +102,17 @@ pub async fn batch_generate_summaries(
         match llm.complete(req).await {
             Ok(response) => {
                 let ai_summary = response.content.trim().to_string();
-                let _ = sqlx::query(
+                if let Err(e) = sqlx::query(
                     "UPDATE articles SET ai_summary = ?1, ai_summary_generated_at = datetime('now')
                      WHERE id = ?2",
                 )
                 .bind(&ai_summary)
                 .bind(id)
                 .execute(db)
-                .await;
+                .await
+                {
+                    tracing::warn!(article_id = id, error = %e, "ai_summary DB update failed");
+                }
                 generated += 1;
             }
             Err(e) => {

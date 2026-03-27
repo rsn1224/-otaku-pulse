@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { logger } from '../../lib/logger';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
 import { ArticleBody } from '../reader/ArticleBody';
@@ -44,7 +45,8 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
       .then((r) => {
         if (!stale) setRelated(r);
       })
-      .catch(() => {
+      .catch((e) => {
+        logger.warn({ error: e }, 'getRelatedArticles failed');
         if (!stale) setRelated([]);
       })
       .finally(() => {

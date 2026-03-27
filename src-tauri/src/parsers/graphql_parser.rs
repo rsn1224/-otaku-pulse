@@ -196,10 +196,13 @@ fn get_preferred_title(title: &MediaTitle) -> String {
 
 fn convert_html_to_text(html: &str) -> String {
     use regex::Regex;
+    use std::sync::LazyLock;
+
+    static RE_HTML: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<[^>]*>").expect("valid regex"));
+    static RE_WS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").expect("valid regex"));
 
     // Remove HTML tags
-    let re = Regex::new(r"<[^>]*>").unwrap();
-    let text = re.replace_all(html, "");
+    let text = RE_HTML.replace_all(html, "");
 
     // Decode common HTML entities
     let text = text
@@ -211,8 +214,7 @@ fn convert_html_to_text(html: &str) -> String {
         .replace("&nbsp;", " ");
 
     // Normalize whitespace
-    let re_ws = Regex::new(r"\s+").unwrap();
-    re_ws.replace_all(&text, " ").trim().to_string()
+    RE_WS.replace_all(&text, " ").trim().to_string()
 }
 
 fn calculate_importance_score(media: &Media) -> f64 {

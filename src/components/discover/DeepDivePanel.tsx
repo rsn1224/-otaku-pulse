@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useRef, useState } from 'react';
+import { logger } from '../../lib/logger';
 import { stripCitations } from '../../lib/textUtils';
 import type { Citation, DeepDiveResult } from '../../types';
 import { CitationFooter } from './CitationFooter';
@@ -40,7 +41,8 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
       if (result.followUpQuestions.length > 0) {
         onNewQuestions(result.followUpQuestions);
       }
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'askDeepDive failed');
       setAnswer('回答の取得に失敗しました。');
     } finally {
       setIsLoading(false);

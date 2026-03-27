@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useState } from 'react';
+import { logger } from '../../lib/logger';
 import { useProfileStore } from '../../stores/useProfileStore';
 import type { UserProfileDto } from '../../types';
 
@@ -79,8 +80,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     await updateProfile(profile);
     try {
       await invoke('rescore_articles');
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'rescoreArticles after onboarding failed');
     }
     setSaving(false);
     setShowWelcome(true);

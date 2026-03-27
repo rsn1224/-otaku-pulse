@@ -33,7 +33,9 @@ pub fn run() {
                 .app_data_dir()
                 .expect("Failed to get app data dir");
 
-            std::fs::create_dir_all(&app_data_dir).ok();
+            if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
+                tracing::warn!(path = %app_data_dir.display(), error = %e, "Failed to create app data dir");
+            }
             let db_path = app_data_dir.join("otaku_pulse.db");
 
             // Use block_on for async DB init inside sync setup closure

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../../lib/logger';
 import type { DiscoverArticleDto, DiscoverFeedResult } from '../../types';
 import { DiscoverCard } from '../discover/DiscoverCard';
 
@@ -27,8 +28,8 @@ export const LibraryWing: React.FC = () => {
       setArticles((prev) => (reset ? result.articles : [...prev, ...result.articles]));
       setHasMore(result.hasMore);
       offsetRef.current = newOffset + result.articles.length;
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'fetchLibrary failed');
     } finally {
       loadingRef.current = false;
       setIsLoading(false);

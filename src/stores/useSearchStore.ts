@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
+import { logger } from '../lib/logger';
 import type { AiSearchResult, ArticleDto, Citation } from '../types';
 
 interface SearchState {
@@ -44,7 +45,8 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         aiCitations: result.citations,
         isSearching: false,
       });
-    } catch (_) {
+    } catch (e) {
+      logger.error({ query: q, error: e }, 'executeSearch failed');
       set({ isSearching: false, searchResults: [], aiAnswer: null, aiCitations: [] });
     }
   },

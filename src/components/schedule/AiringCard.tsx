@@ -1,5 +1,6 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
+import { logger } from '../../lib/logger';
 import type { AiringEntry } from '../../types';
 
 const formatTime = (timestamp: number): string => {
@@ -9,7 +10,7 @@ const formatTime = (timestamp: number): string => {
 
 export const AiringCard: React.FC<{ entry: AiringEntry }> = ({ entry }) => {
   const handleOpen = (): void => {
-    if (entry.siteUrl) openUrl(entry.siteUrl).catch(() => {});
+    if (entry.siteUrl) openUrl(entry.siteUrl).catch((e) => logger.debug({ error: e }, 'openUrl failed'));
   };
 
   const title = entry.titleNative ?? entry.titleRomaji;

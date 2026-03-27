@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useState } from 'react';
+import { logger } from '../../lib/logger';
 
 export const CollectButton: React.FC = () => {
   const [collecting, setCollecting] = useState(false);
@@ -11,8 +12,8 @@ export const CollectButton: React.FC = () => {
       await invoke('run_collect_now');
       await invoke('rescore_articles');
       await invoke('batch_generate_summaries', { limit: 8 });
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'collectNow failed');
     } finally {
       setCollecting(false);
     }

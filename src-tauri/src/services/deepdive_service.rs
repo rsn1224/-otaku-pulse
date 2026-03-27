@@ -91,7 +91,7 @@ pub async fn answer_question(
 
     // キャッシュに保存
     let follow_ups_json = serde_json::to_string(&follow_ups).unwrap_or_default();
-    let _ = sqlx::query(
+    if let Err(e) = sqlx::query(
         "INSERT OR REPLACE INTO deepdive_cache (article_id, question, answer, follow_ups, provider)
          VALUES (?1, ?2, ?3, ?4, ?5)",
     )
@@ -101,7 +101,10 @@ pub async fn answer_question(
     .bind(&follow_ups_json)
     .bind(&provider_str)
     .execute(db)
-    .await;
+    .await
+    {
+        tracing::warn!(article_id, error = %e, "deepdive cache write failed");
+    }
 
     Ok(DeepDiveResult {
         question: question.to_string(),

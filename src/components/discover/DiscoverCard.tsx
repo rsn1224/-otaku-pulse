@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../../lib/logger';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { DiscoverArticleDto } from '../../types';
@@ -53,7 +54,10 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
                 updateArticleSummary(article.id, s);
                 setState('summary');
               })
-              .catch(() => setState('summary'))
+              .catch((e) => {
+                logger.warn({ error: e }, 'getOrGenerateSummary failed');
+                setState('summary');
+              })
               .finally(() => setSummaryLoading(false));
           }
         } else if (dwellStart.current > 0) {
@@ -109,7 +113,8 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
     try {
       const qs = await invoke<string[]>('get_deepdive_questions', { articleId: article.id });
       setQuestions(qs);
-    } catch (_) {
+    } catch (e) {
+      logger.warn({ error: e }, 'getDeepDiveQuestions failed');
       setQuestions(['この記事の詳細は？', '関連作品は？', '今後の展開は？']);
     } finally {
       setQuestionsLoading(false);

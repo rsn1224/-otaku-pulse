@@ -26,7 +26,9 @@ pub async fn refresh_all(db: &SqlitePool, http: &reqwest::Client) -> Result<u32,
             }
             Err(e) => {
                 tracing::error!(feed_id = feed.id, error = %e, "Feed refresh failed");
-                let _ = feed_queries::update_feed_failure(db, feed.id, &e.to_string()).await;
+                if let Err(e2) = feed_queries::update_feed_failure(db, feed.id, &e.to_string()).await {
+                    tracing::warn!(feed_id = feed.id, error = %e2, "Failed to record feed failure");
+                }
             }
         }
     }

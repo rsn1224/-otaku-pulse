@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
+import { logger } from '../lib/logger';
 
 interface KeywordFilterDto {
   id: number;
@@ -28,8 +29,8 @@ export const useFilterStore = create<FilterState>((set) => ({
           .filter((f) => f.filter_type === 'highlight')
           .map((f) => f.keyword),
       });
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.error({ error: e }, 'fetchFilters failed');
     }
   },
 }));

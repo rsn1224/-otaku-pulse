@@ -1,10 +1,11 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
+import { logger } from '../../lib/logger';
 import type { GameReleaseEntry } from '../../types';
 
 export const GameReleaseCard: React.FC<{ game: GameReleaseEntry }> = ({ game }) => {
   const handleOpen = (): void => {
-    openUrl(`https://rawg.io/games/${game.slug}`).catch(() => {});
+    openUrl(`https://rawg.io/games/${game.slug}`).catch((e) => logger.debug({ error: e }, 'openUrl failed'));
   };
 
   return (

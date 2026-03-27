@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { logger } from '../../lib/logger';
 import type { FeedDto } from '../../types';
 
 export const FeedsSection: React.FC = () => {
@@ -9,7 +10,7 @@ export const FeedsSection: React.FC = () => {
   const refresh = useCallback((): void => {
     invoke<FeedDto[]>('get_feeds')
       .then(setFeeds)
-      .catch(() => {});
+      .catch((e) => logger.warn({ error: e }, 'fetchFeeds failed'));
   }, []);
 
   useEffect(() => {
@@ -21,8 +22,8 @@ export const FeedsSection: React.FC = () => {
     try {
       await invoke('delete_feed', { feedId });
       setFeeds((prev) => prev.filter((f) => f.id !== feedId));
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'deleteFeed failed');
     }
   };
 
@@ -30,8 +31,8 @@ export const FeedsSection: React.FC = () => {
     try {
       await invoke('reenable_feed', { feedId });
       refresh();
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'reenableFeed failed');
     }
   };
 
@@ -39,8 +40,8 @@ export const FeedsSection: React.FC = () => {
     try {
       await invoke('refresh_feed', { feedId });
       refresh();
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'refreshFeed failed');
     }
   };
 
@@ -56,8 +57,8 @@ export const FeedsSection: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'exportOpml failed');
     }
   };
 

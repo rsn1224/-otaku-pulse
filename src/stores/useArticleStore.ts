@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
+import { logger } from '../lib/logger';
 import type { DiscoverArticleDto, DiscoverFeedResult, DiscoverTab, HighlightEntry } from '../types';
 
 const PAGE_SIZE = 30;
@@ -81,7 +82,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
         offset: newOffset + result.articles.length,
         isLoading: false,
       });
-    } catch (_) {
+    } catch (e) {
+      logger.error({ tab, error: e }, 'fetchFeed failed');
       set({ error: 'フィードの取得に失敗しました', isLoading: false });
     }
   },
@@ -98,8 +100,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
       set({
         articles: get().articles.map((a) => (a.id === id ? { ...a, isRead: true } : a)),
       });
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ articleId: id, error: e }, 'markRead failed');
     }
   },
 
@@ -111,8 +113,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
           a.id === id ? { ...a, isBookmarked: !a.isBookmarked } : a,
         ),
       });
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ articleId: id, error: e }, 'toggleBookmark failed');
     }
   },
 
@@ -123,8 +125,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
         action,
         dwellSeconds: dwellSeconds ?? null,
       });
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.debug({ articleId, action, error: e }, 'recordInteraction failed');
     }
   },
 
@@ -144,7 +146,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
     try {
       const highlights = await invoke<HighlightEntry[]>('get_daily_highlights');
       set({ highlights, highlightsLoading: false, highlightsFetchedAt: now });
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'fetchHighlights failed');
       set({ highlightsLoading: false, highlightsError: true });
     }
   },
@@ -153,8 +156,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
     try {
       const counts = await invoke<Record<string, number>>('get_unread_counts');
       set({ unreadCounts: counts });
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.debug({ error: e }, 'fetchUnreadCounts failed');
     }
   },
 
@@ -163,8 +166,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
       await invoke('mark_all_read_category', { category });
       get().fetchUnreadCounts();
       get().fetchFeed(true);
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ category, error: e }, 'markAllReadCategory failed');
     }
   },
 

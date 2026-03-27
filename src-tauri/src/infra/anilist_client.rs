@@ -28,7 +28,10 @@ impl AniListClient {
     async fn execute_query(&self, query: &str, variables: Value) -> Result<String, AppError> {
         // Rate limiting: calculate wait time while holding lock, then drop lock before await
         let wait_duration = {
-            let last_time = self.last_request_time.lock().unwrap();
+            let last_time = self
+                .last_request_time
+                .lock()
+                .map_err(|e| AppError::Internal(format!("AniList mutex poisoned: {e}")))?;
             let elapsed = last_time.elapsed();
             if elapsed < Duration::from_millis(MIN_REQUEST_INTERVAL_MS) {
                 Some(Duration::from_millis(MIN_REQUEST_INTERVAL_MS) - elapsed)
@@ -43,7 +46,10 @@ impl AniListClient {
 
         // Update last request time
         {
-            let mut last_time = self.last_request_time.lock().unwrap();
+            let mut last_time = self
+                .last_request_time
+                .lock()
+                .map_err(|e| AppError::Internal(format!("AniList mutex poisoned: {e}")))?;
             *last_time = std::time::Instant::now();
         }
 

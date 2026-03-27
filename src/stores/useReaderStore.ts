@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
+import { logger } from '../lib/logger';
 import type { ArticleDetailDto } from '../types';
 import { useArticleStore } from './useArticleStore';
 
@@ -24,7 +25,8 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
       set({ readerArticle: detail, readerLoading: false });
       useArticleStore.getState().markRead(articleId);
       useArticleStore.getState().recordInteraction(articleId, 'open');
-    } catch (_) {
+    } catch (e) {
+      logger.error({ articleId, error: e }, 'openReader failed');
       set({ readerLoading: false });
     }
   },

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { logger } from '../../lib/logger';
 
 interface KeywordFilter {
   id: number;
@@ -23,7 +24,8 @@ export const KeywordFilterSection: React.FC = () => {
       setError(null);
       const result = await invoke<KeywordFilter[]>('get_keyword_filters');
       setFilters(result);
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'fetchKeywordFilters failed');
       setError('フィルターの読み込みに失敗しました');
     } finally {
       setIsLoading(false);
@@ -44,7 +46,8 @@ export const KeywordFilterSection: React.FC = () => {
       setFilters((prev) => [result, ...prev]);
       setNewKeyword('');
       setNewCategory('');
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'addKeywordFilter failed');
       setError('フィルターの追加に失敗しました');
     }
   };
@@ -54,7 +57,8 @@ export const KeywordFilterSection: React.FC = () => {
       setError(null);
       await invoke('remove_keyword_filter', { id });
       setFilters((prev) => prev.filter((f) => f.id !== id));
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'removeKeywordFilter failed');
       setError('フィルターの削除に失敗しました');
     }
   };

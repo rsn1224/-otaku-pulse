@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
+import { logger } from '../lib/logger';
 import type { UserProfileDto } from '../types';
 
 interface ProfileState {
@@ -30,7 +31,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     try {
       const profile = await invoke<UserProfileDto>('get_user_profile');
       set({ profile, isLoading: false });
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'fetchProfile failed');
       set({
         error: 'プロフィールの取得に失敗しました',
         isLoading: false,
@@ -44,7 +46,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     try {
       await invoke('update_user_profile', { profile });
       set({ profile, isLoading: false });
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'updateProfile failed');
       set({ error: 'プロフィールの更新に失敗しました', isLoading: false });
     }
   },
@@ -54,7 +57,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
       await invoke('reset_learning_data');
       const profile = await invoke<UserProfileDto>('get_user_profile');
       set({ profile });
-    } catch (_) {
+    } catch (e) {
+      logger.error({ error: e }, 'resetLearningData failed');
       set({ error: 'リセットに失敗しました' });
     }
   },

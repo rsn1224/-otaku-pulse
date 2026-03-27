@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { logger } from '../../lib/logger';
 import {
   DAYS_MAP,
   dateKey,
@@ -56,7 +57,8 @@ export const ScheduleWing: React.FC = () => {
         });
         setGames(result);
       }
-    } catch (_) {
+    } catch (e) {
+      logger.warn({ error: e }, 'fetchScheduleData failed');
       setEntries([]);
       setGames([]);
     } finally {

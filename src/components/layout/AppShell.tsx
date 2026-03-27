@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { logger } from '../../lib/logger';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useFilterStore } from '../../stores/useFilterStore';
 import { initTheme } from '../../stores/useThemeStore';
@@ -69,7 +70,7 @@ export const AppShell: React.FC = () => {
           setShowOnboarding(true);
         }
       })
-      .catch(() => {});
+      .catch((e) => logger.debug({ error: e }, 'getUserProfile failed'));
   }, []);
 
   useEffect(() => {
@@ -79,8 +80,8 @@ export const AppShell: React.FC = () => {
         await invoke('run_collect_now');
         await invoke('rescore_articles');
         await invoke('batch_generate_summaries', { limit: 10 });
-      } catch (_) {
-        /* スケジューラーが後で処理 */
+      } catch (e) {
+        logger.debug({ error: e }, 'initCollect failed, scheduler will retry');
       }
     };
     init();
@@ -99,7 +100,7 @@ export const AppShell: React.FC = () => {
             setShowSuggestion(true);
           }
         })
-        .catch(() => {});
+        .catch((e) => logger.debug({ error: e }, 'getUserProfile in collect-completed failed'));
     }).then((fn) => {
       unlisten = fn;
     });

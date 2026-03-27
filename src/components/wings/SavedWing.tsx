@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../../lib/logger';
 import type { ArticleDto } from '../../types';
 
 export const SavedWing: React.FC = () => {
@@ -14,8 +15,8 @@ export const SavedWing: React.FC = () => {
     try {
       const result = await invoke<ArticleDto[]>('get_bookmarked_articles');
       setArticles(result);
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'fetchBookmarks failed');
     } finally {
       setIsLoading(false);
     }
@@ -32,13 +33,13 @@ export const SavedWing: React.FC = () => {
     try {
       await invoke('toggle_bookmark', { articleId: id });
       setArticles((prev) => prev.filter((a) => a.id !== id));
-    } catch (_) {
-      /* silent */
+    } catch (e) {
+      logger.warn({ error: e }, 'toggle_bookmark failed');
     }
   }, []);
 
   const handleOpen = useCallback((url: string | null): void => {
-    if (url) openUrl(url).catch(() => {});
+    if (url) openUrl(url).catch((e) => logger.debug({ error: e }, 'openUrl failed'));
   }, []);
 
   return (

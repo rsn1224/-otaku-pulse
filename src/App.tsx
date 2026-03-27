@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { ToastProvider, useToast } from './components/common/Toast';
 import { AppShell } from './components/layout/AppShell';
+import { logger } from './lib/logger';
 import { useSchedulerStore } from './stores/useSchedulerStore';
 
 function AppContent(): React.JSX.Element {
@@ -83,8 +84,8 @@ function AppContent(): React.JSX.Element {
           };
           const msg = milestones[p.totalRead];
           if (msg) showToast('success', msg, 5000);
-        } catch (_) {
-          /* silent */
+        } catch (e) {
+          logger.debug({ error: e }, 'milestone check failed');
         }
       });
     };
