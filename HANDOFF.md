@@ -1,12 +1,14 @@
 # OtakuPulse — HANDOFF: P5 全機能強化
 
-<!-- ステータス: pending -->
+<!-- ステータス: done -->
 <!-- 作成: 2026-03-25 by Claude Code -->
+<!-- 更新: 2026-03-27 by Claude Code — Phase A〜E 完了 -->
 <!-- 対象: Cascade -->
 
 ## 前提
 
-- テスト: 58/58 パス、tsc clean、biome 0 エラー
+- テスト: FE 76 + BE 81 = 157 パス、tsc clean、clippy clean、biome 0 エラー
+- 200行超ファイル: 0 (Phase D で全分割)
 - プロジェクトパス: `c:\Users\rsn12\dev\otaku-pulse`
 - 既存: `useKeyboardShortcuts.ts`, `is_bookmarked` カラム, `toggle_bookmark` コマンド, `notification.rs`, AniList クライアント (季節アニメ + トレンドマンガ)
 
