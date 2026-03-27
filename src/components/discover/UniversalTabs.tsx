@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useArticleStore } from '../../stores/useArticleStore';
 import type { DiscoverTab } from '../../types';
 
 const TABS: { id: DiscoverTab; label: string; countKey: string }[] = [
@@ -15,11 +15,11 @@ const TABS: { id: DiscoverTab; label: string; countKey: string }[] = [
 ];
 
 export const UniversalTabs: React.FC = () => {
-  const tab = useDiscoverStore((s) => s.tab);
-  const setTab = useDiscoverStore((s) => s.setTab);
-  const unreadCounts = useDiscoverStore((s) => s.unreadCounts);
-  const fetchUnreadCounts = useDiscoverStore((s) => s.fetchUnreadCounts);
-  const markAllReadCategory = useDiscoverStore((s) => s.markAllReadCategory);
+  const tab = useArticleStore((s) => s.tab);
+  const setTab = useArticleStore((s) => s.setTab);
+  const unreadCounts = useArticleStore((s) => s.unreadCounts);
+  const fetchUnreadCounts = useArticleStore((s) => s.fetchUnreadCounts);
+  const markAllReadCategory = useArticleStore((s) => s.markAllReadCategory);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

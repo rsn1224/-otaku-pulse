@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect } from 'react';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useKeyboardStore } from '../../stores/useKeyboardStore';
 
 const NAV_SHORTCUTS: { key: string; label: string; combo?: string }[] = [
   { key: 'J', label: 'Next Article' },
@@ -31,7 +31,7 @@ const KeyBadge: React.FC<{ children: string }> = ({ children }) => (
 );
 
 export const KeyboardHelpModal: React.FC = () => {
-  const { showHelp, toggleHelp } = useDiscoverStore();
+  const { showHelp, toggleHelp } = useKeyboardStore();
 
   useEffect(() => {
     if (!showHelp) return;

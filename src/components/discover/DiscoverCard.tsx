@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { stripCitations } from '../../lib/textUtils';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useArticleStore } from '../../stores/useArticleStore';
+import { useReaderStore } from '../../stores/useReaderStore';
 import type { DiscoverArticleDto } from '../../types';
 import { DeepDivePanel } from './DeepDivePanel';
 import { SummarySkeleton } from './SummarySkeleton';
@@ -60,11 +61,11 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const dwellStart = useRef<number>(0);
 
-  const markRead = useDiscoverStore((s) => s.markRead);
-  const toggleBookmark = useDiscoverStore((s) => s.toggleBookmark);
-  const recordInteraction = useDiscoverStore((s) => s.recordInteraction);
-  const updateArticleSummary = useDiscoverStore((s) => s.updateArticleSummary);
-  const openReader = useDiscoverStore((s) => s.openReader);
+  const markRead = useArticleStore((s) => s.markRead);
+  const toggleBookmark = useArticleStore((s) => s.toggleBookmark);
+  const recordInteraction = useArticleStore((s) => s.recordInteraction);
+  const updateArticleSummary = useArticleStore((s) => s.updateArticleSummary);
+  const openReader = useReaderStore((s) => s.openReader);
 
   // 統合 IntersectionObserver: AI サマリー生成 + Dwell time 計測
   useEffect(() => {

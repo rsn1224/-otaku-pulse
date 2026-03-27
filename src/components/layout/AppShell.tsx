@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useArticleStore } from '../../stores/useArticleStore';
 import { useFilterStore } from '../../stores/useFilterStore';
 import { initTheme } from '../../stores/useThemeStore';
 import type { WingIdV2 } from '../../types';
@@ -86,7 +86,7 @@ export const AppShell: React.FC = () => {
     init();
   }, []);
 
-  const { fetchFeed, fetchHighlights } = useDiscoverStore();
+  const { fetchFeed, fetchHighlights } = useArticleStore();
   useEffect(() => {
     let unlisten: (() => void) | null = null;
     listen('collect-completed', () => {

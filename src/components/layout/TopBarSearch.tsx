@@ -1,10 +1,10 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useSearchStore } from '../../stores/useSearchStore';
 
 export const TopBarSearch: React.FC = () => {
   const { searchQuery, setSearchQuery, executeSearch, clearSearch, searchMode } =
-    useDiscoverStore();
+    useSearchStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const isComposingRef = useRef(false);
 

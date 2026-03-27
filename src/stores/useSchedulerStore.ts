@@ -81,9 +81,8 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
         collectError: null,
       });
 
-      // 記事ストアを更新
-      const { useDiscoverStore } = await import('./useDiscoverStore');
-      useDiscoverStore.getState().fetchFeed(true);
+      const { useArticleStore } = await import('./useArticleStore');
+      useArticleStore.getState().fetchFeed(true);
     });
 
     const unlistenError = await listen<string>('collect-error', (event) => {

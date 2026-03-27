@@ -1,9 +1,9 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useArticleStore } from '../../stores/useArticleStore';
 
 export const HighlightsSection: React.FC = () => {
-  const { highlights, highlightsLoading } = useDiscoverStore();
+  const { highlights, highlightsLoading } = useArticleStore();
 
   if (highlightsLoading) {
     return (

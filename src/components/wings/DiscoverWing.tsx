@@ -1,7 +1,10 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { applyMuteFilters } from '../../lib/articleFilter';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useArticleStore } from '../../stores/useArticleStore';
+import { useKeyboardStore } from '../../stores/useKeyboardStore';
+import { useReaderStore } from '../../stores/useReaderStore';
+import { useSearchStore } from '../../stores/useSearchStore';
 import { useFilterStore } from '../../stores/useFilterStore';
 import { ArticleReader } from '../common/ArticleReader';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
@@ -12,26 +15,13 @@ import { UniversalTabs } from '../discover/UniversalTabs';
 
 export const DiscoverWing: React.FC = () => {
   const {
-    tab,
-    articles,
-    isLoading,
-    hasMore,
-    error,
-    fetchFeed,
-    loadMore,
-    clearError,
-    fetchHighlights,
-    searchMode,
-    searchResults,
-    aiAnswer,
-    aiCitations,
-    isSearching,
-    readerArticle,
-    closeReader,
-    scrollPositions,
-    saveScrollPosition,
-    focusedIndex,
-  } = useDiscoverStore();
+    tab, articles, isLoading, hasMore, error,
+    fetchFeed, loadMore, clearError, fetchHighlights,
+    scrollPositions, saveScrollPosition,
+  } = useArticleStore();
+  const { searchMode, searchResults, aiAnswer, aiCitations, isSearching } = useSearchStore();
+  const { readerArticle, closeReader } = useReaderStore();
+  const { focusedIndex } = useKeyboardStore();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 

@@ -3,7 +3,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { containsHtml, sanitizeHtml, stripCitations } from '../../lib/textUtils';
-import { useDiscoverStore } from '../../stores/useDiscoverStore';
+import { useReaderStore } from '../../stores/useReaderStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
 import { RelatedArticles } from './RelatedArticles';
 
@@ -17,7 +17,7 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
   const [copied, setCopied] = useState(false);
   const [related, setRelated] = useState<DiscoverArticleDto[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
-  const { openNextArticle, openPrevArticle } = useDiscoverStore();
+  const { openNextArticle, openPrevArticle } = useReaderStore();
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent): void => {
