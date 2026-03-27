@@ -51,7 +51,10 @@ pub async fn get_daily_highlights(
 
     let reasons = match response {
         Ok(r) => parse_numbered_lines(&r.content, articles.len()),
-        Err(_) => vec!["注目".to_string(); articles.len()],
+        Err(e) => {
+            tracing::warn!(error = %e, "LLM highlight generation failed, using fallback");
+            vec!["注目".to_string(); articles.len()]
+        }
     };
 
     let highlights = articles
