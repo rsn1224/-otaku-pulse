@@ -12,7 +12,7 @@ pub struct AniListData {
 }
 
 #[derive(Deserialize, Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by serde Deserialize
 pub struct AniListPage {
     #[serde(rename = "pageInfo")]
     pub page_info: PageInfo,
@@ -20,7 +20,7 @@ pub struct AniListPage {
 }
 
 #[derive(Deserialize, Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by serde Deserialize
 pub struct PageInfo {
     #[serde(rename = "total")]
     pub total: i32,
@@ -35,7 +35,7 @@ pub struct PageInfo {
 }
 
 #[derive(Deserialize, Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by serde Deserialize
 pub struct Media {
     pub id: i32,
     pub title: MediaTitle,
@@ -64,6 +64,7 @@ pub struct Media {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)] // Fields mapped by serde Deserialize
 pub struct MediaTitle {
     pub romaji: Option<String>,
     pub english: Option<String>,
@@ -72,7 +73,7 @@ pub struct MediaTitle {
 }
 
 #[derive(Deserialize, Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by serde Deserialize
 pub struct MediaCoverImage {
     #[serde(rename = "large")]
     pub large: Option<String>,
@@ -89,7 +90,7 @@ pub struct ExternalLink {
 }
 
 #[derive(Deserialize, Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by serde Deserialize
 pub struct FuzzyDate {
     pub year: Option<i32>,
     pub month: Option<i32>,

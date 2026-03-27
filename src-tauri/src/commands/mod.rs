@@ -4,7 +4,7 @@
 pub mod articles;
 pub mod collect;
 mod default_feeds;
-#[allow(dead_code)]
+#[allow(dead_code)] // Commands implemented, not yet wired to invoke_handler
 pub mod digest;
 pub mod discover;
 pub mod discover_ai;
@@ -14,5 +14,5 @@ pub mod filters;
 pub mod llm;
 pub mod schedule;
 pub mod scheduler;
-#[allow(dead_code)]
+#[allow(dead_code)] // Commands implemented, not yet wired to invoke_handler
 pub mod settings;

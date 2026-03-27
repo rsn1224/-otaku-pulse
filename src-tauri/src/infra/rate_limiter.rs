@@ -104,7 +104,7 @@ impl TokenBucket {
     }
 
     /// Update rate limit information from HTTP response headers
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn update_from_response<T>(&self, response: &http::Response<T>) {
         // Update retry-after if rate limited
         if response.status() == 429
@@ -132,17 +132,6 @@ impl TokenBucket {
         }
     }
 
-    /// Get remaining tokens
-    #[allow(dead_code)]
-    pub fn remaining(&self) -> u32 {
-        *self.tokens.blocking_lock()
-    }
-
-    /// Get retry-after duration if rate limited
-    #[allow(dead_code)]
-    pub fn retry_after(&self) -> Option<Duration> {
-        *self.retry_after.blocking_lock()
-    }
 }
 
 /// Rate limiter configurations for different sources
@@ -158,17 +147,6 @@ pub mod configs {
         )
     }
 
-    /// Steam: 10 requests per minute
-    #[allow(dead_code)]
-    pub fn steam() -> TokenBucket {
-        TokenBucket::new(10, 10.0 / 60.0, 100)
-    }
-
-    /// Generic RSS: 1 request per second per domain
-    #[allow(dead_code)]
-    pub fn rss() -> TokenBucket {
-        TokenBucket::new(1, 1.0, 1000)
-    }
 }
 
 #[cfg(test)]

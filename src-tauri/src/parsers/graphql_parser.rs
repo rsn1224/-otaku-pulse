@@ -146,15 +146,6 @@ pub(crate) fn calculate_importance_score(media: &Media) -> f64 {
     score.min(1.0)
 }
 
-/// Parse anime schedule from AniList response
-#[allow(dead_code)]
-pub fn parse_anime_schedule(response: &str, _category: &str) -> Result<Vec<Media>, String> {
-    let anilist_response: AniListResponse = serde_json::from_str(response)
-        .map_err(|e| format!("Failed to parse AniList response: {}", e))?;
-
-    Ok(anilist_response.data.page.media)
-}
-
 #[cfg(test)]
 #[path = "graphql_parser_tests.rs"]
 mod tests;

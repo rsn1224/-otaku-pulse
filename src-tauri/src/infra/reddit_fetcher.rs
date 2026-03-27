@@ -1,19 +1,26 @@
+#[cfg(test)]
 use crate::error::AppError;
+#[cfg(test)]
 use crate::models::Article;
+#[cfg(test)]
 use crate::parsers::rss_parser;
+#[cfg(test)]
 use reqwest::Client;
+#[cfg(test)]
 use serde_json::Value;
+#[cfg(test)]
 use std::sync::Arc;
 
+#[cfg(test)]
 use super::reddit_json::parse_reddit_json;
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub struct RedditFetcher {
     client: Arc<Client>,
     user_agent: String,
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 impl RedditFetcher {
     pub fn new(client: Arc<Client>, user_agent: Option<String>) -> Self {
         Self {
@@ -23,7 +30,6 @@ impl RedditFetcher {
     }
 
     /// Fetch Reddit posts from RSS feed (preferred method)
-    #[allow(dead_code)]
     pub async fn fetch_rss(&self, subreddit: &str) -> Result<Vec<Article>, AppError> {
         let url = format!("https://www.reddit.com/r/{}/.rss", subreddit);
 
@@ -52,7 +58,6 @@ impl RedditFetcher {
     }
 
     /// Fetch Reddit posts from JSON endpoint (fallback)
-    #[allow(dead_code)]
     async fn fetch_json(&self, subreddit: &str) -> Result<Vec<Article>, AppError> {
         let url = format!("https://www.reddit.com/r/{}/hot.json?limit=50", subreddit);
 

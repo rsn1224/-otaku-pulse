@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::error::AppError;
 use crate::infra::{anilist_client, rss_fetcher, steam_client};
 use crate::models::{Article, Feed};
@@ -10,8 +9,6 @@ use std::sync::Arc;
 #[async_trait]
 pub trait Collector: Send + Sync {
     async fn collect(&self, feed: &Feed) -> Result<Vec<Article>, AppError>;
-    #[allow(dead_code)]
-    fn feed_type(&self) -> &str;
 }
 
 pub struct RssCollector {
@@ -39,10 +36,6 @@ impl Collector for RssCollector {
         } else {
             Ok(Vec::new())
         }
-    }
-
-    fn feed_type(&self) -> &str {
-        "rss"
     }
 }
 
@@ -85,10 +78,6 @@ impl Collector for AniListCollector {
             })
             .collect())
     }
-
-    fn feed_type(&self) -> &str {
-        "anilist"
-    }
 }
 
 pub struct SteamCollector {
@@ -115,9 +104,5 @@ impl Collector for SteamCollector {
                 a
             })
             .collect())
-    }
-
-    fn feed_type(&self) -> &str {
-        "steam"
     }
 }

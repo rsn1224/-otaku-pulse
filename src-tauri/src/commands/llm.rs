@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::error::{AppError, CmdResult};
 use crate::infra::llm_client::{LlmClient, LlmProvider};
 use crate::infra::ollama_client::OllamaClient;

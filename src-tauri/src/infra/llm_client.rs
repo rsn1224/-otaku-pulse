@@ -55,6 +55,5 @@ pub struct LlmResponse {
 #[async_trait]
 pub trait LlmClient: Send + Sync {
     async fn complete(&self, req: LlmRequest) -> Result<LlmResponse, AppError>;
-    #[allow(dead_code)]
     fn provider(&self) -> LlmProvider;
 }

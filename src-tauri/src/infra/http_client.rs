@@ -1,13 +1,15 @@
 use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(test)]
 use tokio::time::sleep;
+#[cfg(test)]
 use tracing::{error, info, warn};
 
 const REQUEST_TIMEOUT_SECS: u64 = 30;
-#[allow(dead_code)]
+#[cfg(test)]
 const MAX_RETRIES: u32 = 3;
-#[allow(dead_code)]
+#[cfg(test)]
 const INITIAL_RETRY_DELAY_MS: u64 = 1000;
 
 /// Builds an HTTP client with proper configuration for OtakuPulse.
@@ -22,7 +24,7 @@ pub fn build_http_client() -> Arc<Client> {
 }
 
 /// Executes an HTTP request with retry logic and exponential backoff.
-#[allow(dead_code)]
+#[cfg(test)]
 pub async fn execute_with_retry<F, Fut>(
     _client: &Arc<Client>,
     request_fn: F,

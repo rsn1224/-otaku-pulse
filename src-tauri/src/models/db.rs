@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by sqlx::FromRow
 pub struct Feed {
     pub id: i64,
     pub name: String,
@@ -23,7 +23,7 @@ pub struct Feed {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by sqlx::FromRow
 pub struct Article {
     pub id: i64,
     pub feed_id: i64,
@@ -48,7 +48,7 @@ pub struct Article {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by sqlx::FromRow
 pub struct Digest {
     pub id: i64,
     pub category: String,
@@ -62,7 +62,7 @@ pub struct Digest {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by sqlx::FromRow
 pub struct Setting {
     pub key: String,
     pub value: String,
@@ -70,7 +70,7 @@ pub struct Setting {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by sqlx::FromRow
 pub struct UserProfile {
     pub id: i64,
     pub display_name: String,
@@ -82,7 +82,7 @@ pub struct UserProfile {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Fields mapped by sqlx::FromRow
 pub struct ArticleInteraction {
     pub id: i64,
     pub article_id: i64,

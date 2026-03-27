@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code)] // Used by digest commands (not yet wired to invoke_handler)
 use crate::error::AppError;
 use crate::models::{Article, Digest, DigestDto};
 use sqlx::{Row, SqlitePool};
@@ -40,7 +40,6 @@ pub async fn list_digests(
     Ok(rows.into_iter().map(row_to_digest_dto).collect())
 }
 
-#[allow(dead_code)]
 pub async fn insert_digest(db: &SqlitePool, digest: &Digest) -> Result<i64, AppError> {
     let result = sqlx::query(
         "INSERT INTO digests (category, title, content_markdown, content_html, 
