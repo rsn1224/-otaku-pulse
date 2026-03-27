@@ -123,7 +123,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`discover-card ${featured ? 'featured' : ''} ${article.isRead ? 'opacity-50' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+      className={`discover-card cursor-pointer ${featured ? 'featured' : ''} ${article.isRead ? 'opacity-50' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button, a, .deepdive-panel')) return;
         handleOpen();
@@ -132,7 +132,6 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
         if (e.key === 'Enter' && !(e.target as HTMLElement).closest('button, a, .deepdive-panel'))
           handleOpen();
       }}
-      style={{ cursor: 'pointer' }}
     >
       <CardHeader article={article} onBookmark={handleBookmark} />
 

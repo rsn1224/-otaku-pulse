@@ -137,28 +137,22 @@ const FeedCard: React.FC<{
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ background: statusColor }}
             />
-            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-              {feed.name}
-            </p>
+            <p className="text-sm font-medium truncate text-[var(--text-primary)]">{feed.name}</p>
           </div>
-          <p className="text-xs truncate mt-0.5 ml-4" style={{ color: 'var(--text-tertiary)' }}>
-            {feed.url}
-          </p>
+          <p className="text-xs truncate mt-0.5 ml-4 text-[var(--text-tertiary)]">{feed.url}</p>
           <div className="flex items-center gap-2 mt-1.5 ml-4">
             <span className="source-badge cat-badge">{feed.category}</span>
             {!feed.enabled && (
-              <span className="text-xs" style={{ color: 'var(--badge-hot)' }}>
+              <span className="text-xs text-[var(--badge-hot)]">
                 無効{feed.disabledReason ? `: ${feed.disabledReason}` : ''}
               </span>
             )}
             {hasError && feed.enabled && (
-              <span className="text-xs" style={{ color: '#f59e0b' }}>
-                エラー {feed.consecutiveErrors}回
-              </span>
+              <span className="text-xs text-[#f59e0b]">エラー {feed.consecutiveErrors}回</span>
             )}
           </div>
           {feed.lastError && (
-            <p className="text-xs mt-1 ml-4 truncate" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs mt-1 ml-4 truncate text-[var(--text-tertiary)]">
               {feed.lastError}
             </p>
           )}
@@ -186,8 +180,7 @@ const FeedCard: React.FC<{
           <button
             type="button"
             onClick={() => onDelete(feed.id)}
-            className="card-action-btn secondary text-xs"
-            style={{ color: 'var(--badge-hot)' }}
+            className="card-action-btn secondary text-xs text-[var(--badge-hot)]"
           >
             削除
           </button>

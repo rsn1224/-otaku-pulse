@@ -127,10 +127,7 @@ export const AppShell: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div
-        className="h-screen flex flex-col"
-        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-      >
+      <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <div className="topbar" data-tauri-drag-region>
           <div className="flex items-center gap-3" data-tauri-drag-region>
             <span className="text-sm font-semibold tracking-tight" data-tauri-drag-region>
@@ -195,14 +192,8 @@ export const AppShell: React.FC = () => {
           <main className="flex-1 overflow-hidden">
             <React.Suspense
               fallback={
-                <div
-                  className="flex items-center justify-center h-full"
-                  style={{ background: 'var(--bg-primary)' }}
-                >
-                  <div
-                    className="w-6 h-6 border-2 rounded-full animate-spin"
-                    style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-                  />
+                <div className="flex items-center justify-center h-full bg-[var(--bg-primary)]">
+                  <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
                 </div>
               }
             >

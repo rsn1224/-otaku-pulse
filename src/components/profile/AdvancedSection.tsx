@@ -20,21 +20,19 @@ export const AdvancedSection: React.FC = () => {
   return (
     <>
       <div className="discover-card">
-        <span className="block text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
-          外観
-        </span>
+        <span className="block text-sm font-medium mb-3 text-[var(--text-primary)]">外観</span>
         <AppearanceSection />
       </div>
 
       <div className="discover-card mt-4">
-        <span className="block text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
+        <span className="block text-sm font-medium mb-3 text-[var(--text-primary)]">
           スケジューラー
         </span>
         <SchedulerSection />
       </div>
 
       <div className="discover-card mt-4">
-        <span className="block text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
+        <span className="block text-sm font-medium mb-3 text-[var(--text-primary)]">
           キーワードフィルター
         </span>
         <KeywordFilterSection />
@@ -42,7 +40,7 @@ export const AdvancedSection: React.FC = () => {
 
       <div className="discover-card mt-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          <span className="text-sm font-medium text-[var(--text-primary)]">
             データクリーンアップ
           </span>
           <button
@@ -53,7 +51,7 @@ export const AdvancedSection: React.FC = () => {
             古い記事を削除
           </button>
         </div>
-        <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+        <p className="text-xs mt-2 text-[var(--text-tertiary)]">
           指定日数より前の既読記事を削除（ブックマーク除外）
         </p>
       </div>

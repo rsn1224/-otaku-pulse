@@ -3,8 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSearchStore } from '../../stores/useSearchStore';
 
 export const TopBarSearch: React.FC = () => {
-  const { searchQuery, setSearchQuery, executeSearch, clearSearch, searchMode } =
-    useSearchStore();
+  const { searchQuery, setSearchQuery, executeSearch, clearSearch, searchMode } = useSearchStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const isComposingRef = useRef(false);
 
@@ -66,8 +65,7 @@ export const TopBarSearch: React.FC = () => {
         <button
           type="button"
           onClick={clearSearch}
-          className="text-xs flex-shrink-0"
-          style={{ color: 'var(--text-tertiary)' }}
+          className="text-xs flex-shrink-0 text-[var(--text-tertiary)]"
         >
           ✕
         </button>

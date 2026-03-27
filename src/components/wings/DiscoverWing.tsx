@@ -2,10 +2,10 @@ import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { applyMuteFilters } from '../../lib/articleFilter';
 import { useArticleStore } from '../../stores/useArticleStore';
+import { useFilterStore } from '../../stores/useFilterStore';
 import { useKeyboardStore } from '../../stores/useKeyboardStore';
 import { useReaderStore } from '../../stores/useReaderStore';
 import { useSearchStore } from '../../stores/useSearchStore';
-import { useFilterStore } from '../../stores/useFilterStore';
 import { ArticleReader } from '../common/ArticleReader';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
 import { CitationFooter } from '../discover/CitationFooter';
@@ -15,9 +15,17 @@ import { UniversalTabs } from '../discover/UniversalTabs';
 
 export const DiscoverWing: React.FC = () => {
   const {
-    tab, articles, isLoading, hasMore, error,
-    fetchFeed, loadMore, clearError, fetchHighlights,
-    scrollPositions, saveScrollPosition,
+    tab,
+    articles,
+    isLoading,
+    hasMore,
+    error,
+    fetchFeed,
+    loadMore,
+    clearError,
+    fetchHighlights,
+    scrollPositions,
+    saveScrollPosition,
   } = useArticleStore();
   const { searchMode, searchResults, aiAnswer, aiCitations, isSearching } = useSearchStore();
   const { readerArticle, closeReader } = useReaderStore();
@@ -79,7 +87,7 @@ export const DiscoverWing: React.FC = () => {
   // Search mode
   if (searchMode) {
     return (
-      <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+      <div className="h-full flex flex-col bg-[var(--bg-primary)]">
         <UniversalTabs />
         <div className="flex-1 overflow-y-auto discover-scroll">
           <div className="feed-column">
@@ -99,10 +107,7 @@ export const DiscoverWing: React.FC = () => {
                   </svg>
                   AI Answer
                 </div>
-                <div
-                  className="text-sm leading-[1.75] mt-2"
-                  style={{ color: 'var(--text-primary)' }}
-                >
+                <div className="text-sm leading-[1.75] mt-2 text-[var(--text-primary)]">
                   {aiAnswer}
                 </div>
                 <CitationFooter citations={aiCitations} />
@@ -110,11 +115,9 @@ export const DiscoverWing: React.FC = () => {
             )}
 
             {!isSearching && searchResults.length === 0 && !aiAnswer && (
-              <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+              <div className="text-center py-16 text-[var(--text-secondary)]">
                 <p className="text-3xl mb-3">{'🔎'}</p>
-                <p className="text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-                  見つかりませんでした
-                </p>
+                <p className="text-lg mb-2 text-[var(--text-primary)]">見つかりませんでした</p>
                 <p className="text-sm">別のキーワードで試してみてください</p>
               </div>
             )}
@@ -145,20 +148,13 @@ export const DiscoverWing: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       <UniversalTabs />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto discover-scroll">
         <div className="feed-column">
           {error && (
-            <div
-              className="rounded-lg p-3 mb-3 text-sm flex justify-between items-center"
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--badge-hot)',
-                color: 'var(--badge-hot)',
-              }}
-            >
+            <div className="rounded-lg p-3 mb-3 text-sm flex justify-between items-center bg-[var(--bg-card)] border border-[var(--badge-hot)] text-[var(--badge-hot)]">
               {error}
               <button type="button" onClick={clearError} className="ml-2 hover:opacity-80">
                 ✕
@@ -189,11 +185,9 @@ export const DiscoverWing: React.FC = () => {
 
           {/* Empty state */}
           {!isLoading && filteredArticles.length === 0 && (
-            <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-center py-16 text-[var(--text-secondary)]">
               <p className="text-4xl mb-4">{'🔍'}</p>
-              <p className="text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-                まだ記事がありません
-              </p>
+              <p className="text-lg mb-2 text-[var(--text-primary)]">まだ記事がありません</p>
               <p className="text-sm mb-4">左下の「収集」ボタンで最新記事を取得しましょう</p>
             </div>
           )}
@@ -203,7 +197,7 @@ export const DiscoverWing: React.FC = () => {
             !hasMore &&
             filteredArticles.length > 0 &&
             filteredArticles.every((a) => a.isRead) && (
-              <div className="text-center py-8" style={{ color: 'var(--text-secondary)' }}>
+              <div className="text-center py-8 text-[var(--text-secondary)]">
                 <p className="text-2xl mb-2">{'✨'}</p>
                 <p className="text-sm">全部読みました！ また来てね</p>
               </div>
@@ -221,9 +215,6 @@ export const DiscoverWing: React.FC = () => {
 
 const Spinner: React.FC = () => (
   <div className="flex justify-center py-4">
-    <div
-      className="w-6 h-6 border-2 rounded-full animate-spin"
-      style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-    />
+    <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
   </div>
 );

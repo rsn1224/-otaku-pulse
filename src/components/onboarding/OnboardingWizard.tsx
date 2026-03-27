@@ -101,10 +101,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
       >
         <div className="text-center" style={{ animation: 'fadeSlideIn 0.5s ease-out' }}>
           <p className="text-5xl mb-4">{'🎉'}</p>
-          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">
             Welcome to OtakuPulse!
           </h2>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm text-[var(--text-secondary)]">
             あなた専用のフィードを準備しています...
           </p>
         </div>
@@ -137,12 +137,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
         {/* Header */}
         <div className="px-6 pt-4 pb-2">
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-            {STEPS[step].title}
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {STEPS[step].subtitle}
-          </p>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">{STEPS[step].title}</h2>
+          <p className="text-sm mt-1 text-[var(--text-secondary)]">{STEPS[step].subtitle}</p>
         </div>
 
         {/* Content */}
@@ -273,12 +269,7 @@ const TagInputStep: React.FC<{
         }}
         placeholder={placeholder}
         maxLength={100}
-        className="flex-1 px-3 py-2 rounded-lg text-sm"
-        style={{
-          background: 'var(--bg-primary)',
-          border: '1px solid var(--border)',
-          color: 'var(--text-primary)',
-        }}
+        className="flex-1 px-3 py-2 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)]"
       />
       <button
         type="button"

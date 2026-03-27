@@ -42,14 +42,12 @@ export const SavedWing: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       <div className="universal-tabs">
         <span className="tab-item active">
           Saved
           {articles.length > 0 && (
-            <span className="ml-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {articles.length}件
-            </span>
+            <span className="ml-2 text-xs text-[var(--text-tertiary)]">{articles.length}件</span>
           )}
         </span>
       </div>
@@ -62,17 +60,14 @@ export const SavedWing: React.FC = () => {
 
           {isLoading && (
             <div className="flex justify-center py-8">
-              <div
-                className="w-6 h-6 border-2 rounded-full animate-spin"
-                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-              />
+              <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
             </div>
           )}
 
           {!isLoading && articles.length === 0 && (
-            <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-center py-16 text-[var(--text-secondary)]">
               <p className="text-4xl mb-4">{'🔖'}</p>
-              <p className="text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-lg mb-2 text-[var(--text-primary)]">
                 ブックマークした記事がここに表示されます
               </p>
               <p className="text-sm">Discover で気になる記事をブックマークしてみましょう</p>
@@ -94,23 +89,19 @@ const SavedCard: React.FC<{
       <div className="flex-1 min-w-0">
         <button
           type="button"
-          className="text-left font-semibold text-sm leading-snug hover:underline truncate block w-full"
-          style={{ color: 'var(--text-primary)' }}
+          className="text-left font-semibold text-sm leading-snug hover:underline truncate block w-full text-[var(--text-primary)]"
           onClick={() => onOpen(article.url)}
         >
           {article.title}
         </button>
-        <div
-          className="flex items-center gap-2 mt-1 text-xs"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
+        <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-tertiary)]">
           {article.feedName && <span>{article.feedName}</span>}
           {article.publishedAt && (
             <span>{new Date(article.publishedAt).toLocaleDateString('ja-JP')}</span>
           )}
         </div>
         {article.summary && (
-          <p className="text-xs mt-2 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mt-2 line-clamp-2 text-[var(--text-secondary)]">
             {article.summary}
           </p>
         )}
@@ -119,8 +110,7 @@ const SavedCard: React.FC<{
         type="button"
         onClick={() => onUnbookmark(article.id)}
         title="ブックマーク解除"
-        className="flex-shrink-0 p-1 rounded hover:opacity-70"
-        style={{ color: 'var(--accent)' }}
+        className="flex-shrink-0 p-1 rounded hover:opacity-70 text-[var(--accent)]"
       >
         <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
           <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />

@@ -58,14 +58,12 @@ export const LibraryWing: React.FC = () => {
   }, [hasMore, isLoading, fetchLibrary]);
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       <div className="universal-tabs">
         <span className="tab-item active">
           ブックマーク
           {articles.length > 0 && (
-            <span className="ml-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {articles.length}件
-            </span>
+            <span className="ml-2 text-xs text-[var(--text-tertiary)]">{articles.length}件</span>
           )}
         </span>
       </div>
@@ -80,19 +78,14 @@ export const LibraryWing: React.FC = () => {
 
           {isLoading && (
             <div className="flex justify-center py-8">
-              <div
-                className="w-6 h-6 border-2 rounded-full animate-spin"
-                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-              />
+              <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
             </div>
           )}
 
           {!isLoading && articles.length === 0 && (
-            <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-center py-16 text-[var(--text-secondary)]">
               <p className="text-4xl mb-4">{'📚'}</p>
-              <p className="text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-                ブックマークがありません
-              </p>
+              <p className="text-lg mb-2 text-[var(--text-primary)]">ブックマークがありません</p>
               <p className="text-sm">Discover で気になる記事をブックマークしてみましょう</p>
             </div>
           )}

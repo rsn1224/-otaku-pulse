@@ -65,8 +65,7 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
               viewMode === 'month' ? (
                 <p
                   key={e.id}
-                  className="text-[9px] truncate"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="text-[9px] truncate text-[var(--text-secondary)]"
                   title={e.titleNative ?? e.titleRomaji}
                 >
                   {e.titleNative ?? e.titleRomaji}
@@ -76,9 +75,7 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
               ),
             )}
             {viewMode === 'week' && dayEntries.length === 0 && (
-              <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                —
-              </p>
+              <p className="text-xs text-[var(--text-tertiary)]">—</p>
             )}
           </div>
         </div>
@@ -92,7 +89,7 @@ export const ScheduleDayView: React.FC<{ date: Date; entries: AiringEntry[] }> =
   entries,
 }) => (
   <div className="max-w-lg mx-auto space-y-2">
-    <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
+    <h2 className="text-sm font-bold mb-3 text-[var(--accent)]">
       {date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' })}
       {' — '}
       {entries.length} 件
@@ -100,10 +97,6 @@ export const ScheduleDayView: React.FC<{ date: Date; entries: AiringEntry[] }> =
     {entries.map((e) => (
       <AiringCard key={e.id} entry={e} />
     ))}
-    {entries.length === 0 && (
-      <p className="text-xs py-4" style={{ color: 'var(--text-tertiary)' }}>
-        放送なし
-      </p>
-    )}
+    {entries.length === 0 && <p className="text-xs py-4 text-[var(--text-tertiary)]">放送なし</p>}
   </div>
 );

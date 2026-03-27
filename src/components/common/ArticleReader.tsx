@@ -33,10 +33,18 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
     setRelated([]);
     setRelatedLoading(true);
     invoke<DiscoverArticleDto[]>('get_related_articles', { articleId: article.id })
-      .then((r) => { if (!stale) setRelated(r); })
-      .catch(() => { if (!stale) setRelated([]); })
-      .finally(() => { if (!stale) setRelatedLoading(false); });
-    return () => { stale = true; };
+      .then((r) => {
+        if (!stale) setRelated(r);
+      })
+      .catch(() => {
+        if (!stale) setRelated([]);
+      })
+      .finally(() => {
+        if (!stale) setRelatedLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
   }, [article]);
 
   const handleClose = (): void => {
@@ -56,7 +64,9 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
         style={{ background: 'rgba(0, 0, 0, 0.5)' }}
         role="presentation"
         onClick={handleClose}
-        onKeyDown={(e) => { if (e.key === 'Escape') handleClose(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') handleClose();
+        }}
       />
 
       <div

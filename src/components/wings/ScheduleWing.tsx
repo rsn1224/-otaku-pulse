@@ -128,10 +128,7 @@ export const ScheduleWing: React.FC = () => {
     if (isLoading) {
       return (
         <div className="flex justify-center py-12">
-          <div
-            className="w-6 h-6 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-          />
+          <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
         </div>
       );
     }
@@ -149,12 +146,10 @@ export const ScheduleWing: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       <div className="px-6 py-4 flex items-center justify-between flex-shrink-0 gap-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Schedule
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Schedule</h1>
           <ToggleGroup
             items={[
               { id: 'anime', label: 'Anime' },
@@ -184,33 +179,27 @@ export const ScheduleWing: React.FC = () => {
           <button
             type="button"
             onClick={() => setOffset((o) => o - 1)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg"
-            style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-card)] text-[var(--text-secondary)]"
           >
             {'←'}
           </button>
           <button
             type="button"
             onClick={() => setOffset(0)}
-            className="px-2.5 h-7 text-[11px] rounded-lg font-semibold"
-            style={{ background: 'var(--accent)', color: '#0e0e13' }}
+            className="px-2.5 h-7 text-[11px] rounded-lg font-semibold bg-[var(--accent)] text-[#0e0e13]"
           >
             Today
           </button>
           <button
             type="button"
             onClick={() => setOffset((o) => o + 1)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg"
-            style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-card)] text-[var(--text-secondary)]"
           >
             {'→'}
           </button>
         </div>
       </div>
-      <p
-        className="px-6 text-xs font-medium tracking-wide mb-2"
-        style={{ color: 'var(--text-secondary)' }}
-      >
+      <p className="px-6 text-xs font-medium tracking-wide mb-2 text-[var(--text-secondary)]">
         {headerText}
       </p>
       <div className="flex-1 overflow-auto px-4 pb-4">{renderContent()}</div>
@@ -224,7 +213,7 @@ const ToggleGroup: React.FC<{
   onSelect: (id: string) => void;
   accent?: boolean;
 }> = ({ items, active, onSelect, accent }) => (
-  <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+  <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
     {items.map((item) => (
       <button
         key={item.id}
@@ -256,7 +245,7 @@ const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 const GameDayView: React.FC<{ date: Date; games: GameReleaseEntry[] }> = ({ date, games }) => (
   <div className="max-w-lg mx-auto space-y-2">
-    <h2 className="text-sm font-bold mb-3" style={{ color: '#699cff' }}>
+    <h2 className="text-sm font-bold mb-3 text-[#699cff]">
       {date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' })}
       {' — '}
       {games.length} 件
@@ -264,11 +253,7 @@ const GameDayView: React.FC<{ date: Date; games: GameReleaseEntry[] }> = ({ date
     {games.map((g) => (
       <GameReleaseCard key={g.id} game={g} />
     ))}
-    {games.length === 0 && (
-      <p className="text-xs py-4" style={{ color: 'var(--text-tertiary)' }}>
-        発売なし
-      </p>
-    )}
+    {games.length === 0 && <p className="text-xs py-4 text-[var(--text-tertiary)]">発売なし</p>}
   </div>
 );
 
@@ -326,8 +311,7 @@ const GameGridView: React.FC<{
               viewMode === 'month' ? (
                 <p
                   key={g.id}
-                  className="text-[9px] truncate"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="text-[9px] truncate text-[var(--text-secondary)]"
                   title={g.name}
                 >
                   {g.name}
@@ -337,9 +321,7 @@ const GameGridView: React.FC<{
               ),
             )}
             {viewMode === 'week' && dayGames.length === 0 && (
-              <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                —
-              </p>
+              <p className="text-xs text-[var(--text-tertiary)]">—</p>
             )}
           </div>
         </div>

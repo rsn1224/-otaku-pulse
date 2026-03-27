@@ -84,12 +84,10 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
             </svg>
             AI Suggestion
           </div>
-          <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-base font-bold text-[var(--text-primary)]">
             好みが更新されたかもしれません
           </h2>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {suggestion.reason}
-          </p>
+          <p className="text-xs mt-1 text-[var(--text-secondary)]">{suggestion.reason}</p>
         </div>
 
         <div className="px-6 pb-4 space-y-3">
@@ -125,9 +123,7 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
 
 const SuggestionGroup: React.FC<{ label: string; items: string[] }> = ({ label, items }) => (
   <div>
-    <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
-      {label}
-    </span>
+    <span className="text-xs font-medium text-[var(--text-tertiary)]">{label}</span>
     <div className="flex flex-wrap gap-1.5 mt-1">
       {items.map((item) => (
         <span key={item} className="source-badge cat-badge">

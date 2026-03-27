@@ -57,9 +57,7 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
 
   return (
     <div className="deepdive-panel">
-      <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-source)' }}>
-        深堀りする
-      </p>
+      <p className="text-xs font-medium mb-2 text-[var(--text-source)]">深堀りする</p>
 
       {/* 提案質問 */}
       <div className="flex flex-col gap-1">
@@ -78,7 +76,7 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
                   : undefined
             }
           >
-            <span style={{ color: 'var(--text-source)' }}>{i + 1}</span>
+            <span className="text-[var(--text-source)]">{i + 1}</span>
             {q}
           </button>
         ))}

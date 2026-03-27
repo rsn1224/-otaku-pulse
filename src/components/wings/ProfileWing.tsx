@@ -18,7 +18,7 @@ export const ProfileWing: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       <div className="universal-tabs">
         {TABS.map((t) => (
           <button

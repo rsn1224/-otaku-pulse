@@ -42,7 +42,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ article, onBookmark }) =
 
   return (
     <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-0 text-xs" style={{ color: 'var(--text-source)' }}>
+      <div className="flex items-center gap-0 text-xs text-[var(--text-source)]">
         <span className="font-medium">{article.feedName ?? 'Unknown'}</span>
         <span className="meta-dot">{formatRelativeTime(article.publishedAt)}</span>
         {catLabel && <span className="source-badge cat-badge ml-2">{catLabel}</span>}

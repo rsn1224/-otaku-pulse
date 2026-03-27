@@ -31,10 +31,7 @@ export const CardSummary: React.FC<CardSummaryProps> = ({
 
   if (fallbackSummary) {
     return (
-      <p
-        className="text-sm mt-2 line-clamp-2"
-        style={{ color: 'var(--text-secondary)', lineHeight: '1.7' }}
-      >
+      <p className="text-sm mt-2 line-clamp-2 text-[var(--text-secondary)] leading-[1.7]">
         {stripCitations(fallbackSummary)}
       </p>
     );
