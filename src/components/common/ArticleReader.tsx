@@ -2,8 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { motion } from 'motion/react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { logger } from '../../lib/logger';
-import { modalOverlay, slideInRight } from '../../lib/motion-variants';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
 import { ArticleBody } from '../reader/ArticleBody';
@@ -18,6 +18,7 @@ export function ArticleReader({ article, onClose }: ArticleReaderProps): React.J
   const [related, setRelated] = useState<DiscoverArticleDto[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const { openNextArticle, openPrevArticle } = useReaderStore();
+  const { variants } = useMotionConfig();
 
   const handleClose = useCallback((): void => {
     onClose();
@@ -56,7 +57,7 @@ export function ArticleReader({ article, onClose }: ArticleReaderProps): React.J
   return (
     <div className="fixed inset-0 z-50 flex">
       <motion.div
-        variants={modalOverlay}
+        variants={variants.modalOverlay}
         initial="hidden"
         animate="visible"
         exit="hidden"
@@ -67,7 +68,7 @@ export function ArticleReader({ article, onClose }: ArticleReaderProps): React.J
       />
 
       <motion.div
-        variants={slideInRight}
+        variants={variants.slideInRight}
         initial="hidden"
         animate="visible"
         exit="exit"

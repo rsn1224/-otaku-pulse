@@ -3,8 +3,8 @@ import type React from 'react';
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { useFocusReturn } from '../../hooks/useFocusReturn';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { useScrollLock } from '../../hooks/useScrollLock';
-import { modalContent, modalOverlay } from '../../lib/motion-variants';
 import { cn } from '../../lib/utils';
 
 const WIDTH_CLASSES = {
@@ -30,6 +30,7 @@ export function Modal({
 }: ModalProps): React.JSX.Element {
   const contentRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const { variants } = useMotionConfig();
 
   useFocusTrap(contentRef, isOpen);
   useFocusReturn(isOpen);
@@ -62,7 +63,7 @@ export function Modal({
       {isOpen && (
         <motion.div
           key="modal-overlay"
-          variants={modalOverlay}
+          variants={variants.modalOverlay}
           initial="hidden"
           animate="visible"
           exit="hidden"
@@ -73,7 +74,7 @@ export function Modal({
         >
           <motion.div
             ref={contentRef}
-            variants={modalContent}
+            variants={variants.modalContent}
             initial="hidden"
             animate="visible"
             exit="exit"

@@ -2,7 +2,7 @@ import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type React from 'react';
 import { createContext, type ReactNode, useContext, useState } from 'react';
-import { toastSlideIn } from '../../lib/motion-variants';
+import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { cn } from '../../lib/utils';
 
 interface Toast {
@@ -101,10 +101,11 @@ const TOAST_ICONS: Record<string, React.ComponentType<{ size?: number; className
 
 function ToastItem({ toast, onRemove }: ToastItemProps): React.JSX.Element {
   const IconComponent = TOAST_ICONS[toast.type] ?? Info;
+  const { variants } = useMotionConfig();
   return (
     <motion.div
       layout
-      variants={toastSlideIn}
+      variants={variants.toastSlideIn}
       initial="hidden"
       animate="visible"
       exit="exit"

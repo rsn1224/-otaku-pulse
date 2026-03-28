@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
-import { staggerContainer, staggerItem } from '../../lib/motion-variants';
+import { useMotionConfig } from '../../hooks/useMotionConfig';
 import type { DiscoverArticleDto, DiscoverTab } from '../../types';
 import { EmptyState } from '../common/EmptyState';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
@@ -36,6 +36,7 @@ export function ArticleList({
 }: ArticleListProps): React.JSX.Element {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { variants } = useMotionConfig();
 
   // スクロール位置復元
   useEffect(() => {
@@ -100,12 +101,17 @@ export function ArticleList({
             className="card-grid"
             role="feed"
             aria-label="Article feed"
-            variants={staggerContainer}
+            variants={variants.staggerContainer}
             initial="hidden"
             animate="visible"
           >
             {filteredArticles.map((article, i) => (
-              <motion.div key={article.id} variants={staggerItem}>
+              <motion.div
+                key={article.id}
+                variants={i < 10 ? variants.staggerItem : undefined}
+                initial={i < 10 ? 'hidden' : false}
+                animate={i < 10 ? 'visible' : undefined}
+              >
                 <DiscoverCard
                   article={article}
                   featured={i === 0 && tab === 'for_you'}

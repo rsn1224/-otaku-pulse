@@ -58,13 +58,25 @@ export const fadeSlideIn: Variants = {
   exit: { opacity: 0, y: -4, transition: { duration: 0.15 } },
 };
 
+// === Wing Transition ===
+
+export const wingTransition: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring', stiffness: 300, damping: 25 },
+  },
+  exit: { opacity: 0, y: -4, transition: { duration: 0.15 } },
+};
+
 // === Stagger (card lists) ===
 
 export const staggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.04,
+      staggerChildren: 0.15,
     },
   },
 };
@@ -114,6 +126,7 @@ export const reduced = {
   staggerContainer: noStagger,
   staggerItem: fade,
   toastSlideIn: fade,
+  wingTransition: fade,
 } as const;
 
 export const full = {
@@ -124,4 +137,5 @@ export const full = {
   staggerContainer,
   staggerItem,
   toastSlideIn,
+  wingTransition,
 } as const;

@@ -2,11 +2,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { LucideIcon } from 'lucide-react';
 import { Bookmark, CalendarDays, Library, Search, User } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { logger } from '../../lib/logger';
-import { springTransition } from '../../lib/motion-variants';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useFilterStore } from '../../stores/useFilterStore';
 import { initTheme } from '../../stores/useThemeStore';
@@ -48,6 +48,7 @@ export function AppShell(): React.JSX.Element {
   const [activeWing, setActiveWing] = useState<WingIdV2>('discover');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
+  const { variants, spring } = useMotionConfig();
 
   useEffect(() => {
     initTheme();
@@ -149,7 +150,7 @@ export function AppShell(): React.JSX.Element {
                 {activeWing === item.id && (
                   <motion.span
                     layoutId="nav-indicator"
-                    transition={springTransition}
+                    transition={spring}
                     className="absolute left-0 w-[3px] h-7 bg-(--primary) rounded-r-sm"
                   />
                 )}
@@ -168,7 +169,19 @@ export function AppShell(): React.JSX.Element {
                 </div>
               }
             >
-              {renderWing()}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeWing}
+                  variants={variants.wingTransition}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  transition={spring}
+                  className="h-full"
+                >
+                  {renderWing()}
+                </motion.div>
+              </AnimatePresence>
             </React.Suspense>
           </main>
         </div>
