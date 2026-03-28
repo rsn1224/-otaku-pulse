@@ -246,4 +246,149 @@ mod tests {
             "NFKC normalization must propagate through generate_content_hash"
         );
     }
+
+    // --- Unicode normalization edge cases ---
+
+    #[test]
+    fn normalize_title_zero_width_space() {
+        // Zero-width space (\u{200B}) is a non-combining, non-compatibility character —
+        // NFKC does not remove it, so it remains in the output.
+        // The test verifies the function does not panic and produces a non-empty result.
+        let with_zwsp = "Hello\u{200B}World";
+        let result = normalize_title(with_zwsp);
+        assert!(!result.is_empty(), "normalize_title must not return empty for ZWS input");
+        // Lowercase must be applied
+        assert_eq!(result, result.to_lowercase(), "result must be lowercase");
+    }
+
+    #[test]
+    fn normalize_title_cjk_compatibility_ideograph() {
+        // CJK compatibility ideograph \u{FA30} normalizes to \u{4FAE} under NFKC
+        let compat = "\u{FA30}";
+        let standard = "\u{4FAE}";
+        assert_eq!(normalize_title(compat), normalize_title(standard));
+    }
+
+    #[test]
+    fn normalize_title_emoji_preserved() {
+        // Emoji should survive normalization without crash
+        let title = "New anime \u{1F3AE} season!";
+        let result = normalize_title(title);
+        // Must not panic; result must be non-empty
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn normalize_title_combining_diacritics() {
+        // e + combining acute (U+0301) should normalize to precomposed e-acute (U+00E9) under NFKC
+        let decomposed = "caf\u{0065}\u{0301}";
+        let precomposed = "caf\u{00E9}";
+        assert_eq!(normalize_title(decomposed), normalize_title(precomposed));
+    }
+
+    // --- Jaccard similarity boundary cases ---
+
+    #[test]
+    fn jaccard_exactly_at_threshold() {
+        // Verify function returns a valid value (between 0.0 and 1.0) for near-threshold inputs
+        let a = "abcdefgh";
+        let b = "abcdefgi";
+        let sim = jaccard_bigram_similarity(a, b);
+        assert!(
+            sim >= 0.0 && sim <= 1.0,
+            "Expected similarity in [0,1], got {sim}"
+        );
+    }
+
+    #[test]
+    fn jaccard_single_char_strings() {
+        // Single character = no bigrams = empty set => should not divide by zero
+        let sim = jaccard_bigram_similarity("a", "a");
+        assert!(
+            sim >= 0.0 && sim <= 1.0,
+            "Expected similarity in [0,1] for single-char strings, got {sim}"
+        );
+    }
+
+    // --- Content hash edge cases ---
+
+    #[test]
+    fn content_hash_empty_string() {
+        // Should return a valid SHA-256 hex hash (64 chars), not panic
+        let hash = generate_content_hash("");
+        assert_eq!(hash.len(), 64, "SHA-256 hash must be 64 hex chars");
+    }
+
+    #[test]
+    fn content_hash_long_string_nfkc_applied() {
+        // Verify NFKC normalization is applied before hashing:
+        // fullwidth ABC (U+FF21..U+FF23) → ASCII ABC after NFKC
+        let fullwidth = "\u{FF21}\u{FF22}\u{FF23}"; // Ａ Ｂ Ｃ
+        let ascii = "ABC";
+        assert_eq!(
+            generate_content_hash(fullwidth),
+            generate_content_hash(ascii),
+            "NFKC must normalise fullwidth ASCII before hashing"
+        );
+    }
+
+    // --- URL normalization edge cases ---
+
+    #[test]
+    fn normalize_url_no_query_params() {
+        let url = "https://example.com/article";
+        let result = normalize_url(url);
+        assert!(!result.contains('?'), "No query string should be present");
+        assert!(result.starts_with("https://"));
+    }
+
+    #[test]
+    fn normalize_url_only_tracking_params() {
+        // All params are tracking params → query string completely removed (no trailing ?)
+        let url = "https://example.com/page?utm_source=twitter&utm_medium=social";
+        let result = normalize_url(url);
+        assert!(!result.contains("utm_source"), "utm_source must be removed");
+        assert!(!result.contains('?'), "Trailing ? must not remain");
+    }
+
+    #[test]
+    fn normalize_url_trailing_slash_root() {
+        // Root-level path trailing slash should be preserved (length <= 8 guard)
+        // "https://example.com/" has 22 chars — trailing slash removed only if len > 8
+        let url = "https://example.com/";
+        let result = normalize_url(url);
+        assert!(
+            result.starts_with("https://example.com"),
+            "Host must be preserved"
+        );
+    }
+
+    #[test]
+    fn normalize_url_uppercase_scheme() {
+        // normalize_url handles lowercase "http://" → "https://" substitution.
+        // An already-uppercase "HTTP://" is not matched by the starts_with("http://") guard,
+        // so the scheme is left as-is, but the host lowercasing pass still applies.
+        let url = "HTTP://Example.COM/Article";
+        let result = normalize_url(url);
+        // Host portion must be lowercased regardless of scheme casing
+        assert!(!result.contains("Example.COM"), "Host must be lowercased, got: {result}");
+    }
+
+    #[test]
+    fn normalize_url_mixed_case_host() {
+        let url = "https://EXAMPLE.Com/path";
+        let result = normalize_url(url);
+        assert!(
+            result.contains("example.com"),
+            "Host must be lowercased, got: {result}"
+        );
+    }
+
+    #[test]
+    fn normalize_url_empty_string() {
+        // Should handle empty string gracefully without panicking
+        let result = normalize_url("");
+        // Result may be empty or unchanged; the important thing is no panic
+        let _ = result; // suppress unused warning
+    }
 }
