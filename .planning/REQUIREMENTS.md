@@ -28,11 +28,11 @@
 ### Performance
 
 - [x] **PERF-01**: SQLite に WAL モードを設定し、読み書きの並行実行を可能にする
-- [ ] **PERF-02**: digest_loop の4カテゴリ処理を tokio::join! で並列化し、カテゴリ毎にタイムアウトを設定する
-- [ ] **PERF-03**: personal_scoring の3回の DB クエリを1回の LEFT JOIN クエリに統合する
-- [ ] **PERF-04**: FTS 検索にサブクエリ内 LIMIT/OFFSET を追加し、全件メモリロードを回避する
-- [ ] **PERF-05**: highlights の N+1 クエリを GROUP BY + 単一クエリに書き換える
-- [ ] **PERF-06**: URL 正規化を rayon::par_iter() で並列化する（500+ 記事のフィード向け）
+- [x] **PERF-02**: digest_loop の4カテゴリ処理を tokio::join! で並列化し、カテゴリ毎にタイムアウトを設定する
+- [x] **PERF-03**: personal_scoring の3回の DB クエリを1回の LEFT JOIN クエリに統合する
+- [x] **PERF-04**: FTS 検索にサブクエリ内 LIMIT/OFFSET を追加し、全件メモリロードを回避する
+- [x] **PERF-05**: highlights の N+1 クエリを GROUP BY + 単一クエリに書き換える
+- [x] **PERF-06**: URL 正規化を rayon::par_iter() で並列化する（500+ 記事のフィード向け）
 
 ### Resilience
 
@@ -110,11 +110,11 @@
 | SEC-01 | Phase 2 | Complete |
 | SEC-02 | Phase 2 | Complete |
 | SEC-03 | Phase 2 | Complete |
-| PERF-02 | Phase 3 | Pending |
-| PERF-03 | Phase 3 | Pending |
-| PERF-04 | Phase 3 | Pending |
-| PERF-05 | Phase 3 | Pending |
-| PERF-06 | Phase 3 | Pending |
+| PERF-02 | Phase 3 | Complete |
+| PERF-03 | Phase 3 | Complete |
+| PERF-04 | Phase 3 | Complete |
+| PERF-05 | Phase 3 | Complete |
+| PERF-06 | Phase 3 | Complete |
 | TEST-01 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |
 | TEST-03 | Phase 3 | Pending |
