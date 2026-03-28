@@ -38,6 +38,7 @@ keyring = "3"
 rfd = "0.15"
 tokio-util = { version = "0.7", features = ["rt"] }
 url = "2.5"
+rayon = "1"
 
 [dev-dependencies]
 wiremock = "0.6"

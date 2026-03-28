@@ -1,6 +1,7 @@
 use crate::error::AppError;
 use crate::models::Feed;
 use crate::services::{dedup_service, feed_queries, scoring_service};
+use rayon::prelude::*;
 use sqlx::{Row, SqlitePool};
 use std::sync::Arc;
 
@@ -104,12 +105,30 @@ pub async fn collect_feed(
 
     let mut articles = collector.collect(feed).await?;
 
-    for article in &mut articles {
-        if let Some(url) = &article.url {
-            article.url_normalized = Some(dedup_service::normalize_url(url));
+    // PERF-06: Parallelize URL normalization and content hashing for large feeds.
+    // rayon thread-pool overhead is not worth it for small batches — serial path below threshold.
+    const RAYON_THRESHOLD: usize = 50;
+    if articles.len() >= RAYON_THRESHOLD {
+        let normalized: Vec<(Option<String>, Option<String>)> = articles
+            .par_iter()
+            .map(|a| {
+                let url_norm = a.url.as_deref().map(dedup_service::normalize_url);
+                let hash = a.content.as_deref().map(dedup_service::generate_content_hash);
+                (url_norm, hash)
+            })
+            .collect();
+        for (article, (url_norm, hash)) in articles.iter_mut().zip(normalized) {
+            article.url_normalized = url_norm;
+            article.content_hash = hash;
         }
-        if let Some(content) = &article.content {
-            article.content_hash = Some(dedup_service::generate_content_hash(content));
+    } else {
+        for article in &mut articles {
+            if let Some(url) = &article.url {
+                article.url_normalized = Some(dedup_service::normalize_url(url));
+            }
+            if let Some(content) = &article.content {
+                article.content_hash = Some(dedup_service::generate_content_hash(content));
+            }
         }
     }
 
