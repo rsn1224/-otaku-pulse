@@ -8,6 +8,7 @@ import { useReaderStore } from '../../stores/useReaderStore';
 import { useSchedulerStore } from '../../stores/useSchedulerStore';
 import { useSearchStore } from '../../stores/useSearchStore';
 import { ArticleReader } from '../common/ArticleReader';
+import { EmptyState } from '../common/EmptyState';
 import { CitationFooter } from '../discover/CitationFooter';
 import { DiscoverCard } from '../discover/DiscoverCard';
 import { UniversalTabs } from '../discover/UniversalTabs';
@@ -79,11 +80,7 @@ export function DiscoverWing(): React.JSX.Element {
             )}
 
             {!isSearching && searchResults.length === 0 && !aiAnswer && (
-              <div className="text-center py-16 text-(--on-surface-variant)">
-                <p className="text-3xl mb-3">{'🔎'}</p>
-                <p className="text-lg mb-2 text-(--on-surface)">見つかりませんでした</p>
-                <p className="text-sm">別のキーワードで試してみてください</p>
-              </div>
+              <EmptyState variant="no-results" />
             )}
             {!isSearching && searchResults.length > 0 && (
               <>

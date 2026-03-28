@@ -3,6 +3,7 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '../../lib/logger';
 import type { DiscoverArticleDto, DiscoverFeedResult } from '../../types';
+import { EmptyState } from '../common/EmptyState';
 import { DiscoverCard } from '../discover/DiscoverCard';
 import { Spinner } from '../ui/Spinner';
 
@@ -84,13 +85,7 @@ export function LibraryWing(): React.JSX.Element {
             </div>
           )}
 
-          {!isLoading && articles.length === 0 && (
-            <div className="text-center py-16 text-(--on-surface-variant)">
-              <p className="text-4xl mb-4">{'📚'}</p>
-              <p className="text-lg mb-2 text-(--on-surface)">ブックマークがありません</p>
-              <p className="text-sm">Discover で気になる記事をブックマークしてみましょう</p>
-            </div>
-          )}
+          {!isLoading && articles.length === 0 && <EmptyState variant="no-saved" />}
 
           <div ref={sentinelRef} className="h-4" />
         </div>

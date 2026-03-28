@@ -17,26 +17,26 @@ const VARIANT_CONFIG: Record<
   'no-articles': {
     Icon: Inbox,
     motifClass: 'empty-speedlines',
-    heading: 'Nothing here yet',
-    body: "Your feeds haven't delivered anything new. Try refreshing or adding more sources in Settings.",
+    heading: 'まだ記事がありません',
+    body: '左下の「収集」ボタンで最新記事を取得しましょう',
   },
   'no-saved': {
     Icon: Star,
     motifClass: 'empty-stars',
-    heading: 'No saved articles',
-    body: 'Bookmark articles while reading to find them here.',
+    heading: 'ブックマークがありません',
+    body: 'Discover で気になる記事をブックマークしてみましょう',
   },
   'no-results': {
     Icon: SearchIcon,
     motifClass: 'empty-sakura',
-    heading: 'No matches found',
-    body: 'Try a different search term or clear your filters.',
+    heading: '見つかりませんでした',
+    body: '別のキーワードで試してみてください',
   },
   'no-schedule': {
     Icon: CalendarDays,
     motifClass: 'empty-dots',
-    heading: 'No schedule items',
-    body: 'Upcoming releases and airing times will appear here.',
+    heading: 'スケジュールがありません',
+    body: '放送予定やリリース日がここに表示されます',
   },
 };
 

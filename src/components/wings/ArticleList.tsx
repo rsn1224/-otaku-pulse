@@ -3,6 +3,7 @@ import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
 import { staggerContainer, staggerItem } from '../../lib/motion-variants';
 import type { DiscoverArticleDto, DiscoverTab } from '../../types';
+import { EmptyState } from '../common/EmptyState';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
 import { DiscoverCard } from '../discover/DiscoverCard';
 import { HighlightsSection } from '../discover/HighlightsSection';
@@ -122,13 +123,7 @@ export function ArticleList({
         )}
 
         {/* Empty state */}
-        {!isLoading && filteredArticles.length === 0 && (
-          <div className="text-center py-16 text-(--on-surface-variant)">
-            <p className="text-4xl mb-4">{'🔍'}</p>
-            <p className="text-lg mb-2 text-(--on-surface)">まだ記事がありません</p>
-            <p className="text-sm mb-4">左下の「収集」ボタンで最新記事を取得しましょう</p>
-          </div>
-        )}
+        {!isLoading && filteredArticles.length === 0 && <EmptyState variant="no-articles" />}
 
         {/* All caught up state */}
         {!isLoading &&
