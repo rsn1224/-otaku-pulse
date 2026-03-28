@@ -36,7 +36,6 @@ All values inherited from design.md (Phase 4). No new spacing tokens required fo
 |-------|-------|-------|
 | xs | 4px (0.25rem) | Minimum gaps, icon-to-text |
 | sm | 8px (0.5rem) | Tab gaps, icon spacing |
-| md | 12px (0.75rem) | Component internal padding |
 | lg | 16px (1rem) | Card gaps, section spacing |
 | xl | 24px (1.5rem) | Card padding, feed column padding |
 | 2xl | 32px (2rem) | Featured card padding |
@@ -54,7 +53,7 @@ All values inherited from design.md (Phase 4). Phase 6 adds no new type roles.
 
 | Role | Size | Weight | Line Height | Source |
 |------|------|--------|-------------|--------|
-| Meta / label | 11px (0.6875rem) | 300 | 1.4 | design.md |
+| Meta / label | 11px (0.6875rem) | 400 | 1.4 | design.md |
 | Body / UI text | 13px (0.8125rem) | 400 | 1.5 | design.md |
 | Card title | 15px (0.9375rem) | 600 | 1.3 | design.md |
 | Heading / modal | 18px (1.125rem) | 600 | 1.2 | design.md |
