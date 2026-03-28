@@ -9,8 +9,12 @@ dist-ssr/
 # IDE
 .idea/
 .vscode/
+.windsurf/
 *.swp
 *.swo
+
+# AI tools
+.serena/
 
 # OS
 .DS_Store
