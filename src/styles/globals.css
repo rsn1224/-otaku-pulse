@@ -43,24 +43,6 @@
   --font-weight-light: 300;
   --font-weight-regular: 400;
   --font-weight-semibold: 600;
-
-  /* === Legacy aliases (remove in Phase 3) === */
-  --bg-primary: var(--surface);
-  --bg-secondary: #131319;
-  --bg-card: var(--surface-container);
-  --bg-card-hover: var(--surface-container-high);
-  --bg-deepdive: #131319;
-  --border: var(--surface-container-highest);
-  --border-hover: var(--outline-variant);
-  --accent: var(--primary);
-  --accent-soft: var(--primary-soft);
-  --accent-glow: var(--primary-glow);
-  --text-primary: var(--on-surface);
-  --text-secondary: var(--on-surface-variant);
-  --text-tertiary: var(--outline);
-  --text-source: var(--on-surface-variant);
-  --badge-hot: var(--error);
-  --badge-new: var(--secondary);
 }
 
 html,
