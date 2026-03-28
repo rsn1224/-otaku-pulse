@@ -1,6 +1,6 @@
 # CLAUDE.md — OtakuPulse プロジェクト固有ルール
 
-<!-- 最終更新: 2026-03-27 -->
+<!-- 最終更新: 2026-03-28 -->
 
 ## プロジェクト概要
 
@@ -82,36 +82,19 @@ src-tauri/src/
 
 ## キーパターン
 
-### 状態管理: 個別 manage()（Mutex<AppState> 禁止）
+- **状態管理:** 個別 `app.manage()` 必須。`Mutex<AppState>` 禁止 → `.claude/rules/state_no_mutex.md`
+- **エラー型:** `AppError → { kind, message }` + `?` 演算子必須 → `.claude/rules/error-patterns.md`
+- **デザインシステム:** CSS 変数ベースのダークテーマ → `./design.md` + `.claude/rules/design-system.md`
 
-```rust
-// OK: 個別に管理
-app.manage(db_pool);           // SqlitePool
-app.manage(http_client);       // Arc<reqwest::Client>
-app.manage(scheduler_handle);  // Arc<JobScheduler>
+---
 
-// NG: 一括 Mutex
-// app.manage(Mutex::new(AppState { ... }))
-```
+## Design System
 
-→ 詳細は `.claude/rules/state_no_mutex.md` 参照
+UI コンポーネントやスタイルに関する実装を行う際は、必ず `./design.md` を読み込み、
+そのトークンとルールに厳密に従うこと。
 
-### エラー型: AppError → { kind, message }
-
-```rust
-// AppError は serde::Serialize を実装し、以下の形式でフロントに返す
-// { "kind": "NotFound", "message": "Feed not found" }
-```
-
-### エラーハンドリング: `?` 演算子必須
-
-```rust
-// OK
-let data = fetch_feed(url).await?;
-
-// NG — 本番コードでの unwrap() 禁止
-let data = fetch_feed(url).await.unwrap();
-```
+- デザインワークフロー（Stitch / Figma MCP）は `~/.claude/rules/design-workflow.md` に従う
+- プロジェクト固有のトークン変換表は `./design.md` の Stitch Token Mapping セクションを参照
 
 ---
 
@@ -128,6 +111,8 @@ let data = fetch_feed(url).await.unwrap();
 | `scoring_phase1.md` | スコアリング Phase 1 設計 |
 | `rust-perf.md` | Rust パフォーマンスチューニング |
 | `typescript.md` | TypeScript / React 規約 |
+| `error-patterns.md` | AppError 型・エラーハンドリングパターン |
+| `design-system.md` | デザインシステム命名規約・禁止パターン |
 
 ## エージェント参照一覧（`.claude/agents/`）
 
