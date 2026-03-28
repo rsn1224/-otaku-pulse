@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
+
+import { invoke } from '@tauri-apps/api/core';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { invoke } from '@tauri-apps/api/core';
 import { ToastProvider } from '../../components/common/Toast';
 import { useTauriQuery } from '../../hooks/useTauriQuery';
 
 const mockedInvoke = vi.mocked(invoke);
 
-const wrapper = ({ children }: { children: React.ReactNode }) =>
-  ToastProvider({ children });
+const wrapper = ({ children }: { children: React.ReactNode }) => ToastProvider({ children });
 
 describe('useTauriQuery', () => {
   beforeEach(() => {

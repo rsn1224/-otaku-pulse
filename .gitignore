@@ -21,6 +21,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# MCP config (contains personal GCP project ID)
+.mcp.json
+
 # Debug
 npm-debug.log*
 
@@ -34,3 +37,7 @@ src-tauri/gen/
 
 # Stitch design assets
 docs/stitch/
+
+# Coverage reports (generated locally, not committed)
+coverage/
+coverage-rust/

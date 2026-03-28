@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
+
+import { invoke } from '@tauri-apps/api/core';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { invoke } from '@tauri-apps/api/core';
 import { ToastProvider } from '../../components/common/Toast';
 import { useTauriCommand } from '../../hooks/useTauriCommand';
 
 const mockedInvoke = vi.mocked(invoke);
 
-const wrapper = ({ children }: { children: React.ReactNode }) =>
-  ToastProvider({ children });
+const wrapper = ({ children }: { children: React.ReactNode }) => ToastProvider({ children });
 
 describe('useTauriCommand', () => {
   beforeEach(() => {
@@ -17,10 +17,9 @@ describe('useTauriCommand', () => {
 
   it('returns data on successful invoke', async () => {
     mockedInvoke.mockResolvedValueOnce({ id: 1, name: 'test' });
-    const { result } = renderHook(
-      () => useTauriCommand<{ id: number; name: string }>('test_cmd'),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useTauriCommand<{ id: number; name: string }>('test_cmd'), {
+      wrapper,
+    });
 
     await act(async () => {
       await result.current.execute();
