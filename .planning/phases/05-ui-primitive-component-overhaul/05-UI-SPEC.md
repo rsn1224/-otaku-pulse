@@ -1,7 +1,7 @@
 ---
 phase: 5
 slug: ui-primitive-component-overhaul
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-03-28
@@ -41,31 +41,37 @@ Source: design.md §4. 8px grid, all values on 4px sub-grid.
 |-------|-------|-------|
 | xs | 4px (0.25rem) | Icon-to-text gaps, minimum inline padding |
 | sm | 8px (0.5rem) | Tab gaps, icon spacing, badge padding |
-| md | 12px (0.75rem) | Component internal padding (3x sub-unit exception) |
-| lg | 16px (1rem) | Card gaps, section spacing |
-| xl | 24px (1.5rem) | Card padding, feed column padding |
-| 2xl | 32px (2rem) | Featured card padding |
-| 3xl | 48px (3rem) | Section-level gaps |
+| md | 16px (1rem) | Card gaps, section spacing |
+| lg | 24px (1.5rem) | Card padding, feed column padding |
+| xl | 32px (2rem) | Featured card padding |
+| 2xl | 48px (3rem) | Section-level gaps |
 
-Exceptions:
-- `md` is 12px (not 16px) — retained from v1.0 as a 3x base half-step. New code uses this value for component-internal padding only. [Source: design.md §4]
-- Touch target minimum: 44px for icon-only buttons (TopBar height = 44px = layout constant). [Source: design.md §4 Layout Constants]
+Exceptions: none
+
+### Named Layout Constants
+
+Values used in components that are NOT spacing tokens and must not be used as general spacing:
+
+| Constant | Value | Used In |
+|----------|-------|---------|
+| `CARD_INNER_PADDING` | 12px | Component-internal padding (v1.0 legacy, not a spacing token) |
+| `TOPBAR_HEIGHT` | 44px | Touch target minimum for icon-only buttons |
 
 ---
 
 ## Typography
 
-Source: design.md §3. Noto Sans JP Variable, 3-weight system. 4 type roles.
+Source: design.md §3. Noto Sans JP Variable, 2-weight system. 4 type roles.
 
 | Role | Size | Weight Token | Weight | Line Height | Usage |
 |------|------|-------------|--------|-------------|-------|
-| Meta / label | 11px (0.6875rem) | `--font-weight-light` | 300 | 1.4 | Timestamps, category labels, badge text |
+| Meta / label | 11px (0.6875rem) | `--font-weight-regular` | 400 | 1.4 | Timestamps, category labels, badge text |
 | Body / UI text | 13px (0.8125rem) | `--font-weight-regular` | 400 | 1.5 | AI summaries, descriptions, input values |
 | Card title | 15px (0.9375rem) | `--font-weight-semibold` | 600 | 1.3 | Article titles, card headings |
 | Heading / modal | 18px (1.125rem) | `--font-weight-semibold` | 600 | 1.2 | Modal titles, panel headings, section headers |
 
-Declared weights: **300 (light)** and **400 (regular)** and **600 (semibold)** — 3 weights total.
-Rule: Body uses weight 400. Headings and active states use weight 600. Meta/labels use weight 300.
+Declared weights: **400 (regular)** and **600 (semibold)** — 2 weights total.
+Rule: Body and meta/labels use weight 400. Size alone (11px vs 13px) provides sufficient visual differentiation. Headings and active states use weight 600.
 
 Font family declaration: `font-family: var(--font-jp)` — never hardcode `"Noto Sans JP Variable"` inline.
 
@@ -179,7 +185,7 @@ Current: `forwardRef`, single style.
 Upgrade spec:
 - Background: `var(--surface-container)`, border: `1px solid var(--outline-variant)`
 - Focus: border becomes `var(--primary)`, box-shadow becomes `var(--focus-ring)`
-- Error state: border becomes `var(--error)`, helper text in `--error` at 11px/weight-300
+- Error state: border becomes `var(--error)`, helper text in `--error` at 11px/weight-400
 - Border radius: `0.5rem`. [Source: design.md §8]
 
 #### ToggleGroup
@@ -299,9 +305,9 @@ Claude's Discretion — prescribed here:
 
 - Left border: `4px solid var(--primary)` (primary purple for generic headers)
 - Content-type headers use `4px solid var(--accent-{type})`
-- Padding-left: `12px` (md spacing) from the border
+- Padding-left: `12px` (`CARD_INNER_PADDING` layout constant) from the border
 - Title: 18px, weight 600, `--on-surface`, line-height 1.2
-- Optional subtitle: 11px, weight 300, `--on-surface-variant`
+- Optional subtitle: 11px, weight 400, `--on-surface-variant`
 - Glow: `box-shadow: -4px 0 12px var(--glow-secondary)` on the border side
 
 #### Empty States — Anime Culture Motifs (COMP-07)
@@ -410,14 +416,14 @@ No registry vetting required. All packages are pure utility/UI libraries.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: FLAG (non-blocking — tight 2px increments at 11/13/15px)
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-03-28
 
 ---
 
