@@ -29,6 +29,7 @@ export function ScheduleWing(): React.JSX.Element {
   const [games, setGames] = useState<GameReleaseEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [rawgKeySet, setRawgKeySet] = useState<boolean | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const startDate = useMemo(() => {
     if (viewMode === 'day') return getDayStart(offset);
@@ -56,6 +57,7 @@ export function ScheduleWing(): React.JSX.Element {
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       if (tab === 'anime') {
         const ts = Math.floor(startDate.getTime() / 1000);
@@ -78,6 +80,11 @@ export function ScheduleWing(): React.JSX.Element {
       }
     } catch (e) {
       logger.warn({ error: e }, 'fetchScheduleData failed');
+      const message =
+        typeof e === 'object' && e !== null && 'message' in e
+          ? (e as { message: string }).message
+          : 'データの取得に失敗しました';
+      setFetchError(message);
       setEntries([]);
       setGames([]);
     } finally {
@@ -119,6 +126,14 @@ export function ScheduleWing(): React.JSX.Element {
       return (
         <div className="flex justify-center py-12">
           <Spinner />
+        </div>
+      );
+    }
+    if (fetchError !== null) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+          <p className="text-(--on-surface-variant) text-sm">データの取得に失敗しました</p>
+          <p className="text-(--outline) text-xs">{fetchError}</p>
         </div>
       );
     }

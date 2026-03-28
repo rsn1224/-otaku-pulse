@@ -51,6 +51,51 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     let app_state = state::AppState::new(db_arc, http_arc);
 
+    // Load persisted LLM settings from DB
+    {
+        let settings = tauri::async_runtime::block_on(async {
+            commands::settings::load_settings(&app_state.db).await
+        });
+        match settings {
+            Ok(map) => {
+                let mut llm = app_state.llm.write().map_err(|e| {
+                    Box::<dyn std::error::Error>::from(
+                        format!("LLM 設定の書き込みロックが汚染されています: {e}")
+                    )
+                })?;
+                if let Some(val) = map.get("llm_provider") {
+                    let val = strip_json_quotes(val);
+                    match serde_json::from_str::<infra::llm_client::LlmProvider>(&format!("\"{val}\"")) {
+                        Ok(provider) => {
+                            llm.provider = provider;
+                            tracing::info!(provider = %val, "LLM provider restored from DB");
+                        }
+                        Err(e) => {
+                            tracing::warn!(error = %e, value = %val, "Invalid llm_provider in DB, using default");
+                        }
+                    }
+                }
+                if let Some(val) = map.get("ollama_endpoint") {
+                    let val = strip_json_quotes(val);
+                    if !val.is_empty() {
+                        llm.ollama_base_url = val.to_string();
+                        tracing::info!(url = %val, "Ollama endpoint restored from DB");
+                    }
+                }
+                if let Some(val) = map.get("ollama_model") {
+                    let val = strip_json_quotes(val);
+                    if !val.is_empty() {
+                        llm.ollama_model = val.to_string();
+                        tracing::info!(model = %val, "Ollama model restored from DB");
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "Failed to load LLM settings from DB, using defaults");
+            }
+        }
+    }
+
     // Load persisted API key from OS credential store
     match infra::credential_store::load_credential(
         infra::credential_store::PERPLEXITY_ACCOUNT,
@@ -233,4 +278,12 @@ pub fn run() {
             tracing::error!(error = %e, "Failed to run OtakuPulse");
             panic!("Failed to run OtakuPulse: {e}");
         });
+}
+
+/// Migration のレガシー値は `'"value"'` 形式（JSON クォート付き）で保存されている。
+/// 新規保存はプレーン文字列だが、読み込み時に両方対応するためクォートを除去する。
+fn strip_json_quotes(s: &str) -> &str {
+    s.strip_prefix('"')
+        .and_then(|s| s.strip_suffix('"'))
+        .unwrap_or(s)
 }

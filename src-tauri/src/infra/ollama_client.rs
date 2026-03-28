@@ -4,12 +4,20 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+// ── Chat API 用の構造体 ──
+
 #[derive(Serialize)]
-struct OllamaRequest {
+struct OllamaChatRequest {
     model: String,
-    prompt: String,
+    messages: Vec<OllamaChatMessage>,
     stream: bool,
     options: OllamaOptions,
+}
+
+#[derive(Serialize)]
+struct OllamaChatMessage {
+    role: String,
+    content: String,
 }
 
 #[derive(Serialize)]
@@ -19,11 +27,18 @@ struct OllamaOptions {
 }
 
 #[derive(Deserialize)]
-struct OllamaResponse {
-    response: String,
+struct OllamaChatResponse {
+    message: OllamaChatResponseMessage,
     model: String,
     done: bool,
 }
+
+#[derive(Deserialize)]
+struct OllamaChatResponseMessage {
+    content: String,
+}
+
+// ── Tags API 用の構造体 ──
 
 #[derive(Deserialize)]
 struct OllamaTagsResponse {
@@ -54,11 +69,29 @@ impl OllamaClient {
 #[async_trait]
 impl LlmClient for OllamaClient {
     async fn complete(&self, req: LlmRequest) -> Result<LlmResponse, AppError> {
-        let prompt = format!("{}\n\n{}", req.system_prompt, req.user_prompt);
+        let mut messages = vec![OllamaChatMessage {
+            role: "system".to_string(),
+            content: req.system_prompt,
+        }];
 
-        let request_body = OllamaRequest {
+        // 会話履歴を挿入（マルチターン DeepDive 等で使用）
+        if let Some(conversation) = &req.conversation {
+            for msg in conversation {
+                messages.push(OllamaChatMessage {
+                    role: msg.role.clone(),
+                    content: msg.content.clone(),
+                });
+            }
+        }
+
+        messages.push(OllamaChatMessage {
+            role: "user".to_string(),
+            content: req.user_prompt,
+        });
+
+        let request_body = OllamaChatRequest {
             model: self.model.clone(),
-            prompt,
+            messages,
             stream: false,
             options: OllamaOptions {
                 num_predict: req.max_tokens,
@@ -66,7 +99,7 @@ impl LlmClient for OllamaClient {
             },
         };
 
-        let url = format!("{}/api/generate", self.base_url);
+        let url = format!("{}/api/chat", self.base_url);
 
         let response = self
             .http
@@ -93,19 +126,19 @@ impl LlmClient for OllamaClient {
             )));
         }
 
-        let ollama_response: OllamaResponse = response
+        let chat_response: OllamaChatResponse = response
             .json()
             .await
             .map_err(|e| AppError::Parse(format!("Ollama レスポンスのパースに失敗: {}", e)))?;
 
-        if !ollama_response.done {
+        if !chat_response.done {
             return Err(AppError::Parse("Ollama レスポンスが不完全です".to_string()));
         }
 
         Ok(LlmResponse {
-            content: ollama_response.response,
+            content: chat_response.message.content,
             provider: LlmProvider::Ollama,
-            model: ollama_response.model,
+            model: chat_response.model,
             citations: vec![],
         })
     }

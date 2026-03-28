@@ -30,7 +30,9 @@ export function useKeyboardShortcuts(): void {
         case 'o':
         case 'O':
           if (focused?.url) {
-            openUrl(focused.url).catch((e) => logger.debug({ error: e }, 'openUrl via keyboard failed'));
+            openUrl(focused.url).catch((e) =>
+              logger.debug({ error: e }, 'openUrl via keyboard failed'),
+            );
           }
           break;
         case 'm':

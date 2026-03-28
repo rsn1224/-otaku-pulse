@@ -3,6 +3,7 @@ use crate::infra::llm_client::{LlmClient, LlmProvider};
 use crate::infra::ollama_client::OllamaClient;
 use crate::infra::perplexity_client::PerplexitySonarClient;
 use crate::state::{AppState, LlmSettings};
+use sqlx::SqlitePool;
 use std::sync::Arc;
 use tauri::State;
 
@@ -113,14 +114,24 @@ pub async fn get_llm_settings(
 #[tauri::command]
 pub async fn set_llm_provider(
     provider: LlmProvider,
+    db: State<'_, SqlitePool>,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    let mut llm = state
-        .llm
-        .write()
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-    llm.provider = provider.clone();
-    tracing::info!("LLM provider set to: {:?}", provider);
+    {
+        let mut llm = state
+            .llm
+            .write()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        llm.provider = provider.clone();
+        tracing::info!("LLM provider set to: {:?}", provider);
+    }
+
+    let provider_str = serde_json::to_string(&provider)
+        .map_err(|e| AppError::Internal(format!("Failed to serialize provider: {e}")))?
+        .trim_matches('"')
+        .to_string();
+    crate::commands::settings::upsert_setting(&db, "llm_provider".into(), provider_str).await?;
+
     Ok(())
 }
 
@@ -129,20 +140,18 @@ pub async fn set_perplexity_api_key(
     api_key: String,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    // Persist to OS credential store first
-    if let Err(e) = crate::infra::credential_store::store_credential(
+    // Persist to OS credential store — propagate error so the frontend knows if it failed
+    crate::infra::credential_store::store_credential(
         crate::infra::credential_store::PERPLEXITY_ACCOUNT,
         &api_key,
-    ) {
-        tracing::warn!(error = %e, "Failed to persist API key to credential store; using memory only");
-    }
+    )?;
 
     let mut llm = state
         .llm
         .write()
         .map_err(|e| AppError::Internal(e.to_string()))?;
     llm.perplexity_api_key = Some(api_key);
-    tracing::info!("Perplexity API key set");
+    tracing::info!("Perplexity API key stored in credential store");
     Ok(())
 }
 
@@ -150,18 +159,16 @@ pub async fn set_perplexity_api_key(
 pub async fn clear_perplexity_api_key(
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    if let Err(e) = crate::infra::credential_store::delete_credential(
+    crate::infra::credential_store::delete_credential(
         crate::infra::credential_store::PERPLEXITY_ACCOUNT,
-    ) {
-        tracing::warn!(error = %e, "Failed to delete API key from credential store");
-    }
+    )?;
 
     let mut llm = state
         .llm
         .write()
         .map_err(|e| AppError::Internal(e.to_string()))?;
     llm.perplexity_api_key = None;
-    tracing::info!("Perplexity API key cleared");
+    tracing::info!("Perplexity API key cleared from credential store");
     Ok(())
 }
 
@@ -169,15 +176,22 @@ pub async fn clear_perplexity_api_key(
 pub async fn set_ollama_settings(
     base_url: String,
     model: String,
+    db: State<'_, SqlitePool>,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    let mut llm = state
-        .llm
-        .write()
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-    llm.ollama_base_url = base_url.clone();
-    llm.ollama_model = model.clone();
-    tracing::info!("Ollama settings updated: {} @ {}", model, base_url);
+    {
+        let mut llm = state
+            .llm
+            .write()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        llm.ollama_base_url = base_url.clone();
+        llm.ollama_model = model.clone();
+        tracing::info!("Ollama settings updated: {} @ {}", model, base_url);
+    }
+
+    crate::commands::settings::upsert_setting(&db, "ollama_endpoint".into(), base_url).await?;
+    crate::commands::settings::upsert_setting(&db, "ollama_model".into(), model).await?;
+
     Ok(())
 }
 

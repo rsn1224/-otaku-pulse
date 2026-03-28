@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { ToastProvider, useToast } from './components/common/Toast';
 import { AppShell } from './components/layout/AppShell';
+import { Announcer } from './hooks/useAnnouncer';
 import { logger } from './lib/logger';
 import { useSchedulerStore } from './stores/useSchedulerStore';
 
@@ -105,9 +106,15 @@ function AppContent(): React.JSX.Element {
 
 function App(): React.JSX.Element {
   return (
-    <ToastProvider>
-      <AppContent />
-    </ToastProvider>
+    <>
+      <a href="#main-content" className="skip-link">
+        メインコンテンツへスキップ
+      </a>
+      <Announcer />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </>
   );
 }
 

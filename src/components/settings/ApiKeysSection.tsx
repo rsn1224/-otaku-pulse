@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { useToast } from '../common/Toast';
 import { PerplexitySettings } from './PerplexitySettings';
 import { RawgSettings } from './RawgSettings';
 
@@ -15,6 +16,7 @@ export const ApiKeysSection: React.FC = () => {
   const [perplexityApiKey, setPerplexityApiKey] = useState('');
   const [perplexityKeySet, setPerplexityKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast();
 
   const checkRawgKey = async () => {
     try {
@@ -47,8 +49,10 @@ export const ApiKeysSection: React.FC = () => {
       await invoke('set_rawg_api_key', { apiKey: rawgApiKey });
       await checkRawgKey();
       setRawgApiKey('');
+      showToast('success', 'RAWG API キーを保存しました');
     } catch (error) {
       logger.error({ error }, 'Failed to save RAWG API key');
+      showToast('error', 'RAWG API キーの保存に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +63,10 @@ export const ApiKeysSection: React.FC = () => {
     try {
       await invoke('clear_rawg_api_key');
       await checkRawgKey();
+      showToast('success', 'RAWG API キーを削除しました');
     } catch (error) {
       logger.error({ error }, 'Failed to clear RAWG API key');
+      showToast('error', 'RAWG API キーの削除に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -73,8 +79,10 @@ export const ApiKeysSection: React.FC = () => {
       await invoke('set_perplexity_api_key', { apiKey: perplexityApiKey });
       await checkPerplexityKey();
       setPerplexityApiKey('');
+      showToast('success', 'Perplexity API キーを保存しました');
     } catch (error) {
       logger.error({ error }, 'Failed to save Perplexity API key');
+      showToast('error', 'Perplexity API キーの保存に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -85,8 +93,10 @@ export const ApiKeysSection: React.FC = () => {
     try {
       await invoke('clear_perplexity_api_key');
       await checkPerplexityKey();
+      showToast('success', 'Perplexity API キーを削除しました');
     } catch (error) {
       logger.error({ error }, 'Failed to clear Perplexity API key');
+      showToast('error', 'Perplexity API キーの削除に失敗しました');
     } finally {
       setIsLoading(false);
     }
