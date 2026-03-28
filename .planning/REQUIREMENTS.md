@@ -44,8 +44,8 @@
 
 ### Test Coverage
 
-- [ ] **TEST-01**: dedup_service の包括テストスイートを作成する（20+ ケース: Unicode, URL 正規化, content hash）
-- [ ] **TEST-02**: rate_limiter のストレステストを作成する（並行リクエスト, 429 ハンドリング, トークン枯渇）
+- [x] **TEST-01**: dedup_service の包括テストスイートを作成する（20+ ケース: Unicode, URL 正規化, content hash）
+- [x] **TEST-02**: rate_limiter のストレステストを作成する（並行リクエスト, 429 ハンドリング, トークン枯渇）
 - [ ] **TEST-03**: scheduler の CancellationToken によるシャットダウンテストを作成する
 - [ ] **TEST-04**: personal_scoring のエッジケーステストを作成する（空プロフィール, 72h 超記事, ボーナス上限）
 - [ ] **TEST-05**: TypeScript hook（useTauriCommand, useTauriQuery）のエラーハンドリングテストを作成する
@@ -115,8 +115,8 @@
 | PERF-04 | Phase 3 | Complete |
 | PERF-05 | Phase 3 | Complete |
 | PERF-06 | Phase 3 | Complete |
-| TEST-01 | Phase 3 | Pending |
-| TEST-02 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Complete |
+| TEST-02 | Phase 3 | Complete |
 | TEST-03 | Phase 3 | Pending |
 | TEST-04 | Phase 3 | Pending |
 | TEST-05 | Phase 3 | Pending |

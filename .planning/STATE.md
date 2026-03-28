@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md (Rust backend performance optimizations)
-last_updated: "2026-03-28T04:11:29.130Z"
+stopped_at: Completed 03-02-PLAN.md (dedup_service and rate_limiter test suites)
+last_updated: "2026-03-28T04:16:05.517Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 03 (performance-test-coverage) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-03-28
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P02 | 6min | 2 tasks | 5 files |
 | Phase 02-resilience-security P03 | 3min | 2 tasks | 4 files |
 | Phase 03-performance-test-coverage P01 | 12min | 3 tasks | 7 files |
+| Phase 03-performance-test-coverage P02 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [Phase 03-01]: build_scheduler_llm_client returns Arc<dyn LlmClient + Send + Sync> instead of Box to support tokio::join! sharing
 - [Phase 03-01]: RAYON_THRESHOLD=50 prevents thread-pool overhead for small feeds typical in RSS/AniList batches
 - [Phase 03-01]: search_discover command gains optional offset parameter for frontend pagination without breaking existing callers
+- [Phase 03-02]: JoinSet over futures::future::join_all for concurrent tests — futures crate not in Cargo.toml
+- [Phase 03-02]: sync #[test] with blocking_lock for 429 test — blocking_lock panics inside tokio runtime
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T04:11:29.128Z
-Stopped at: Completed 03-01-PLAN.md (Rust backend performance optimizations)
+Last session: 2026-03-28T04:16:05.514Z
+Stopped at: Completed 03-02-PLAN.md (dedup_service and rate_limiter test suites)
 Resume file: None
