@@ -73,6 +73,19 @@ All pass WCAG AA 4.5:1 contrast against `--surface-container` (`#1c1c24`).
 
 Phase 5 applies these as card left borders and badge backgrounds.
 
+### Tailwind v4.2 新規パレット（参考情報）
+
+Tailwind CSS v4.2.0 で以下のニュートラルカラーパレットが追加された:
+
+| Palette | 特徴                 |
+| ------- | -------------------- |
+| `mauve` | 紫みのニュートラル   |
+| `olive` | 緑みのニュートラル   |
+| `mist`  | 青みのニュートラル   |
+| `taupe` | 暖色系ニュートラル   |
+
+**OtakuPulse では採用しない。** Forbidden Patterns（セクション 5）により、Tailwind デフォルトカラーの直接使用は禁止。全てのカラーは CSS 変数経由で適用すること。将来的にデザインシステムを拡張する際の参考として記録する。
+
 ### Surface Overlays
 
 | Token | Value | Usage |

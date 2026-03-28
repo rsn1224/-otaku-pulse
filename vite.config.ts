@@ -7,13 +7,17 @@ export default defineConfig({
   plugins: [tailwindcss()],
   clearScreen: false,
   build: {
-    target: 'ES2022',
+    target: 'es2022',
     sourcemap: false,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'zustand-vendor': ['zustand'],
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'react-vendor';
+          }
+          if (id.includes('node_modules/zustand')) {
+            return 'zustand-vendor';
+          }
         },
       },
     },
