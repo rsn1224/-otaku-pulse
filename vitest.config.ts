@@ -1,4 +1,7 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
+
+const r = (p: string) => resolve(__dirname, p);
 
 export default defineConfig({
   test: {
@@ -20,10 +23,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@tauri-apps/api/core': 'src/test/mocks/tauri.ts',
-      '@tauri-apps/plugin-store': 'src/test/mocks/tauri-store.ts',
-      '@tauri-apps/plugin-notification': 'src/test/mocks/tauri-notification.ts',
-      pino: 'src/test/mocks/pino.ts',
+      '@tauri-apps/api/core': r('src/test/mocks/tauri.ts'),
+      '@tauri-apps/plugin-store': r('src/test/mocks/tauri-store.ts'),
+      '@tauri-apps/plugin-notification': r('src/test/mocks/tauri-notification.ts'),
+      '@tauri-apps/plugin-opener': r('src/test/mocks/tauri-opener.ts'),
+      pino: r('src/test/mocks/pino.ts'),
     },
   },
 });
