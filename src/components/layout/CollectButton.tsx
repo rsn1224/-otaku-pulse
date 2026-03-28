@@ -2,18 +2,38 @@ import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useState } from 'react';
 import { logger } from '../../lib/logger';
+import { useToast } from '../common/Toast';
 
-export const CollectButton: React.FC = () => {
+interface CollectResult {
+  fetched: number;
+  saved: number;
+  deduped: number;
+  errors: string[];
+}
+
+export function CollectButton(): React.JSX.Element {
   const [collecting, setCollecting] = useState(false);
+  const { showToast } = useToast();
 
   const handleCollect = async (): Promise<void> => {
     setCollecting(true);
     try {
-      await invoke('run_collect_now');
+      const result = await invoke<CollectResult>('run_collect_now');
       await invoke('rescore_articles');
       await invoke('batch_generate_summaries', { limit: 8 });
+
+      if (result.saved > 0) {
+        showToast('success', `${result.saved}件の新着記事を取得しました`);
+      } else {
+        showToast('info', '新着記事はありませんでした');
+      }
+
+      if (result.errors.length > 0) {
+        showToast('error', `${result.errors.length}件のフィードでエラーが発生しました`);
+      }
     } catch (e) {
       logger.warn({ error: e }, 'collectNow failed');
+      showToast('error', '記事の収集に失敗しました');
     } finally {
       setCollecting(false);
     }
@@ -52,4 +72,4 @@ export const CollectButton: React.FC = () => {
       )}
     </button>
   );
-};
+}
