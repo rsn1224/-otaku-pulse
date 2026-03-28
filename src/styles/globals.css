@@ -4,12 +4,13 @@
 
 /* === Stitch Design System Tokens === */
 :root {
-  /* Surface */
-  --surface: #0e0e13;
-  --surface-container: #19191f;
-  --surface-container-high: #1f1f26;
-  --surface-container-highest: #25252d;
-  --surface-elevated: #131319;
+  /* Surface (5-layer hierarchy + base) */
+  --surface-base: #0a0a0f;
+  --surface: #14141a;
+  --surface-container: #1c1c24;
+  --surface-container-high: #252530;
+  --surface-container-highest: #2e2e3b;
+  --surface-elevated: #3b3b4a;
 
   /* Content */
   --on-surface: #f9f5fd;
@@ -18,14 +19,25 @@
   --outline-variant: #48474d;
 
   /* Accent */
-  --primary: #bd9dff;
-  --primary-soft: rgba(189, 157, 255, 0.15);
-  --primary-glow: rgba(189, 157, 255, 0.06);
-  --primary-hover: #a98ae6;
+  --primary: #bd93f9;
+  --primary-soft: rgba(189, 147, 249, 0.15);
+  --primary-glow: rgba(189, 147, 249, 0.06);
+  --primary-hover: #a980e0;
   --on-primary: #ffffff;
   --secondary: #699cff;
   --tertiary: #ff97b2;
   --error: #ff6e84;
+
+  /* Neon Glow (60-30-10) */
+  --glow-primary: rgba(189, 147, 249, 0.12);
+  --glow-secondary: rgba(189, 147, 249, 0.08);
+  --glow-subtle: rgba(189, 147, 249, 0.04);
+
+  /* Content-Type Accents */
+  --accent-anime: #bd93f9;
+  --accent-manga: #f48fb1;
+  --accent-game: #40e0d0;
+  --accent-news: #ffb86c;
 
   /* Surface overlays */
   --surface-hover: rgba(255, 255, 255, 0.04);
