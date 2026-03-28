@@ -34,7 +34,7 @@ interface CardHeaderProps {
   onBookmark: () => void;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ article, onBookmark }) => {
+export function CardHeader({ article, onBookmark }: CardHeaderProps): React.JSX.Element {
   const catLabel = article.category
     ? (CATEGORY_LABELS[article.category] ?? article.category)
     : null;
@@ -73,4 +73,4 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ article, onBookmark }) =
       </button>
     </div>
   );
-};
+}

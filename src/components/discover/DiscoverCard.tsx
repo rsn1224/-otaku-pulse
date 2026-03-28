@@ -2,16 +2,20 @@ import { invoke } from '@tauri-apps/api/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDeepDive } from '../../hooks/useDeepDive';
 import { logger } from '../../lib/logger';
+import { cn } from '../../lib/utils';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { DiscoverArticleDto } from '../../types';
 import { CardActions } from './CardActions';
 import { CardHeader } from './CardHeader';
 import { CardSummary } from './CardSummary';
+import { CoverArtFallback } from './CoverArtFallback';
 import { DeepDivePanel } from './DeepDivePanel';
 import { SummarySkeleton } from './SummarySkeleton';
 
 export type CardState = 'collapsed' | 'summary' | 'deepdive';
+
+type ContentType = 'anime' | 'manga' | 'game' | 'news';
 
 interface DiscoverCardProps {
   article: DiscoverArticleDto;
@@ -19,11 +23,19 @@ interface DiscoverCardProps {
   isFocused?: boolean;
 }
 
-const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
+function deriveContentType(article: DiscoverArticleDto): ContentType {
+  const raw = article.category ?? '';
+  if (raw === 'anime') return 'anime';
+  if (raw === 'manga') return 'manga';
+  if (raw === 'game' || raw === 'pc') return 'game';
+  return 'news';
+}
+
+const DiscoverCardInner = ({
   article,
   featured = false,
   isFocused = false,
-}) => {
+}: DiscoverCardProps): React.JSX.Element => {
   const [state, setState] = useState<CardState>('collapsed');
   const [summary, setSummary] = useState<string | null>(article.aiSummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -111,11 +123,42 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
     markRead(article.id);
   }, [article.id, markRead]);
 
+  const contentType = deriveContentType(article);
+  const borderClass = `border-l-[3px] border-l-(--accent-${contentType})`;
+
+  function renderThumbnail(isCompact: boolean): React.JSX.Element {
+    const sizeClass = isCompact
+      ? 'flex-shrink-0 w-14 rounded-lg overflow-hidden'
+      : 'w-full mb-3 rounded-lg overflow-hidden';
+    const aspectClass = isCompact ? 'aspect-[2/3]' : 'aspect-[2/3] max-h-[200px]';
+
+    return (
+      <div className={cn(sizeClass, aspectClass)}>
+        {article.thumbnailUrl ? (
+          <img
+            src={article.thumbnailUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <CoverArtFallback contentType={contentType} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={cardRef}
       role="article"
-      className={`discover-card cursor-pointer ${featured ? 'featured' : ''} ${article.isRead ? 'opacity-50' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+      className={cn(
+        'discover-card cursor-pointer',
+        borderClass,
+        featured ? 'featured' : '',
+        article.isRead ? 'opacity-50' : '',
+        isFocused ? 'ring-2 ring-blue-500' : '',
+      )}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button, a, .deepdive-panel')) return;
         handleOpen();
@@ -125,51 +168,62 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
           handleOpen();
       }}
     >
-      <CardHeader article={article} onBookmark={handleBookmark} />
-
-      {article.thumbnailUrl && (
-        <div className={`card-thumbnail-wrap ${featured ? 'featured' : ''}`}>
-          <img
-            src={article.thumbnailUrl}
-            alt={article.title}
-            loading="lazy"
-            className="card-thumbnail"
-            onError={(e) => {
-              (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-            }}
-          />
-        </div>
-      )}
-
-      <button type="button" className="card-title" onClick={handleOpen}>
-        {article.title}
-      </button>
-
-      <CardSummary
-        summary={summary}
-        summaryLoading={summaryLoading}
-        fallbackSummary={article.summary}
-      />
-
-      <CardActions
-        state={state}
-        isRead={article.isRead}
-        hasUrl={!!article.url}
-        articleId={article.id}
-        onDeepDive={handleDeepDive}
-        onOpen={handleOpen}
-        onMarkRead={handleMarkRead}
-      />
-
-      {state === 'deepdive' && (
-        <>
-          {questionsLoading && <SummarySkeleton />}
-          {!questionsLoading && questions.length > 0 && (
-            <DeepDivePanel
-              articleId={article.id}
-              questions={questions}
-              onNewQuestions={setQuestions}
+      {state === 'collapsed' ? (
+        <div className="flex gap-3">
+          {renderThumbnail(true)}
+          <div className="flex-1 min-w-0">
+            <CardHeader article={article} onBookmark={handleBookmark} />
+            <button type="button" className="card-title" onClick={handleOpen}>
+              {article.title}
+            </button>
+            <CardSummary
+              summary={summary}
+              summaryLoading={summaryLoading}
+              fallbackSummary={article.summary}
             />
+            <CardActions
+              state={state}
+              isRead={article.isRead}
+              hasUrl={!!article.url}
+              articleId={article.id}
+              onDeepDive={handleDeepDive}
+              onOpen={handleOpen}
+              onMarkRead={handleMarkRead}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          {renderThumbnail(false)}
+          <CardHeader article={article} onBookmark={handleBookmark} />
+          <button type="button" className="card-title" onClick={handleOpen}>
+            {article.title}
+          </button>
+          <CardSummary
+            summary={summary}
+            summaryLoading={summaryLoading}
+            fallbackSummary={article.summary}
+          />
+          <CardActions
+            state={state}
+            isRead={article.isRead}
+            hasUrl={!!article.url}
+            articleId={article.id}
+            onDeepDive={handleDeepDive}
+            onOpen={handleOpen}
+            onMarkRead={handleMarkRead}
+          />
+          {state === 'deepdive' && (
+            <>
+              {questionsLoading && <SummarySkeleton />}
+              {!questionsLoading && questions.length > 0 && (
+                <DeepDivePanel
+                  articleId={article.id}
+                  questions={questions}
+                  onNewQuestions={setQuestions}
+                />
+              )}
+            </>
           )}
         </>
       )}
