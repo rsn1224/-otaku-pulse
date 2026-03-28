@@ -19,7 +19,7 @@
 ### v2.0 Otaku-Rich Design Overhaul
 
 - [ ] **Phase 4: Design Token Foundation** — 3-tier token architecture, new palette, legacy alias removal, CJK fonts
-- [ ] **Phase 5: UI Primitive & Component Overhaul** — All 7 UI primitives, feature components, glassmorphism, a11y wiring
+- [x] **Phase 5: UI Primitive & Component Overhaul** — All 7 UI primitives, feature components, glassmorphism, a11y wiring (completed 2026-03-28)
 - [ ] **Phase 6: Motion & Interaction Layer** — AnimatePresence transitions, stagger reveals, micro-interactions, retro motifs
 - [ ] **Phase 7: Accessibility, Performance & Polish** — A11y integration, virtual scroll, store split, blur budget validation
 
@@ -71,7 +71,7 @@ Plans:
 - [x] 05-02-PLAN.md — Sidebar lucide-react icons + neon active state + SectionHeader + EmptyState (COMP-04, COMP-06, COMP-07)
 - [x] 05-03-PLAN.md — DiscoverCard poster mode + CoverArtFallback + AI badge chip (COMP-02, COMP-05)
 - [x] 05-04-PLAN.md — DeepDive/Toast glassmorphism + blur budget validation (COMP-03, PERF-03)
-- [ ] 05-05-PLAN.md — Automated verification + human visual checkpoint (all requirements)
+- [x] 05-05-PLAN.md — Automated verification + human visual checkpoint (all requirements)
 
 **UI hint**: yes
 
@@ -127,6 +127,6 @@ Plans:
 | 2. Resilience & Security | v1.0 | 3/3 | Complete | 2026-03-28 |
 | 3. Performance & Test Coverage | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 4. Design Token Foundation | v2.0 | 0/3 | Planned | - |
-| 5. UI Primitive & Component Overhaul | v2.0 | 4/5 | In Progress|  |
+| 5. UI Primitive & Component Overhaul | v2.0 | 5/5 | Complete   | 2026-03-28 |
 | 6. Motion & Interaction Layer | v2.0 | 0/- | Not started | - |
 | 7. Accessibility, Performance & Polish | v2.0 | 0/- | Not started | - |
