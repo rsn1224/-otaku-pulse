@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import type { LucideIcon } from 'lucide-react';
+import { Bookmark, CalendarDays, Library, Search, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -34,24 +36,12 @@ const ScheduleWing = React.lazy(() =>
   import('../wings/ScheduleWing').then((m) => ({ default: m.ScheduleWing })),
 );
 
-const NAV_ITEMS: { id: WingIdV2; label: string; icon: string }[] = [
-  { id: 'discover', label: 'Discover', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
-  { id: 'library', label: 'Library', icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z' },
-  {
-    id: 'saved',
-    label: 'Saved',
-    icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z',
-  },
-  {
-    id: 'schedule',
-    label: 'Schedule',
-    icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
-  },
-  {
-    id: 'profile',
-    label: 'Profile',
-    icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-  },
+const NAV_ITEMS: { id: WingIdV2; label: string; Icon: LucideIcon }[] = [
+  { id: 'discover', label: 'Discover', Icon: Search },
+  { id: 'library', label: 'Library', Icon: Library },
+  { id: 'saved', label: 'Saved', Icon: Bookmark },
+  { id: 'schedule', label: 'Schedule', Icon: CalendarDays },
+  { id: 'profile', label: 'Profile', Icon: User },
 ];
 
 export function AppShell(): React.JSX.Element {
@@ -152,7 +142,7 @@ export function AppShell(): React.JSX.Element {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveWing(item.id)}
-                className={`relative flex items-center justify-center w-full h-11 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:rounded-lg ${activeWing === item.id ? 'text-(--primary)' : 'text-[#94a3b8]'}`}
+                className={`relative flex items-center justify-center w-full h-11 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:rounded-lg ${activeWing === item.id ? 'text-(--primary) bg-(--primary-soft) shadow-[inset_0_0_16px_var(--glow-secondary)]' : 'text-(--on-surface-variant) hover:text-(--on-surface) hover:bg-(--surface-hover)'}`}
                 title={item.label}
                 aria-label={item.label}
               >
@@ -160,19 +150,10 @@ export function AppShell(): React.JSX.Element {
                   <motion.span
                     layoutId="nav-indicator"
                     transition={springTransition}
-                    className="absolute left-0 w-[2px] h-7 bg-linear-to-b from-(--primary) to-[#699cff]"
+                    className="absolute left-0 w-[3px] h-7 bg-(--primary) rounded-r-sm"
                   />
                 )}
-                <svg
-                  aria-hidden="true"
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.75}
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                </svg>
+                <item.Icon size={20} aria-hidden="true" className="relative z-10" />
               </button>
             ))}
             <div className="mt-auto">
