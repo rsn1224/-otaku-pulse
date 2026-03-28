@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** OtakuPulse
-**Domain:** Tauri v2 + Rust + React 19 — Desktop News Aggregator Stabilization
-**Researched:** 2026-03-27
+**Project:** OtakuPulse v2.0 — Anime/Otaku-Rich Design Overhaul
+**Domain:** Desktop UI/UX Design System Overhaul (Tauri v2 + React 19)
+**Researched:** 2026-03-28
 **Confidence:** HIGH
 
 ## Executive Summary
 
-OtakuPulse is a working Tauri v2 desktop app with a 4-layer Rust architecture (commands/services/infra/parsers) and a React 19 frontend using Zustand for state management. The existing stack is well-chosen and requires no major additions or framework changes. Research confirms the stabilization milestone is squarely about hardening existing code — lifecycle management, async safety, query efficiency, and correctness of dedup/cache logic — not about adding new capabilities.
+OtakuPulse v2.0 is a pure frontend design overhaul of an existing, fully functional Tauri v2 desktop news aggregator. The Rust 4-layer backend, all 68 Tauri commands, and all Zustand store interfaces remain completely untouched. The work transforms a Material Design 3 dark theme into an otaku-culture visual identity — deep void surfaces, neon-purple accent system, content-type color language, glassmorphism panels, and an integrated motion layer — without adding any new backend features. Research confirms the existing stack (React 19, Tailwind CSS 4, motion 12.x, Zustand 5) already covers approximately 80% of the design needs. The only new production packages required are six additions: `lucide-react`, `clsx`, `tailwind-merge`, `class-variance-authority`, and two Fontsource variable font packages for self-hosted Japanese typography.
 
-The recommended approach follows a strict dependency ordering: foundational safety fixes first (startup panics, WAL mode, Unicode normalization, rate limiter correctness), then async lifecycle work (CancellationToken, config hot-reload, DeepDive cache invalidation), then query/performance optimization, and finally comprehensive test coverage and security audit. Attempting performance fixes before correctness fixes would optimize on top of broken dedup data, and testing before CancellationToken exists means the scheduler cannot be meaningfully tested.
+The recommended approach is a four-pass migration strategy: token values first (zero component breakage), legacy alias removal, component visual overhaul, then new decorative additions. This ordering is critical — architecture research confirms that attempting to overhaul components before establishing the new design token foundation produces unresolvable merge conflicts and silent visual regressions. The 3-tier token architecture (raw `@theme` palette, semantic `:root` aliases, per-component scoped tokens) preserves all existing semantic token names while replacing their underlying values, meaning no component file needs to change during Pass 1.
 
-The primary risks are: (1) the three `panic!` sites in `lib.rs` that crash the app silently on DB init failure — the fix must use `Err` return from `setup()`, not a dialog before the window exists; (2) scheduler loops that have no shutdown path, creating potential DB corruption on close; and (3) Unicode normalization that uses NFC instead of NFKC, causing dedup misses for Japanese titles that mix full-width and half-width characters. All three are confirmed via direct code analysis with HIGH confidence.
+The dominant risks are not technical but disciplinary: functionality regression from structural DOM changes during visual reskins, contrast failures from neon colors used as body text, glassmorphism performance collapse from `backdrop-filter` overuse on Windows/WebView2, and "cheap anime" aesthetic from decoration overload. All four are preventable through upfront constraints — a test harness before any HTML is touched, token allowlists for text, blur budget limits, and a decoration budget per component. The competitive reference (AniList) succeeds not through maximum visual density but through 2-3 focused signature elements on a clean structural layout.
 
 ---
 
@@ -19,147 +19,146 @@ The primary risks are: (1) the three `panic!` sites in `lib.rs` that crash the a
 
 ### Recommended Stack
 
-The existing stack requires only four Rust additions and three TypeScript additions. No new frameworks, no major version changes. All additions address specific confirmed gaps from CONCERNS.md.
+The existing stack requires no animation or state management additions. The six new packages serve purely as design system utilities: class composition (clsx + tailwind-merge), component variant management (class-variance-authority), iconography (lucide-react v1.7.0), and self-hosted CJK typography (Fontsource variable fonts). Tailwind CSS 4's `@theme` directive handles all design token work natively, eliminating any need for Style Dictionary or external token management tools. The `motion` 12.x library (already installed as the renamed Framer Motion fork) covers all interactive transitions and must not be duplicated with GSAP, anime.js, or react-spring.
 
-**Core technology additions:**
-- `tokio-util 0.7` (`CancellationToken`) — cooperative shutdown for scheduler loops; the canonical tokio pattern for this problem
-- `rayon 1.10` — CPU-parallel URL normalization for large feed batches; must be invoked via `tokio::task::spawn_blocking` to avoid blocking the async runtime
-- `lru 0.12` — LRU eviction cap for DeepDive cache; lighter than `moka` for single-service in-process use
-- `@vitest/coverage-v8` — V8 coverage provider; correct choice given `environment: 'node'` in vitest.config.ts
-- `@testing-library/react 16.x` + `@testing-library/user-event 14.x` — component and keyboard interaction tests for React 19
+**Core new additions:**
+- `lucide-react ^1.7.0`: SVG icon library — tree-shakable per-icon imports, TypeScript-typed, zero runtime API calls (critical for offline desktop apps)
+- `clsx ^2.1.1` + `tailwind-merge ^3.5.0`: Class composition — tailwind-merge v3 is mandatory for Tailwind 4 (v2 was Tailwind 3 only); enables safe `className` override props on all reusable components
+- `class-variance-authority ^0.7.1`: Component variant system — declarative API for Button/Badge/Card variants; prevents ternary sprawl in component code
+- `@fontsource-variable/noto-sans-jp` + `noto-serif-jp`: Self-hosted Japanese variable fonts — Tauri apps cannot fetch Google Fonts at runtime; variable fonts cover weights 100-900 in one file
+- `motion 12.x` (already installed): All interactive animations — springs, keyframes, AnimatePresence, stagger, SVG path draw; no additions needed
+- `tailwindcss 4.2.1` (already installed): Design token system via `@theme` — generates utility classes AND CSS variables from one source; no Style Dictionary needed
 
-**Existing patterns requiring enforcement (already in dependencies, inconsistently applied):**
-- `unicode-normalization`: switch `nfc()` to `nfkc()` in `dedup_service.rs` for Japanese title compatibility
-- `sha2`: add `CHECK(length(content_hash) = 64)` migration constraint
-- SQLite WAL mode: enable via `SqliteConnectOptions` at pool creation time — unblocks concurrent reads during writes
-- `sqlx` offline mode: run `cargo sqlx prepare`, commit `.sqlx/`, set `SQLX_OFFLINE=true` in CI
+**What not to add:** `tsparticles` (1.54 MB + continuous canvas repaints collapse Tauri WebView2 frame rates), `gsap`/`anime.js`/`react-spring` (redundant with `motion`), `shadcn/ui` (conflicts with existing custom component system), `framer-motion` (same package as installed `motion` — do not install both).
 
 ### Expected Features
 
-Research maps CONCERNS.md items to stabilization features classified by user-visible impact.
+Research analyzed AniList, Crunchyroll, Taiga, and MAL as competitive references and surveyed 2026 anime/otaku design trends (Heisei retro, Y2K futurism, cybercore aesthetic).
 
-**Must have (table stakes — absence makes app feel broken):**
-- Startup panic elimination — currently crashes silently on DB init failure or missing AppData dir
-- Graceful offline mode — app must serve 72h cached content when network is unavailable
-- Scheduler graceful shutdown — prevents DB corruption and process hang on close (Windows especially)
-- DeepDive cache TTL enforcement — indefinitely stale AI answers degrade user trust
-- Config hot-reload for scheduler — changes in Settings must take effect without restart
-- Dedup URL canonicalization fix — duplicate articles in Feed destroy aggregator credibility
-- Unicode dedup consistency (NFC → NFKC) — duplicate Japanese articles survive dedup currently
-- Personal scoring JSON validation — silent fallback to empty preferences makes recommendations silently wrong
-- API key log scrubbing — Perplexity key leak in error logs is a security incident
-- Mutex lock poisoning recovery — `expect("lock poisoned")` crashes app on any task panic
+**Must have (table stakes) — Phases 1 and 2:**
+- Deep void dark surfaces (`#0a0a0f` base) — every serious anime app uses deeper darks; current `#0e0e13` is insufficient as a neon glow foundation
+- Cover-art-forward card layout — poster-ratio (2:3) variant alongside current landscape thumbnail; competitor parity with AniList/Crunchyroll
+- Content-type color language — four accent tokens (anime=purple, manga=pink, game=cyan, news=amber); makes content scannable without reading labels
+- Genre/status badge redesign — colored semantic badges with glow dots for airing status (airing=green, upcoming=cyan, completed=muted, hiatus=amber)
+- Neon glow accent system — `--glow-primary` CSS variables applied to active nav, focused inputs, CTA buttons (60-30-10 rule: max 10% of screen area)
+- Navigation active state — "lit up" sidebar with accent glow and left border strip
+- Hover depth feedback — `translateY(-2px)` + shadow lift on interactive cards; desktop-class interaction expectation
+- Glassmorphism on overlay panels — `backdrop-filter: blur(12px)` on DeepDive panel and modals only; never on list items
+- Smooth wing/tab transitions — `AnimatePresence` on wing switches; current snap-replace is below 2026 motion baseline
 
-**Should have (differentiators — noticeably better experience):**
-- Digest loop parallelization (4x speed improvement via `tokio::join!`)
-- Rate limiter f64 token accounting (prevents 429s at boundary conditions)
-- N+1 query elimination in highlights (100 DB calls → 1)
-- Personal scoring 3-query consolidation (5 queries → 1 CTE)
-- FTS pagination pushdown (avoid loading all matches into memory)
-- RSS parse error visibility (surface broken feeds to user)
-- DeepDive cache LRU eviction (prevent unbounded disk growth)
+**Should have (competitive differentiators) — Phase 3:**
+- Heisei/Y2K retro decorative motifs — CSS-only corner brackets and scan-line textures; no character IP required
+- Feed stagger reveal animations — `motion.div` with 80ms stagger on DiscoverCard list (first 10 items only); curated feed feel
+- AI badge chip — gradient pill badge on cards with cached summaries; visual AI value communication
+- Section header decoration — left-border accent lines and uppercase spaced labels throughout
 
-**Defer to later milestones:**
-- New API source integrations
-- Cloud sync / OAuth
-- Full circuit breaker library (tower/reqwest-middleware)
-- UI redesign or new Wings
-- Telemetry / crash reporting (Sentry)
-- rayon URL normalization per-article (50ms saving not user-perceptible at current scale)
-- LLM provider hot-switch safety (niche edge case)
+**Defer (post-v2.0):**
+- Cinematic article reader (drop caps, column layout, section decorators) — high value, high complexity; needs Phases 1-3 stable first
+- Schedule Wing calendar grid (day-column airing guide with countdown timers) — significant ScheduleWing.tsx restructure
+- Command palette (Cmd+K launcher with category grouping) — genuine differentiator but standalone feature; does not block core design
+- Personalized gradient header — needs design system stability before dynamic CSS variable injection
+- Animated empty states — CSS/SVG mascot placeholders; nice-to-have after functional states
+
+**Anti-features to explicitly avoid:** particle effects and animated backgrounds (GPU destruction on WebView2), light mode toggle (doubles design maintenance surface; dark-only is explicit v2.0 scope), custom cursor overlays (rendering issues on high-DPI Windows), per-wing custom themes (multiplies CSS token surface by N).
 
 ### Architecture Approach
 
-The 4-layer architecture (commands → services → infra → parsers) is correctly implemented and requires no structural changes. The individual `app.manage()` pattern is in place with no global `Mutex<AppState>`. The stabilization work is targeted hardening within existing layer boundaries, not reorganization.
+The design system sits in four interlocking layers: Design Token Layer (`globals.css @theme` + `:root`), Motion/Animation Layer (`motion-variants.ts` + CSS `@keyframes`), Component Layer (`ui/` primitives, `wings/` layouts, `common/` shared), and Accessibility Layer (`useAnnouncer`, `useFocusTrap`, `useFocusReturn`, `useScrollLock`). The critical architectural decision is a 3-tier token system: Tier 1 raw palette in `@theme` (generates Tailwind utilities), Tier 2 semantic aliases in `:root` (preserves all existing token names — zero component breakage during Pass 1), and Tier 3 per-component scoped tokens (safe local overrides). CSS `@container` queries replace viewport media queries for Wing content areas, making layouts reusable regardless of app shell width.
 
-**Major components and stabilization priorities:**
-1. `scheduler.rs` — CRITICAL: no shutdown path, no config sync; requires `CancellationToken` + `Arc<RwLock<SchedulerConfig>>`
-2. `lib.rs setup()` — CRITICAL: 3 panic sites; replace with `Err` return from `setup()` closure
-3. `dedup_service.rs` — HIGH: NFC → NFKC normalization; URL param sort canonicalization
-4. `rate_limiter.rs` — HIGH: `u32` token truncation → `f64`; Mutex held across `.await`
-5. `personal_scoring.rs` — HIGH: 5 DB queries → 1 CTE; JSON silent fallback
-6. `deepdive_service.rs` — MEDIUM: no TTL check; missing `summary_hash` in cache key; cleanup only at startup
-7. `fts_queries.rs` — MEDIUM: all FTS matches loaded before pagination
+**Major components:**
+1. `globals.css @theme` + `src/styles/tokens/palette.css`: Design token source of truth — raw color scale, animation timing, surface values; all Tailwind utility generation flows from here
+2. `motion-variants.ts` + `useMotionConfig()`: Centralized animation system — every animated component must consume variants through `useMotionConfig()` to guarantee reduced-motion compliance; never import variants directly
+3. `ui/` primitive components (Button, Card, Badge, Input, Modal, Spinner, ToggleGroup): Base visual building blocks — updated with new variants (`neon`, `glass`, `anime`) using additive extension; existing variants unchanged to preserve backward compatibility
+4. `layout/AppShell` + new `SidebarNav`: Shell and navigation — SidebarNav extracted from AppShell for the overhaul; nav state remains local props (not Zustand — ephemeral)
+5. New decorative components (`GlowBorder`, `ScanlineOverlay`, `AnimeTag`): Additive-only Pass 4 additions; applied to feature components as opt-in decorations
 
-**Key data flow stabilization targets:**
-- Collection flow: serial per-feed loop → `join_all` with per-feed timeout; CPU-bound normalization → `spawn_blocking`
-- Digest flow: serial 4-category for loop → `tokio::join!` with per-category 120s timeout
-- Scheduler config flow: value-copy at spawn → `Arc<RwLock<SchedulerConfig>>` read each iteration
-- Shutdown flow: process kill → `CancellationToken::cancel()` + `SqlitePool::close().await`
+**Build dependency order within the component phase:** Badge → Spinner → Button → Input → ToggleGroup → Card → Modal (primitives, fewest dependents first), then SidebarNav + TopBarSearch (layout), then Wings and feature components (DiscoverCard, AiringCard, DeepDivePanel) last.
+
+**Token flow:** Stitch mockup → Figma (annotated with CSS variable names) → Figma MCP → `palette.css @theme` → `:root` semantic aliases → Tailwind utilities + CSS variables → component JSX.
 
 ### Critical Pitfalls
 
-1. **Setup panic before window exists** — Replacing `panic!` with a dialog call inside `setup()` does nothing (WebView not mounted yet). Fix: return `Err(Box<dyn Error>)` from `setup()`; show error from `RunEvent` handler. Confirm by intentionally failing DB init in a dev build.
+1. **Functionality regression during visual reskin** — Changing className strings can break DOM-dependent event delegation, Zustand selectors, focus traps, and ARIA attributes with no compile error and no test failure unless interaction tests exist beforehand. Prevention: lock all 157 existing tests green, add interaction tests for every interactive component before touching any HTML structure, separate CSS-only changes from structural DOM changes across different commits.
 
-2. **Scheduler loops abandoned mid-transaction** — No `CancellationToken` means Tokio drops loops at the next `.await` during process kill, potentially interrupting in-flight DB writes. SQLite WAL recovery handles it usually, but pool `close()` may hang. Fix: `CancellationToken` + `SqlitePool::close().await` in exit handler.
+2. **Neon color contrast failure** — Saturated neon colors (`#ff97b2` pink, `#4dd9e0` cyan) visually pop but fail WCAG AA (4.5:1 minimum) when used as text. Prevention: treat `--on-surface` and `--on-surface-variant` as the exclusive body text tokens; run every new color token through a contrast checker against all four surface levels before adding to `globals.css`; document ratios in `design.md`.
 
-3. **Unicode NFKC migration side effect** — Switching `nfc()` to `nfkc()` changes hash values for existing articles already in the DB. After migration: run `UPDATE articles SET is_duplicate = 0` and re-execute dedup pass to recompute with new normalization.
+3. **`backdrop-filter: blur()` GPU collapse on Windows/WebView2** — A single blur covering more than approximately 30% viewport causes Tauri's WebView2 to recomposite on every frame (confirmed Chromium bug #497522). Prevention: limit blur to elements covering less than 15% viewport simultaneously, maximum two blurred layers visible at once; use solid near-opaque `rgba(14,14,19,0.97)` for sidebars and main panels; test on mid-tier Windows hardware in `tauri dev`.
 
-4. **Rate limiter Mutex held across `.await`** — `last_request` MutexGuard is live on stack during `sleep().await` in `rate_limiter.rs`. Safe with current single-task usage, but becomes a deadlock risk when digest parallelization adds concurrent `acquire()` calls. Fix in Phase 1 before Phase 3 parallelization.
+4. **Design token migration breaking existing components** — CSS custom property fallback degrades silently to `transparent` when a token is removed, not to a visible error. Prevention: remove legacy aliases one at a time with a full visual regression check between each; run `grep -r` for every alias name before removal; Biome does not catch missing CSS variable references.
 
-5. **FTS5 OFFSET is O(n)** — Using `LIMIT ? OFFSET ?` on FTS5 still scans all preceding rows. For deep pagination, use cursor-based `rowid > last_seen_rowid` instead of offset. Phase 3 warning.
+5. **Stitch-generated code bypassing the design system** — Stitch outputs hardcoded HEX values and Tailwind palette classes (`bg-purple-600`) that bypass the CSS variable system entirely. Prevention: treat all Stitch output as wireframe reference only; every Stitch color must be translated through the `design.md` Stitch Token Mapping table; run a grep for raw hex and palette classes as a pre-commit check.
 
 ---
 
 ## Implications for Roadmap
 
-Based on the dependency graph from ARCHITECTURE.md and feature priorities from FEATURES.md, a 6-phase structure is recommended. Phases 3 and 4 explicitly depend on Phase 1 correctness being established before optimization and cache work begin.
+Based on combined research, the migration has three natural phases matching the zero-breakage build order from ARCHITECTURE.md. The feature MVP structure from FEATURES.md maps directly onto these phases. Phase ordering is strictly dependency-driven: tokens before components, components before motion, all three before decorative additions.
 
-### Phase 1: Foundation Safety
-**Rationale:** Every other phase depends on the app not panicking at startup and on dedup producing correct data. Rate limiter correctness must precede parallelization (Phase 3). Unicode normalization must precede the dedup test suite (Phase 4).
-**Delivers:** App that starts reliably, dedup that correctly handles Japanese titles, rate limiter that counts tokens correctly, WAL mode for concurrent reads/writes, sqlx CI builds.
-**Addresses:** Startup panic elimination, Unicode dedup consistency, URL canonicalization fix, dedup/rate limiter correctness, SQLite WAL mode, sqlx offline mode.
-**Avoids:** Pitfall 1 (setup panic fix), Pitfall 3 (NFKC migration), Pitfall 4 (Mutex across await — fix before Phase 3 parallelization).
+### Phase 1: Design Token Foundation
 
-### Phase 2: Async Lifecycle
-**Rationale:** Scheduler is the app's heartbeat. Without graceful shutdown, Windows process cleanup is unreliable. Without config hot-reload, Settings feel broken. DeepDive cache staleness is a trust-eroding correctness bug, not a performance concern. OPML URL validation is a security concern at the data-entry boundary.
-**Delivers:** Scheduler that shuts down cleanly, config changes that take effect immediately, DeepDive cache that invalidates on stale summary, OPML imports that reject SSRF-risk URLs.
-**Uses:** `tokio-util CancellationToken`, `Arc<RwLock<SchedulerConfig>>`, `summary_hash` DB migration, OPML URL scheme validation.
-**Implements:** SchedulerHandle lifecycle pattern, graceful exit hook in `lib.rs`.
-**Avoids:** Pitfall 2 (scheduler shutdown), Phase 2 warning (CancellationToken stored separately from AppState to avoid circular Arc).
+**Rationale:** All visual layers — components, animations, decorative elements — depend on a stable token system. Attempting component work before establishing the new palette creates unresolvable conflicts and unresolvable visual regression. This phase has the highest pitfall density (token migration breakage, contrast failures, Tailwind v4 syntax issues, Stitch bypass patterns) and must be completed correctly before anything else can be verified visually.
 
-### Phase 3: Query and Performance Optimization
-**Rationale:** Query optimization and parallelization are only meaningful after Phase 1 dedup correctness is established — otherwise you're optimizing on top of broken data. Digest parallelization requires Phase 2's `LlmClient` `Sync` audit (needed before `Arc<dyn LlmClient + Send + Sync>` in join_all).
-**Delivers:** 4x faster digest generation, 5x fewer DB round-trips for scoring, FTS search that doesn't load all matches into memory, N+1 highlights query eliminated.
-**Uses:** `tokio::join!` for digest categories, single CTE query for personal scoring, FTS5 rowid subquery, `Arc<reqwest::Client>` cleanup in collector.
-**Avoids:** Pitfall (FTS OFFSET O(n) — use cursor pagination); digest DB writes remain serial after parallel LLM calls.
+**Delivers:** New 3-tier token architecture live in `globals.css` and `palette.css`; all 14 legacy aliases removed and confirmed zero references in codebase; new color palette visible app-wide with zero component code changes; contrast ratios for all new tokens documented in `design.md`; Stitch Token Mapping table complete; font loading strategy defined.
 
-### Phase 4: Cache Hardening and Validation
-**Rationale:** DeepDive cache eviction requires Phase 2's periodic cleanup scheduler job to exist. Personal scoring JSON validation surfaces errors that require the `AppError::InvalidInput` variant (confirmed present). Security items (API key log scrub, JSON size limits) belong together as a security review pass.
-**Delivers:** DeepDive cache that evicts at 500-row LRU cap, personal scoring that surfaces corrupted profiles to UI, API key redaction in error logs, user_profile JSON size limit.
-**Uses:** `lru 0.12` for in-process LRU tracking, `CHECK(json_valid(...))` DB migration, tracing audit of reqwest error paths.
-**Avoids:** Pitfall (silent JSON fallback masks corrupted data).
+**Addresses features:** Deep void dark surfaces, content-type accent palette (four accent tokens defined), neon glow variable system (`--glow-primary`, `--glow-secondary`, `--glow-subtle`), animation timing tokens, typography hierarchy tokens.
 
-### Phase 5: Test Coverage
-**Rationale:** Tests are listed last not because they are low priority, but because meaningful tests require stable behavior to assert against — Phase 1 normalization and Phase 2 lifecycle fixes must be in place first. Rate limiter tests require `tokio::time::pause()` for determinism. Scheduler tests require the CancellationToken from Phase 2.
-**Delivers:** dedup_service 20+ test cases, rate_limiter concurrency stress tests, scheduler shutdown test, personal_scoring edge cases, TypeScript hook error-shape tests, full coverage reporting via `cargo-llvm-cov` and `@vitest/coverage-v8`.
-**Uses:** `@testing-library/react 16.x`, `@testing-library/user-event 14.x`, `sqlx::test` macro with in-memory pool, `tokio::time::pause()`.
-**Avoids:** Phase 4 warning (sqlx tests require `sqlx::test` macro — not raw `SqlitePool::connect`).
+**Avoids pitfalls:** Token migration breakage (one-at-a-time removal with grep verification), Tailwind v4 syntax regressions (CSS-variable utilities `bg-(--primary)` over palette utilities `bg-purple-600`), Stitch bypass (translation table before any code), contrast failures (pre-validate all new tokens at 4.5:1 minimum).
 
-### Phase 6: Offline Mode and UX Polish
-**Rationale:** Offline mode requires `FetchStatus` enum propagation through the collection pipeline — a data-model change that should not be introduced mid-stabilization. RSS parse error visibility and OPML dry-run preview are UX improvements that layer on top of the stable pipeline from Phases 1-5.
-**Delivers:** Graceful offline mode with 72h stale cache serving and "offline" badge in UI, RSS feed error surface in Settings, OPML import dry-run validation UI.
-**Addresses:** Graceful offline mode (table stakes), RSS parse error visibility, OPML URL validation UI.
+**Research flag:** Standard patterns. Tailwind 4 `@theme` is fully documented; 3-tier token migration strategy is established. Skip phase research.
+
+---
+
+### Phase 2: Component Visual Overhaul
+
+**Rationale:** With tokens established and visually verified on all 5 Wings, component work proceeds in dependency order (primitives before layouts before feature components). Font loading strategy must be resolved before any component renders a custom typeface. Accessibility hooks must be wired during this phase — retrofitting focus traps and announcer calls after visual work is finished is expensive and error-prone. The "cheap anime" decoration budget (1 animated element + 1 gradient + 1 decorative icon per component) must be established before components are styled.
+
+**Delivers:** All 7 UI primitives updated with new variants using additive extension; `AppShell` → `SidebarNav` extraction complete; Wings visual treatment (backgrounds, section headers, badge redesign, cover-art card variant, hover depth feedback, navigation active state); font loading with FOUT/FOIT prevention; glassmorphism applied to DeepDive panel and modals; every rebuilt component verified for `useFocusTrap`/`useFocusReturn`/`useAnnouncer` wiring.
+
+**Uses:** `lucide-react` (icon replacements), `class-variance-authority` (variant system for Button/Card/Badge), `clsx` + `tailwind-merge` (`cn()` helper in `src/lib/utils.ts`), `@fontsource-variable/noto-sans-jp` (body text), `@fontsource-variable/noto-serif-jp` (display headings).
+
+**Implements:** Build order Badge → Spinner → Button → Input → ToggleGroup → Card → Modal, then SidebarNav + TopBarSearch, then Wings and feature components.
+
+**Avoids pitfalls:** Functionality regression (interaction tests required before Phase 2 begins; separate CSS changes from structural DOM changes), accessibility regression (audit checklist per component), font FOIT (Fontsource with `unicode-range` subsetting; `font-display: optional` for headings, `font-display: swap` + `size-adjust` for body), decoration overload (decoration budget enforced per component), glassmorphism performance collapse (blur limited to elements under 15% viewport; no blur on list items ever).
+
+**Research flag:** Glassmorphism performance on specific Windows hardware configurations is MEDIUM confidence. Establish blur budget and test on mid-tier Windows machine before committing to any glassmorphism treatment. Noto Sans JP CJK font bundle size impact on Tauri binary needs validation — import Latin + JIS Level 1 subset only initially.
+
+---
+
+### Phase 3: Motion Integration and Polish
+
+**Rationale:** Motion work happens last because it depends on the component structure being stable (wing transitions require AppShell/SidebarNav to be finalized from Phase 2) and because reduced-motion compliance must be verified against the complete component set. The animation budget and blur budget constraints are defined in Phase 1 and enforced throughout Phase 2; Phase 3 activates the motion layer within those constraints.
+
+**Delivers:** Wing transition animations via `AnimatePresence` (200ms fade-slide); feed stagger reveals on DiscoverCard list (80ms stagger, first 10 items only, disabled for subsequent scroll); AI badge chip on cards with cached summaries (purple-blue gradient pill); Heisei decorative touches (CSS-only corner brackets on featured cards via `::before`/`::after`, scan-line texture on section headers); new CSS `@keyframes` in `animations.css` (neonPulse, scanlineScroll, cardPop); new motion variants in `motion-variants.ts`; full `useMotionConfig()` audit via grep — zero animated components without reduced-motion guard.
+
+**Implements:** New decorative components (`GlowBorder`, `ScanlineOverlay`, `AnimeTag`) added as Pass 4 — additive only, integrated into feature components as opt-in; `AnimatePresence` integrated at Wing level in AppShell; stagger variants in `motion-variants.ts`.
+
+**Avoids pitfalls:** Excessive animation causing vestibular symptoms (zero `motion/react` components without `useMotionConfig`; animation budget: one entrance animation at a time maximum; all ambient/idle animations off by default; WCAG 2.3.3 manual test at phase end), glassmorphism performance from combined blur + animation (GPU profiling in `tauri dev` on Windows before merge), stagger performance on large lists (limit to first 10 items; off-screen items skip animation).
+
+**Research flag:** Combined performance of `backdrop-filter` + `AnimatePresence` + stagger animations on Windows WebView2 is the highest-risk integration point. Cannot be simulated in Chrome DevTools — requires hardware profiling on mid-tier Windows in `tauri dev`. If frame rate drops below 30fps with any modal open, fall back from blur to solid near-opaque backgrounds on the affected element.
+
+---
 
 ### Phase Ordering Rationale
 
-- Phase 1 before everything else: three `panic!` sites and NFC→NFKC migration affect every downstream feature's testability and correctness.
-- Phase 2 before Phase 3: digest parallelization (`join_all`) requires `LlmClient` to be `Send + Sync`, which the Phase 2 audit confirms; also CancellationToken must exist before scheduler tests.
-- Phase 3 before Phase 4: LRU eviction uses the periodic cleanup job added in Phase 3's scheduler work.
-- Phase 5 deferred (not skipped): writing tests against unfixed behavior produces tests that must be rewritten after fixes — wasteful. Write tests after each fix is confirmed, but group coverage infrastructure setup here.
-- Phase 6 last: offline mode requires a `FetchStatus` data-model change that is safest after the collection pipeline is stable.
+- **Tokens before components:** CSS variable cascade means wrong values propagate everywhere. Correcting tokens after components are built requires retesting every component again. Pass 1 is intentionally designed to be reversible with a two-file revert.
+- **Accessibility hooks during Phase 2, not Phase 3:** WIP hooks (`useFocusTrap`, `useFocusReturn`, `useAnnouncer`) exist but are not yet universally applied. Wiring them during the visual rebuild is the natural moment — the component is already being touched. Retrofitting after Phase 3 means touching every component twice.
+- **Motion last:** `AnimatePresence` wing transitions require `AppShell`/`SidebarNav` to be finalized; feed stagger requires `DiscoverCard` layout to be stable; reduced-motion audit must cover the complete component set. None of these preconditions exist before Phase 2 completes.
+- **Decorative layer additive-only (Pass 4 within Phase 3):** `GlowBorder`, `ScanlineOverlay`, `AnimeTag` add otaku flair without altering existing component APIs. They can be reverted without breaking functionality, making them safe to add at the end.
+- **Final palette values depend on Stitch session:** ARCHITECTURE.md provides structural placeholder palette values. The Phase 1 kickoff requires a Stitch mockup session and Figma MCP token extraction before any CSS values are committed.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (digest parallelization):** Audit whether `OllamaClient` and `PerplexityClient` implement `Sync` before assuming `Arc<dyn LlmClient + Send + Sync>` compiles — need to check trait bound definitions.
-- **Phase 3 (personal scoring CTE):** Benchmark the single CTE vs. 5 simple queries with `EXPLAIN QUERY PLAN` before committing — the CTE may regress on a cold cache at current article scale.
-- **Phase 6 (offline mode):** `FetchStatus` enum propagation touches collector, scheduler, and frontend event types — scope needs planning before implementation.
+Phases needing attention during planning:
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (WAL mode + sqlx offline):** Both are documented one-line changes with known configurations.
-- **Phase 2 (CancellationToken):** tokio-util `CancellationToken` has a fully documented and stable API; pattern is well-established.
-- **Phase 5 (test infrastructure):** `@vitest/coverage-v8`, `@testing-library/react`, `sqlx::test` are all documented ecosystem standards with clear setup.
+- **Phase 2 (Component Overhaul):** Glassmorphism performance on specific Windows hardware is MEDIUM confidence. Establish blur budget explicitly in the phase spec — not more than two blurred elements simultaneously, none on scrollable list items. Test on Windows before any component with blur is considered complete.
+- **Phase 3 (Motion + Polish):** Combined `backdrop-filter` + `AnimatePresence` + stagger on WebView2 is the single highest-risk integration. Add a hardware profiling checkpoint in the phase definition — GPU usage in Windows Task Manager must be below 50% with any modal open over a scrolling list.
+- **Phase 1 (Token Foundation):** Noto Sans JP full CJK variable font is approximately 500KB per weight range. Validate actual Tauri binary bundle size impact before committing to both Noto Sans JP and Noto Serif JP. If bundle size is unacceptable, Noto Serif JP (display headings only) is the candidate to drop.
+
+Standard patterns (skip phase research):
+
+- **Phase 1 — Tailwind 4 @theme token architecture:** Fully documented in official Tailwind 4 docs. 3-tier approach is established; tailwind-merge v3 / Tailwind 4 compatibility is explicitly confirmed in maintainer release notes. No research needed.
+- **Phase 2 — lucide-react, CVA, clsx/tailwind-merge:** All three are well-documented utilities with clear npm-install-and-use setup. No research needed.
+- **Phase 3 — motion/react AnimatePresence + useMotionConfig:** Existing WIP hooks are correctly structured; only need new variant additions in `motion-variants.ts`. Official motion.dev docs cover all patterns needed. No research needed.
 
 ---
 
@@ -167,55 +166,48 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions confirmed from `Cargo.lock` and `package-lock.json`; additions are ecosystem standards with no version ambiguity |
-| Features | HIGH | All table-stakes and differentiator features confirmed via direct code analysis of identified concern files; no speculation |
-| Architecture | HIGH | 4-layer structure, AppState, all component boundaries confirmed from direct file reads; patterns are tokio/SQLite standards |
-| Pitfalls | HIGH | All critical pitfalls confirmed at specific line numbers via direct code analysis; only minor pitfalls rely on inferred risk |
+| Stack | HIGH | All six new packages confirmed from official docs and npm registry. tailwind-merge v3 / Tailwind 4 compatibility explicitly verified from maintainer release notes. Fontsource self-hosting for Tauri confirmed as standard approach. No speculation. |
+| Features | MEDIUM-HIGH | Visual patterns from live competitor sites (AniList, Crunchyroll, Taiga): HIGH. Design trend research (Heisei retro, Y2K futurism as 2026 dominant aesthetic): MEDIUM — multiple sources agree but subject to taste. Anti-feature recommendations: HIGH based on technical constraints. |
+| Architecture | HIGH | 3-tier token system and 4-pass migration strategy derived from direct codebase analysis plus Tailwind 4 official docs. Component dependency order verified from existing file structure. Stitch → Figma → Code pipeline from official Google/Figma documentation. CSS @container query approach from Tailwind 4 official docs. |
+| Pitfalls | HIGH | backdrop-filter GPU issue confirmed from Chromium bug tracker #497522. WCAG contrast and motion requirements from W3C specs. Tailwind v4 breaking changes from official upgrade guide. Token migration silent CSS fallback is well-documented CSS behavior. Stitch bypass risk inferred from design-workflow.md rules and Stitch's documented behavior. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **`LlmClient` trait `Sync` bound**: Need to confirm both `OllamaClient` and `PerplexityClient` implement `Sync` before Phase 3 digest parallelization. If not, `+ Sync` must be added to the trait definition and all implementations. Check during Phase 3 planning.
-- **`deepdive_cache` migration timing**: Adding `summary_hash` column (Phase 2) requires backfilling `NULL` for existing rows. Treat `NULL` as cache miss in code. Verify migration file numbering does not conflict with any pending migration.
-- **`CancellationToken` storage location**: Must be stored as `tauri::State<CancellationToken>` independently, not inside `AppState`, to avoid a circular `Arc` reference. Confirm Tauri `RunEvent::ExitRequested` or `on_window_event(CloseRequested)` is the correct hook for calling `cancel()` in the target Tauri v2 version.
-- **NFC→NFKC migration data impact**: After switching normalization, existing `is_duplicate` flags may be wrong. A one-time `UPDATE articles SET is_duplicate = 0` + dedup re-run is required. Plan this as part of a DB migration with rollback instructions.
-- **`seconds_until` JST vs OS local time**: The digest scheduler uses `chrono::Local` but comments reference JST. Clarify intended behavior before Phase 2 — affects international users if left ambiguous.
+- **Final palette HEX values are provisional:** ARCHITECTURE.md provides structurally correct placeholder values anchored to existing tokens. Actual leaf values must come from a Stitch mockup session and confirmed via Figma MCP before Phase 1 `palette.css` is committed. The token architecture and semantic names are confirmed; only the raw color values need final sign-off.
+- **Noto Sans JP actual Tauri bundle size:** CJK variable fonts are large. Fontsource with `unicode-range` subsetting reduces this, but exact Vite/Tauri build output size has not been measured. Plan: import Latin + JIS Level 1 subset only initially; measure binary delta; add Level 2 kanji only if article body text requires it.
+- **WebView2 glassmorphism performance on target hardware:** Cannot be simulated in Chrome DevTools or on macOS. Must be validated in `tauri dev` on a mid-tier Windows machine (e.g., Intel UHD or AMD Radeon integrated graphics) before any component using blur is considered shippable.
+- **CVA vs. tailwind-variants:** `class-variance-authority` 0.7.1 has had approximately one year without active development. `tailwind-variants` 0.3.x is the newer Tailwind 4-native alternative. Either is architecturally interchangeable. If CVA shows any Tailwind 4 incompatibility during Phase 2, switch to tailwind-variants without architectural impact.
 
 ---
 
 ## Sources
 
-### Primary (HIGH confidence — direct code analysis)
+### Primary (HIGH confidence)
+- Tailwind CSS 4 official docs — `@theme` directive, `@container` queries, v4 upgrade guide, gradient utility renames (`bg-linear-to-*` not `bg-gradient-to-*`)
+- motion.dev official docs — AnimatePresence, SVG animation, spring physics, scroll-linked animations
+- W3C WCAG 2.1 — contrast minimum (1.4.3, 4.5:1), animation from interactions (2.3.3)
+- Chromium bug tracker issue #497522 — `backdrop-filter` continuous GPU recomposition
+- Fontsource official docs — variable font npm packages, Vite integration, unicode-range subsetting
+- lucide-react npm registry v1.7.0 + lucide.dev official docs
+- tailwind-merge GitHub releases — v3.5.0 = Tailwind 4, v2.x = Tailwind 3 (maintainer confirmation)
+- Direct codebase analysis: `src/styles/globals.css`, `src/lib/motion-variants.ts`, `src/hooks/useMotionConfig.ts`, `design.md`, `.claude/rules/design-system.md`, `src/components/layout/AppShell.tsx`
 
-- `src-tauri/src/lib.rs` — 3 panic sites at lines 37, 51, 178; Tauri setup pattern
-- `src-tauri/src/services/scheduler.rs` — serial digest loop, no CancellationToken, no config sync
-- `src-tauri/src/services/dedup_service.rs` — `nfc()` at line 79; URL normalization logic
-- `src-tauri/src/services/personal_scoring.rs:63-138` — 5 sequential DB queries confirmed
-- `src-tauri/src/services/deepdive_service.rs` — `unwrap_or_default()` at line 55; no TTL check
-- `src-tauri/src/infra/rate_limiter.rs` — `as u32` truncation at line 47; Mutex across `.await` at lines 54-69
-- `src-tauri/src/error.rs` — `AppError::RateLimit` variant exists but unused in rate_limiter
-- `src-tauri/Cargo.lock` — all locked Rust dependency versions
-- `package.json` / `package-lock.json` — all locked TypeScript dependency versions
-- `vitest.config.ts` — `environment: 'node'` confirms V8 coverage backend choice
-- `.planning/codebase/CONCERNS.md` — full concern inventory used as ground truth
-- `.planning/PROJECT.md` — scope constraints (no new Wings, existing stack)
+### Secondary (MEDIUM confidence)
+- AniList.co live CSS inspection — competitor surface values (`#13161d`), card patterns, accent color usage, poster-ratio cards
+- Crunchyroll and Taiga desktop app analysis — competitor navigation patterns, motion baseline expectations
+- CyberCore CSS framework — neon glow variable pattern documentation
+- "Aesthetics in the AI era: Visual Trends 2026" (aigoodies.beehiiv.com, Nov 2025) — Heisei retro, PC-98, Y2K futurism as 2026 dominant otaku aesthetic
+- "Web Design Trends 2025: Insights from Japan" (netwise.jp, Jul 2025) — bento layouts, Y2K gradients, pixel fonts confirmed
+- Glassmorphism performance implementation guide — backdrop-filter budget recommendations; "complementary not dominant" usage rule
+- Tauri GitHub issue #4891 — hardware acceleration in WebView2 (community-reported)
+- Google Stitch workflow documentation (nxcode.io Vibe Design guide) — Stitch → Figma export pipeline
 
-### Secondary (HIGH confidence — established ecosystem patterns)
-
-- tokio-util `CancellationToken` API — standard tokio shutdown pattern since tokio-util 0.6
-- SQLite WAL mode / FTS5 rowid subquery — SQLite official documentation
-- `unicode_normalization` crate `nfkc()` — crate documentation, same API as `nfc()`
-- `sqlx` offline mode — sqlx README, standard Tauri CI practice
-- `@testing-library/react 16.x` — current version supporting React 19
-- `cargo-llvm-cov` — de facto Rust coverage standard; Windows support confirmed
-
-### Tertiary (MEDIUM confidence — requires implementation verification)
-
-- Tauri v2 `on_window_event(CloseRequested)` as shutdown hook — pattern confirmed in Tauri v2 docs; exact hook name needs verification against installed Tauri version
-- `OllamaClient`/`PerplexityClient` `Sync` bound — assumed given `Arc<reqwest::Client>` internals; must verify at compile time
-- personal_scoring CTE query performance vs. 5 simple queries — architecturally correct; benchmark required before committing
+### Tertiary (LOW confidence)
+- "Anime to UI/UX Design lessons" (Medium) — design philosophy inspiration only; not a technical reference
+- Heisei retro aesthetic documentation (aesthetics.fandom.com) — cultural context for design direction; taste-dependent
 
 ---
-*Research completed: 2026-03-27*
+*Research completed: 2026-03-28*
 *Ready for roadmap: yes*

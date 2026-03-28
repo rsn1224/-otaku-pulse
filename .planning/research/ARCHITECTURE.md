@@ -1,525 +1,601 @@
-# Architecture Research — OtakuPulse Stabilization
+# Architecture Research — OtakuPulse v2.0 Design System Overhaul
 
-**Domain:** 4-Layer Tauri v2 + Rust Desktop App — Stabilization Patterns
-**Researched:** 2026-03-27
-**Overall Confidence:** HIGH (based on direct codebase analysis + established Rust/Tokio patterns)
+**Domain:** Anime/Otaku-Rich UI Design System — Tauri v2 Desktop App
+**Researched:** 2026-03-28
+**Confidence:** HIGH (direct codebase analysis + Tailwind 4 official docs + Framer Motion / motion library verified)
+
+---
+
+## System Overview
+
+The v2.0 overhaul is a pure **frontend transformation** — the Rust 4-layer backend is untouched. The design system sits entirely within `src/` and is organized into four interlocking layers:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Design Token Layer                        │
+│   globals.css (@theme + :root)  ←  Stitch palette source    │
+│   animations.css · components.css                           │
+├─────────────────────────────────────────────────────────────┤
+│                  Motion / Animation Layer                    │
+│   motion-variants.ts  ←  useMotionConfig()  ←  components   │
+│   CSS @keyframes  ←  shimmer, scan, glow pulses             │
+├─────────────────────────────────────────────────────────────┤
+│                  Component Layer                             │
+│  ui/ primitives   wings/ layouts   common/ shared           │
+│  AppShell → Nav + TopBar + MainContent                      │
+├─────────────────────────────────────────────────────────────┤
+│                  Accessibility Layer                         │
+│  useAnnouncer · useFocusTrap · useFocusReturn · useScrollLock│
+│  useAnnouncerStore   prefers-reduced-motion guards           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+The Tauri IPC boundary (`invoke()`) is NOT changed. All Zustand stores (`useDiscoverStore`, `useArticleStore`, etc.) are also unchanged — only their consuming components get visual overhauls.
 
 ---
 
 ## Recommended Architecture
 
-The existing 4-layer architecture is fundamentally sound. Stabilization does NOT require structural changes — it requires hardening within each layer's existing boundaries. The primary architectural gaps are:
+### 1. Design Token Architecture: Hybrid @theme + :root
 
-1. Lifecycle management (scheduler loops have no shutdown path)
-2. Token accounting precision (rate limiter uses integer truncation)
-3. Shared config mutation without synchronization primitive
-4. Query fan-out where single queries suffice (N+1, 3-separate-queries)
-5. Cache invalidation by key mismatch (deepdive ignores summary hash)
+**Decision: Use Tailwind 4 `@theme` for utility-generating tokens + `:root` for semantic tokens.**
 
-### Layer Diagram (Current — Confirmed via Code Analysis)
+Tailwind CSS 4's `@theme` directive auto-generates utility classes (`bg-otaku-purple`, `text-neon-pink`) from tokens AND exposes them as CSS variables. `:root` tokens are for semantic aliases and values that do NOT need utility class generation (shadow values, composite effects, glassmorphism recipes).
+
+**Token Tier Structure:**
 
 ```
-React Frontend (src/)
-       │
-       │  invoke() / Tauri IPC
-       ▼
-┌─────────────────────────────────────────┐
-│  Command Layer  (src-tauri/src/commands/)│  ← thin wrappers only; 59 registered commands
-│  Result<T, AppError> → JSON serialize   │
-└──────────────┬──────────────────────────┘
-               │  delegates 100% to services
-               ▼
-┌─────────────────────────────────────────┐
-│  Service Layer  (src-tauri/src/services/)│  ← ALL business logic lives here
-│  collector, dedup, scoring, digest,     │
-│  deepdive, personal_scoring, scheduler  │
-└──────┬───────────────────┬──────────────┘
-       │ reads/writes DB    │ calls infra clients
-       ▼                    ▼
-┌─────────────┐  ┌──────────────────────────────────┐
-│ SQLite DB   │  │  Infra Layer  (src-tauri/src/infra/)│
-│ (SQLx pool) │  │  HTTP, rate_limiter, credential_  │
-└─────────────┘  │  store, anilist, perplexity,      │
-                 │  ollama, rss_fetcher, rawg, steam  │
-                 └──────────────────────────────────┘
-                              │
-                              ▼
-                 ┌──────────────────────────────────┐
-                 │  Parser Layer (src-tauri/parsers/) │
-                 │  rss_parser, graphql_parser,      │
-                 │  bbcode_parser, graphql_types      │
-                 └──────────────────────────────────┘
+Tier 1 — Raw Palette (in @theme)
+  --color-otaku-purple-*   (neon purple scale: 100–900)
+  --color-neon-pink-*      (sakura/hot pink scale)
+  --color-cyber-blue-*     (electric blue scale)
+  --color-surface-*        (deep dark backgrounds)
+  --color-ink-*            (text/content scale)
+
+Tier 2 — Semantic Tokens (in :root, alias to Tier 1)
+  --primary           → var(--color-otaku-purple-400)
+  --primary-soft      → rgba-form of --color-otaku-purple-400 at 15%
+  --tertiary          → var(--color-neon-pink-400)
+  --surface           → var(--color-surface-950)
+  --on-surface        → var(--color-ink-50)
+  (etc. — same semantic names as today, different raw values)
+
+Tier 3 — Component Tokens (in :root, per-component)
+  --card-bg           → var(--surface-container)
+  --card-border       → var(--outline-variant)
+  --nav-glow          → composite box-shadow recipe
+  --topbar-backdrop   → composite backdrop-filter recipe
 ```
 
-### AppState — Current Implementation (Confirmed)
+**Why this 3-tier approach:**
+- Tier 1 gives Tailwind utility classes for one-off use in JSX (`bg-otaku-purple-400`)
+- Tier 2 preserves ALL existing semantic token names — zero component changes needed for migration
+- Tier 3 isolates component-specific composite values, making per-component theming safe
 
-Source: `src-tauri/src/state.rs`, `src-tauri/src/lib.rs`
+**Token File Organization:**
 
 ```
-AppState {
-  db:  Arc<SqlitePool>          ← individual manage(), no Mutex
-  http: Arc<reqwest::Client>    ← individual manage(), no Mutex
-  llm: Arc<RwLock<LlmSettings>> ← RwLock for infrequent writes only
+src/styles/
+├── globals.css          — @import order + :root semantic tokens + @theme raw palette
+├── tokens/
+│   ├── palette.css      — @theme raw color/scale definitions (NEW)
+│   ├── semantic.css     — :root semantic aliases (extracted from globals.css)
+│   └── components.css   — per-component tokens (extracted from components.css)
+├── animations.css       — @keyframes: existing + new otaku-specific
+└── components.css       — component class recipes (existing, migrated)
+```
+
+**Migration path: zero-breakage token rename strategy.**
+
+The existing semantic token names (`--primary`, `--surface`, `--on-surface`, `--surface-container`, etc.) are preserved exactly. Only their raw HEX values change. This means:
+1. No component files need to be touched during token migration
+2. Legacy aliases in `globals.css` can be removed in one clean-up commit after all components are confirmed working
+3. Stitch → Figma generates a new palette; values flow into Tier 1 @theme only
+
+### 2. Otaku-Rich Color Palette
+
+**Direction: Neon-noir dark theme with anime/cyberpunk visual identity.**
+
+Confirmed approach from research: neon purple primary (existing `--primary: #bd9dff` is a good anchor), deepened darks, added neon pink tertiary, electric cyan for interactive feedback, scanline/grid overlay effects via CSS only (no canvas).
+
+**New palette values (to be confirmed from Stitch mockups):**
+
+```css
+@theme {
+  /* Otaku Purple — primary accent */
+  --color-otaku-purple-300: #d4baff;
+  --color-otaku-purple-400: #bd9dff;   /* existing --primary anchor */
+  --color-otaku-purple-500: #a07ae0;
+  --color-otaku-purple-600: #7f5bbf;
+
+  /* Neon Pink — tertiary, sakura accents */
+  --color-neon-pink-300: #ffb3d0;
+  --color-neon-pink-400: #ff79a8;
+  --color-neon-pink-500: #e8527f;
+
+  /* Cyber Blue — secondary, interactive */
+  --color-cyber-blue-400: #699cff;     /* existing --secondary anchor */
+  --color-cyber-blue-500: #4d7de0;
+
+  /* Deep Surface — background layers */
+  --color-surface-950: #09090f;        /* deeper than current #0e0e13 */
+  --color-surface-900: #0e0e13;        /* current --surface */
+  --color-surface-800: #14141b;
+  --color-surface-700: #19191f;        /* current --surface-container */
+  --color-surface-600: #1f1f28;
+  --color-surface-500: #252530;
+
+  /* Ink — text */
+  --color-ink-50:  #f9f5fd;            /* current --on-surface */
+  --color-ink-300: #c8c6cf;
+  --color-ink-400: #acaab1;            /* current --on-surface-variant */
+  --color-ink-600: #8a8890;            /* current --outline */
 }
 ```
 
-The individual `app.manage()` pattern is correctly implemented. No global `Mutex<AppState>` exists. This is the correct pattern.
+Note: Final values MUST come from Stitch mockups. The above are structural placeholders aligned to existing anchors.
+
+### 3. Animation Architecture: Hybrid CSS + motion/react
+
+**Decision: CSS for decorative/ambient effects, motion/react (Framer Motion) for interactive transitions.**
+
+| Effect Type | Technology | Reason |
+|-------------|-----------|--------|
+| Shimmer/skeleton | CSS @keyframes | Pure performance, no JS |
+| Neon glow pulse | CSS @keyframes | Ambient, runs unconditionally |
+| Scanline overlay | CSS @keyframes | Decorative background |
+| Card hover lift | CSS transition | No JS overhead, browser-optimized |
+| Wing page transitions | motion/react AnimatePresence | Needs enter/exit coordination |
+| Modal open/close | motion/react AnimatePresence | Already implemented |
+| Nav active indicator | motion/react layoutId | Already implemented |
+| Toast slide | motion/react | Already implemented |
+| Card stagger reveal | motion/react staggerChildren | Already implemented |
+| Sidebar slide-in | motion/react | Already implemented |
+
+**Existing motion-variants.ts is already well-structured** — it only needs new variant additions for the overhaul (card flip, neon pulse entry, etc.). The `useMotionConfig()` hook correctly handles `prefers-reduced-motion` at the React level.
+
+**New CSS @keyframes to add in animations.css:**
+
+```css
+/* Neon glow pulse for accent elements */
+@keyframes neonPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--primary)); }
+  50%       { filter: drop-shadow(0 0 12px var(--primary)); }
+}
+
+/* Scanline overlay (decorative, not interactive) */
+@keyframes scanlineScroll {
+  from { background-position: 0 0; }
+  to   { background-position: 0 8px; }
+}
+
+/* Card entrance with otaku flair */
+@keyframes cardPop {
+  0%   { opacity: 0; transform: scale(0.96) translateY(10px); }
+  60%  { opacity: 1; transform: scale(1.01) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+```
+
+**All new CSS animations must check `prefers-reduced-motion`** — the existing global rule in globals.css (`animation-duration: 0.01ms`) covers this automatically. For motion/react variants, `useMotionConfig()` must be used (already enforced by WIP architecture).
+
+### 4. Component Architecture: Modify Existing, Add New
+
+**Component change classification:**
+
+| Component | Action | What Changes |
+|-----------|--------|-------------|
+| `ui/Button` | MODIFY | New variant `neon` + `ghost-neon`; updated border-radius to CSS var; glow states |
+| `ui/Badge` | MODIFY | New variant `anime`, `manga`, `game` for content-type; otaku color assignments |
+| `ui/Card` | MODIFY | Glassmorphism option prop; neon border-top accent; hover shadow with glow |
+| `ui/Input` | MODIFY | Neon focus glow instead of simple ring; match new token names |
+| `ui/Modal` | MODIFY | Backdrop more dramatic (stronger blur); border glow accent; entrance animation update |
+| `ui/Spinner` | MODIFY | Dual-ring neon variant; existing stays as fallback |
+| `ui/ToggleGroup` | MODIFY | Active state neon underline/glow; smoother transition |
+| `layout/AppShell` | MODIFY | Sidebar width 60px → configurable; top bar height token; brand logo area |
+| `layout/TopBarSearch` | MODIFY | Expanded search with neon focus; possible command palette (future) |
+| `wings/*.tsx` | MODIFY | Background patterns, section headers, spacing updates |
+| `discover/DiscoverCard` | MODIFY | Image aspect ratio standardized; category badge visual; neon hover |
+| `discover/DeepDivePanel` | MODIFY | Chat bubble style; AI label redesign |
+| `schedule/AiringCard` | MODIFY | Anime thumbnail aspect ratio; countdown timer visual |
+
+**New components needed:**
+
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| `ui/GlowBorder` | Reusable neon border effect wrapper | `src/components/ui/` |
+| `ui/ScanlineOverlay` | Optional decorative scanline texture | `src/components/ui/` |
+| `ui/AnimeTag` | Styled content-type tag (anime/manga/game/news) | `src/components/ui/` |
+| `layout/SidebarNav` | Extracted from AppShell; wider variant support | `src/components/layout/` |
+| `common/HeroSection` | Featured content hero with large artwork support | `src/components/common/` |
+
+**Zero new Tauri commands needed** — this milestone is frontend-only.
+
+### 5. Responsive Layout Patterns for Desktop
+
+The app is fixed at 1100×700 min (Tauri window). Layout strategy differs from web responsive:
+
+**Desktop-specific layout tiers (not media queries — use CSS container queries):**
+
+```
+Narrow (900–1100px)  → Sidebar icon-only (60px), content single-column
+Standard (1100–1400px) → Sidebar icon+label (80px), content 2–3 column masonry
+Wide (1400px+)        → Sidebar with mini-preview (120px), content 3–4 column
+```
+
+**Use CSS container queries (`@container`) instead of viewport media queries** for Wing content areas — this makes Wings reusable independently of the app shell width.
+
+```css
+.wing-content { container-type: inline-size; container-name: wing; }
+
+@container wing (width < 500px)  { .card-grid { columns: 1; } }
+@container wing (width >= 700px) { .card-grid { columns: 2; } }
+@container wing (width >= 900px) { .card-grid { columns: 3; } }
+```
+
+**Tailwind 4 supports `@container` natively** — use `@lg:` prefix within the container context.
+
+### 6. AppShell Navigation Overhaul
+
+**Current:** 60px icon-only vertical sidebar with layout motion indicator.
+**Target:** Visually enriched sidebar with neon indicator, brand logo, possible category groupings.
+
+The sidebar is currently inlined in `AppShell.tsx`. For the overhaul, extract it to `SidebarNav` component:
+
+```
+AppShell.tsx
+├── SidebarNav (NEW — extracted from AppShell)
+│   ├── BrandLogo
+│   ├── NavItem × 5 (with motion layoutId indicator)
+│   └── CollectButton
+├── TopBarSearch (MODIFY)
+├── WindowControls (unchanged)
+└── MainContent (React.Suspense wrapper — unchanged)
+```
+
+**No state changes** — `activeWing` remains in `AppShell` and passed via props or a lightweight context. Do NOT move to Zustand; navigation state is ephemeral.
+
+### 7. Stitch → Figma → Code Pipeline
+
+**Step-by-step workflow for this milestone:**
+
+```
+Phase A: Stitch Mockup Generation
+  1. Write descriptive prompts per screen (Discover, Library, Schedule, Profile, Reader)
+  2. Include brand description: "dark cyberpunk anime news aggregator, neon purple #bd9dff accent,
+     deep dark backgrounds, scanline texture, neon glow effects, Japanese otaku aesthetic"
+  3. Use image input mode: upload reference screenshots of current app + anime design inspiration
+  4. Generate 2–3 variants per screen; keep best composition
+  5. Export to Figma via "Paste to Figma" button (standard mode)
+
+Phase B: Figma Refinement
+  1. In Figma: verify exported components map to existing component names
+  2. Create/update Figma design tokens matching the CSS @theme names exactly
+     (--color-otaku-purple-400, --surface-container, etc.)
+  3. Annotate each component with CSS variable names from design.md
+  4. Use Figma MCP to read component tokens into Claude Code context
+
+Phase C: Token Extraction
+  1. From Figma MCP: extract all color values as @theme palette entries
+  2. Map Figma tokens → Tier 1 @theme CSS vars (palette.css)
+  3. Verify Tier 2 semantic aliases still hold (--primary points to correct Tier 1 var)
+  4. Update design.md Stitch Token Mapping table with new values
+
+Phase D: Component Implementation
+  1. Read Figma component specs via Figma MCP (border-radius, spacing, shadow values)
+  2. Implement ui/ primitives first (they have no dependencies)
+  3. Implement layout/ components second
+  4. Implement wings/ and feature components last
+  5. Each component: implement → visual check → biome lint → typecheck
+```
+
+**Critical rule from design-workflow.md:** Never copy Stitch-generated HTML/CSS directly. Always translate to CSS variables and Tailwind classes aligned with design.md.
+
+### 8. Migration Strategy: MD3 → Otaku Theme
+
+**Zero-breakage migration in 4 sequential passes:**
+
+```
+Pass 1 — Token Values Only (all CSS, no TSX changes)
+  - Add @theme palette.css with new raw values
+  - Update :root semantic tokens to point to new Tier 1 values
+  - All components continue working — same semantic names, new visual values
+  - Verify with: npm run dev → visual check all 5 wings
+
+Pass 2 — Remove Legacy Aliases (CSS only)
+  - Delete legacy alias block from globals.css
+  - Search-replace all components using legacy names (--bg-card, --text-primary, etc.)
+  - Use biome to ensure no regressions
+  - This is safe because all components should already use new semantic names
+
+Pass 3 — Component Visual Overhaul (TSX + CSS changes)
+  - Update ui/ primitives with new variants and visual treatments
+  - Update AppShell → SidebarNav extraction
+  - Update wings/ visual treatments
+  - Component-by-component, no bulk changes
+
+Pass 4 — New Decorative Layer (additive only)
+  - Add GlowBorder, ScanlineOverlay, AnimeTag components
+  - Add new CSS @keyframes in animations.css
+  - Add new motion variants in motion-variants.ts
+  - Integrate into feature components where appropriate
+```
+
+**Pass 1 is reversible** — if the new palette looks wrong, you revert 2 CSS files only, nothing breaks.
 
 ---
 
 ## Component Boundaries
 
-| Component | Responsibility | Communicates With | Stabilization Priority |
-|-----------|---------------|-------------------|----------------------|
-| `scheduler.rs` | Spawns 2 background loops (collect, digest); reads SchedulerConfig snapshot at spawn time | services/collector, services/digest_generator, AppHandle (events) | CRITICAL — no shutdown path, no config sync |
-| `collector.rs` | Orchestrates per-feed collection: select Collector impl → collect → dedup → score → upsert | services/dedup_service, services/scoring_service, services/feed_queries, infra/* | HIGH — serial loop for N feeds, URL normalization is synchronous |
-| `dedup_service.rs` | Stateless pure functions: normalize_url, normalize_title, jaccard_bigram_similarity, generate_content_hash | None (pure functions) | HIGH — Unicode normalization uses NFC but title comparison may use un-normalized paths; URL param sort bug |
-| `personal_scoring.rs` | Computes per-article scores from interaction history; 5 separate DB round-trips for bookmarks/deepdive/feed_rates/feed_articles/dwell | services/article_queries (via db) | HIGH — 5 queries → 1 query opportunity; JSON profile parsed with unwrap_or fallback |
-| `rate_limiter.rs` | Token bucket per API source; acquire() waits for interval + checks tokens | AniList client (only consumer currently) | HIGH — integer truncation loses fractional tokens; retry_after check returns AppError::Internal (wrong variant) |
-| `deepdive_service.rs` | Q&A cache: key = (article_id, question); no TTL check on cache hit; follow_up JSON uses unwrap_or_default | infra/llm_client, DB | MEDIUM — cache key missing summary_hash; cleanup runs once at startup only |
-| `lib.rs setup()` | App bootstrap: DB init, credential load, scheduler start | All layers | MEDIUM — 3 panic sites (app_data_dir, db_pool, .run()); LLM lock uses .expect() |
-| `highlights_service.rs` | Per-article LLM calls for highlight reasons; iterates top-5 articles | infra/llm_client, DB | LOW — currently limited to 5 articles, not a fan-out problem yet |
-| `fts_queries.rs` | FTS5 full-text search | DB | MEDIUM — fetches all matching rows before pagination |
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| `AppShell` | App skeleton, wing routing, event listeners | All wings (via lazy import), Zustand `useArticleStore`, `useFilterStore` |
+| `SidebarNav` (new) | Navigation items, active indicator, brand logo | AppShell (props: activeWing, onNavigate) |
+| `ui/Button` | Interactive click target, all button variants | Consumers via props |
+| `ui/Card` | Container surface, hover states, glassmorphism option | Consumers via props + className |
+| `ui/Badge` | Categorical label, content-type indicator | Content-aware (passes variant based on category) |
+| `motion-variants.ts` | Centralized animation definitions | All animated components via `useMotionConfig()` |
+| `useMotionConfig()` | Reduced-motion-aware variant selection | Any component using motion/react |
+| `globals.css @theme` | Design token source of truth | Tailwind utility generation + all CSS var consumers |
+| `design.md` | Human-readable token documentation | Claude Code context, Figma MCP |
 
 ---
 
 ## Data Flow
 
-### Collection Flow (Scheduler-driven, every N minutes)
+### Token Flow (Design → Code)
 
 ```
-scheduler::collect_loop
-  │  tokio::interval tick
-  ▼
-collector::refresh_all(db, http)
-  │  for each enabled feed (serial loop — stabilization target)
-  ▼
-collector::collect_feed(db, http, feed)
-  │  select Collector impl by feed_type
-  ├─► RssCollector::collect()  → infra/rss_fetcher → parsers/rss_parser
-  ├─► AniListCollector::collect() → infra/anilist_client (rate_limiter.acquire()) → parsers/graphql_parser
-  ├─► SteamCollector::collect() → infra/steam_client
-  │
-  │  for each article: normalize_url (sync, on tokio thread — stabilization target)
-  │  for each article: generate_content_hash
-  │
-  ▼
-feed_queries::recent_articles_for_dedup(db, category)
-  │  load last 72h articles into memory
-  ▼
-dedup_service: jaccard_bigram_similarity + content_hash match
-  ▼
-scoring_service::calculate_importance(article, category)
-  ▼
-feed_queries::upsert_articles(db, articles)  ← batch insert
-  ▼
-app_handle.emit("collect-completed", result) → React toast
+Stitch Prompt / Image
+    ↓  (export / paste)
+Figma (design tokens, component specs)
+    ↓  (Figma MCP read)
+Claude Code context
+    ↓  (implement)
+globals.css @theme → Tailwind utility classes
+globals.css :root  → CSS variables
+    ↓
+components.css (recipes using var())
+    ↓
+*.tsx components (Tailwind classes + var() references)
 ```
 
-**Key Stabilization Points in this flow:**
-- Serial loop over feeds: convert to `futures::future::join_all` with per-feed timeout
-- Synchronous URL normalization inside async context: move CPU-bound work to `tokio::task::spawn_blocking` with rayon batch, or at minimum parallelize per-article within a feed
-- Unicode normalization inconsistency: dedup `normalize_title` uses `nfc()` but should use `nfkc()` for broader compatibility (half-width katakana, compatibility chars)
-- URL parameter sort bug: params are sorted correctly in `normalize_url`, but the sort is by raw string — should sort by decoded key name for full correctness
-
-### Digest Flow (Daily, serial categories — stabilization target)
+### Animation Flow (Interaction → Effect)
 
 ```
-scheduler::digest_loop
-  │  sleep until configured hour:minute
-  ▼
-for category in ["anime", "manga", "game", "pc"]  ← SERIAL (stabilization target)
-  │
-  ▼
-digest_generator::generate(db, llm, category, 24h)
-  │  SELECT top articles in category
-  │  LLM call (Perplexity/Ollama)
-  ▼
-digest_queries::insert_digest(db, digest)
-  ▼
-notification::notify_digest_ready(app_handle, category)
+User Action / State Change
+    ↓
+React component render
+    ↓
+useMotionConfig() → returns full OR reduced variants
+    ↓
+motion.div variants={variants.fadeSlideIn}
+    ↓
+motion/react → Web Animations API (respects reduced motion at React level)
 ```
 
-**Fix Pattern — Parallel digest generation:**
-```rust
-// Current: serial for loop
-// Target: tokio::join_all with per-category timeout
-
-let tasks: Vec<_> = CATEGORIES.iter().map(|cat| {
-    let state = state.clone();
-    let app_handle = app_handle.clone();
-    async move {
-        tokio::time::timeout(
-            Duration::from_secs(120),
-            generate_and_save_digest(&state, &app_handle, cat)
-        ).await
-    }
-}).collect();
-let results = futures::future::join_all(tasks).await;
-```
-
-### AI Summary / DeepDive Flow
+### Component Theme Flow
 
 ```
-Frontend: invoke("get_or_generate_summary", { articleId })
-  ▼
-commands/discover_ai.rs (thin wrapper)
-  ▼
-summary_service::get_or_generate(db, article_id, llm)
-  │  SELECT from summaries table
-  │  if cache hit → return (no TTL check currently — bug)
-  │  if miss → llm.complete(req)
-  ▼
-deepdive_service::answer_question(db, article_id, question, llm)
-  │  cache key: (article_id, question)  ← missing: summary_hash
-  │  follow_ups: serde_json::from_str().unwrap_or_default()  ← bug: silent data loss
-  ▼
-DB: INSERT into deepdive_cache
+@theme palette.css
+    ↓  (CSS var generation)
+:root semantic tokens
+    ↓  (var() aliases)
+Tailwind utility classes at build time
+    ↓
+component JSX: bg-(--surface-container) text-(--on-surface)
+                ↕                              ↕
+            resolved at runtime via CSS cascade
 ```
-
-**Cache Invalidation Fix:**
-Cache key must include a hash of the current article summary. When summary changes, deepdive cache is stale. Add `summary_hash TEXT` column to `deepdive_cache` table; invalidate when hash differs from current `articles.content_hash`.
-
-### Scheduler Config Sync Flow (Currently Broken)
-
-```
-User: Settings UI → invoke("set_scheduler_config", { intervalMinutes: 30 })
-  ▼
-commands/scheduler::set_scheduler_config
-  ▼
-DB: UPDATE settings (persisted)
-  │
-  ← collect_loop reads stale SchedulerConfig (cloned at startup, never updated)
-```
-
-**Fix Pattern:**
-```rust
-// In scheduler::start(), accept Arc<RwLock<SchedulerConfig>>
-pub fn start(
-    app_handle: AppHandle,
-    config: Arc<RwLock<SchedulerConfig>>,
-    ...
-) {
-    tauri::async_runtime::spawn(async move {
-        collect_loop(app_handle, config.clone(), db, http).await;
-    });
-}
-
-// In collect_loop: read config each iteration
-async fn collect_loop(config: Arc<RwLock<SchedulerConfig>>, ...) {
-    loop {
-        let (interval_mins, enabled) = {
-            let cfg = config.read().unwrap();  // or map_err
-            (cfg.collect_interval_minutes, cfg.enabled)
-        };
-        tokio::time::sleep(Duration::from_secs(interval_mins * 60)).await;
-        if !enabled { continue; }
-        // ...
-    }
-}
-```
-
-### Graceful Shutdown Flow (Currently Missing)
-
-No cancellation token exists. Loops run until OS kills the process.
-
-**Fix Pattern — CancellationToken:**
-```rust
-use tokio_util::sync::CancellationToken;
-
-pub struct SchedulerHandle {
-    cancel: CancellationToken,
-}
-
-pub fn start(...) -> SchedulerHandle {
-    let cancel = CancellationToken::new();
-    let child = cancel.child_token();
-
-    tauri::async_runtime::spawn(async move {
-        tokio::select! {
-            _ = collect_loop(...) => {}
-            _ = child.cancelled() => {
-                tracing::info!("collect_loop cancelled");
-            }
-        }
-    });
-
-    SchedulerHandle { cancel }
-}
-
-impl Drop for SchedulerHandle {
-    fn drop(&mut self) {
-        self.cancel.cancel();
-    }
-}
-```
-
-The `SchedulerHandle` should be stored via `app.manage()` and dropped on Tauri's `on_window_event` close event.
 
 ---
 
 ## Patterns to Follow
 
-### Pattern 1: CancellationToken for Background Tasks
+### Pattern 1: Token-First Component Design
 
-**What:** `tokio_util::sync::CancellationToken` provides cooperative cancellation across async task trees.
-**When:** Any `tokio::spawn`ed loop that must terminate cleanly on app exit.
-**Why:** Without it, scheduler loops become orphaned during Tauri app shutdown, potentially corrupting in-flight DB writes or leaving OS resources open.
+**What:** All visual properties reference CSS variables, never hardcoded values.
+**When:** Every component, every property (color, shadow, border-radius, spacing).
+**Why:** Token changes propagate app-wide in one CSS edit; Stitch/Figma values flow directly.
 
-```rust
-// Crate: tokio-util (already in tokio ecosystem, likely already transitive dep)
-// Usage:
-let token = CancellationToken::new();
-tokio::select! {
-    _ = work_loop() => {}
-    _ = token.cancelled() => { /* cleanup */ }
+```tsx
+// CORRECT
+<div className="bg-(--surface-container) border border-(--outline-variant) rounded-[var(--radius-card)]">
+
+// WRONG
+<div style={{ background: '#19191f', border: '1px solid #48474d' }}>
+```
+
+### Pattern 2: Motion Variant Indirection via useMotionConfig
+
+**What:** Never import motion variants directly; always go through `useMotionConfig()`.
+**When:** Every component using `motion.div` or any motion component.
+**Why:** Single switch handles `prefers-reduced-motion` for all animated components.
+
+```tsx
+// CORRECT
+const { variants, spring } = useMotionConfig();
+<motion.div variants={variants.fadeSlideIn} initial="hidden" animate="visible">
+
+// WRONG
+import { fadeSlideIn } from '../../lib/motion-variants';
+<motion.div variants={fadeSlideIn} initial="hidden" animate="visible">
+```
+
+### Pattern 3: Additive Variant Extension
+
+**What:** New visual variants added to existing components via `variant` prop; existing props unchanged.
+**When:** Adding `neon`, `glass`, `anime` variants to Button, Card, Badge.
+**Why:** Zero breakage to existing usage; new features opt-in.
+
+```tsx
+// Adding 'neon' variant to Button — existing 'primary' usage unchanged
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'neon'; // neon added
 }
 ```
 
-**Confidence:** HIGH — tokio-util is part of the tokio project, stable API since 0.6.
+### Pattern 4: Component Token Scoping
 
-### Pattern 2: f64 Token Accumulation in Rate Limiter
+**What:** Per-component CSS variables scoped to the component's root class.
+**When:** Complex components with multiple internal states (card, modal, sidebar).
+**Why:** Overridable per-context without affecting other components using the same semantic tokens.
 
-**What:** Track fractional tokens as f64; convert to integer only at `acquire()` boundary.
-**When:** Token bucket where refill rate * elapsed can be < 1.0 per check interval.
-**Why:** Current code: `(elapsed.as_secs_f64() * refill_rate) as u32` truncates sub-second accumulation. Over time, actual throughput is lower than configured limit (tokens are silently lost).
-
-```rust
-// Current (buggy):
-tokens: Arc<Mutex<u32>>,
-let tokens_to_add = (elapsed * refill_rate) as u32;  // loses fractions
-
-// Fixed:
-tokens: Arc<Mutex<f64>>,
-let tokens_to_add = elapsed * refill_rate;  // preserve fractions
-// At acquire:
-if *tokens >= 1.0 { *tokens -= 1.0; Ok(()) } else { Err(...) }
+```css
+.discover-card {
+  --card-bg: var(--surface-container);
+  --card-border: var(--outline-variant);
+  --card-glow: var(--primary-glow);
+  background: var(--card-bg);  /* component-scoped, overridable */
+}
+.discover-card.featured {
+  --card-bg: var(--surface-container-high);  /* local override */
+}
 ```
 
-**Confidence:** HIGH — direct analysis of `src-tauri/src/infra/rate_limiter.rs:47`.
+### Pattern 5: Stitch Token Mapping Discipline
 
-### Pattern 3: Single Aggregated Query over Multiple Round-trips
-
-**What:** Consolidate `batch_interaction_bonuses` from 5 separate queries to a single LEFT JOIN query with CASE aggregation.
-**When:** `personal_scoring::rescore_all` currently issues: bookmarked query, deepdive query, feed_rates query, feed_articles query, dwell_time query — serially.
-**Why:** 5 DB round-trips through SQLx for what is fundamentally a single aggregation. SQLite can do all GROUP BY/aggregation in one pass.
-
-```sql
--- Target single query:
-SELECT
-  a.id,
-  a.feed_id,
-  a.published_at,
-  a.title,
-  COALESCE(SUM(CASE WHEN ai.action = 'deepdive' THEN 1 ELSE 0 END), 0) AS deepdive_count,
-  COALESCE(AVG(CASE WHEN ai.dwell_seconds > 0 THEN ai.dwell_seconds END), 0) AS avg_dwell,
-  MAX(CASE WHEN a.is_bookmarked = 1 THEN 1 ELSE 0 END) AS is_bookmarked,
-  COUNT(CASE WHEN ai.action = 'open' THEN 1 END) * 1.0 / NULLIF(COUNT(ai.id), 0) AS open_rate
-FROM articles a
-LEFT JOIN article_interactions ai ON ai.article_id = a.id
-WHERE a.is_duplicate = 0
-ORDER BY a.published_at DESC
-LIMIT 2000
-GROUP BY a.id
-```
-
-**Confidence:** HIGH — direct analysis of `personal_scoring.rs:63-138`.
-
-### Pattern 4: Consistent Unicode Normalization (NFKC)
-
-**What:** Apply NFKC normalization (not NFC) for all title comparison paths.
-**When:** Dedup service `normalize_title` uses `nfc()` via `unicode_normalization` crate.
-**Why:** NFC handles combining character sequences but not compatibility equivalences (e.g., half-width katakana ｱ vs full-width ア, or squared characters ㎞ vs km). NFKC collapses both. Anime/manga titles frequently mix these forms.
-
-```rust
-// Current (line 79 of dedup_service.rs):
-let normalized = title.nfc().collect::<String>();
-
-// Fixed:
-let normalized = title.nfkc().collect::<String>();
-```
-
-The `unicode_normalization` crate already provides `nfkc()` — this is a one-line fix that unblocks the test coverage gap.
-**Confidence:** HIGH — `unicode_normalization` crate `nfkc()` function is stable.
-
-### Pattern 5: Panic-to-Error in Setup Code
-
-**What:** Replace `panic!()` / `.unwrap_or_else(|e| panic!(...))` in `lib.rs` setup with graceful error dialogs.
-**When:** DB init failure, app_data_dir failure. Currently panics without user-visible message.
-**Why:** On first run or after corruption, the app silently crashes rather than showing a dialog. Tauri provides dialog APIs for this exact case.
-
-```rust
-// Pattern: use tauri::Builder::setup() Result<(), Box<dyn Error>>
-// Return Err(...) from setup closure; Tauri surfaces this as a startup error
-.setup(|app| {
-    let db_pool = tauri::async_runtime::block_on(infra::database::init_pool(&db_path))
-        .map_err(|e| {
-            // Optionally show native dialog before returning
-            tracing::error!(error = %e, "DB init failed");
-            Box::new(e) as Box<dyn std::error::Error>
-        })?;
-    Ok(())
-})
-```
-
-**Confidence:** HIGH — Tauri v2 `setup()` closure returns `Result<(), Box<dyn std::error::Error>>`.
-
-### Pattern 6: AppError Variant Correctness
-
-**What:** Use domain-specific `AppError` variants; avoid `AppError::Internal` for rate limit and lock errors.
-**When:** `rate_limiter.rs:80-83` returns `AppError::Internal` when rate-limited; should return `AppError::RateLimit`.
-**Why:** Frontend error handling branches on `error.kind`; `"internal"` is opaque to the frontend and prevents user-visible rate-limit messaging.
-
-```rust
-// Current (rate_limiter.rs:80):
-Err(crate::error::AppError::Internal(format!("Rate limited. Retry after {:?}", duration)))
-
-// Fixed:
-Err(crate::error::AppError::RateLimit(format!("Retry after {:?}", duration)))
-```
-
-**Confidence:** HIGH — direct code analysis; `AppError::RateLimit` variant already exists in `error.rs`.
-
-### Pattern 7: FTS5 Pagination via Subquery
-
-**What:** Apply LIMIT/OFFSET inside the FTS match subquery before joining to main table.
-**When:** `fts_queries.rs` — search query returns all matches, then Rust slices.
-**Why:** FTS5 can return 10k+ matches for a broad term; loading all into Rust memory before slicing is O(n) memory.
-
-```sql
--- Target pattern:
-SELECT a.* FROM articles a
-WHERE a.id IN (
-  SELECT rowid FROM fts_articles
-  WHERE fts_articles MATCH ?
-  ORDER BY rank
-  LIMIT ? OFFSET ?
-)
-ORDER BY a.published_at DESC
-```
-
-**Confidence:** HIGH — standard SQLite FTS5 rowid-based pagination pattern.
+**What:** Every Stitch-generated color → CSS variable translation is documented in `design.md`.
+**When:** After every Stitch session before implementing any code.
+**Why:** Prevents Stitch HEX values from leaking into code; maintains single source of truth.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Mutex During .await
+### Anti-Pattern 1: Direct Stitch HTML Copy-Paste
 
-**What:** Holding a `tokio::sync::Mutex` guard across an `.await` point.
-**Why Bad:** Blocks the executor thread; can cause deadlock if another task awaiting the same lock is scheduled on the same thread.
-**Instead:** Acquire lock, copy data, release lock, then await.
+**What people do:** Copy Stitch-generated JSX/HTML verbatim into component files.
+**Why it's wrong:** Stitch uses hardcoded HEX values (`#bd9dff`) and arbitrary Tailwind classes that bypass the design token system. It also doesn't know about the existing component API.
+**Do this instead:** Use Stitch output as a visual reference only. Implement from scratch using CSS variables and existing component primitives.
 
-```rust
-// Bad:
-let lock = self.state.lock().await;
-let result = some_async_op(&lock.data).await;  // lock held during await!
+### Anti-Pattern 2: Introducing Motion at the CSS + JS Level for the Same Property
 
-// Good:
-let data = { let lock = self.state.lock().await; lock.data.clone() };
-let result = some_async_op(&data).await;
-```
+**What people do:** Add CSS `transition: transform 0.3s` AND `motion.div` animate={{ scale: ... }} on the same element.
+**Why it's wrong:** Browser handles both, creating unpredictable layering. CSS transition wins on paint but JS overrides can conflict.
+**Do this instead:** If motion/react owns an element's animation, remove the CSS transition for that property.
 
-Current risk: `rate_limiter.rs` acquires Mutex guards and calls `tokio::time::sleep().await` while holding `last_request` guard (lines 54-69). This is safe only because sleep doesn't require the lock, but the pattern is fragile.
+### Anti-Pattern 3: Adding New @theme Tokens That Shadow :root Variables
 
-### Anti-Pattern 2: spawn_blocking for I/O (and vice versa)
+**What people do:** Define `@theme { --surface: #xxx }` thinking it overrides the `:root { --surface }`.
+**Why it's wrong:** `@theme` generates `--color-surface` (namespaced) AND a CSS variable, but `:root` declaration takes precedence for the non-namespaced name. This creates confusing dual sources.
+**Do this instead:** Keep `@theme` for raw palette (namespaced: `--color-*`, `--shadow-*`) and `:root` for semantic aliases. Never put semantic names in `@theme`.
 
-**What:** Using `tokio::task::spawn_blocking` for async I/O; using async tasks for CPU-intensive work.
-**Why Bad:** spawn_blocking reserves a blocking thread from Tokio's pool (limited); async tasks run on the event loop and can't block.
-**Instead:** rayon for CPU-bound parallelism (URL normalization batch); spawn_blocking only for sync-only FFI or legacy sync APIs.
+### Anti-Pattern 4: Bulk Component Overhaul in One Commit
 
-### Anti-Pattern 3: RwLock Write-Lock on Every Read (LLM Settings)
+**What people do:** Rewrite all 7 UI primitives at once to verify the palette looks correct.
+**Why it's wrong:** If the palette is wrong (it will be on first attempt), you can't isolate which component broke what. Rollback is a full revert.
+**Do this instead:** Token migration first (Pass 1), visual check, then component-by-component.
 
-**What:** Using `state.llm.write()` when only reading settings.
-**Why Bad:** Write-locks exclude all concurrent readers; if called frequently during summary generation, it serializes all LLM operations.
-**Instead:** Use `read()` for reads; `write()` only when actually mutating (i.e., only on `set_llm_provider` command).
+### Anti-Pattern 5: Glassmorphism on Performance-Sensitive List Items
 
-### Anti-Pattern 4: One-shot Cleanup at Startup
-
-**What:** `deepdive_service::cleanup_expired_cache()` called once in setup, never again.
-**Why Bad:** If app runs continuously for days (reasonable for a desktop news reader), deepdive cache grows unbounded. A 30-day-old question-answer pair for a long-deleted article wastes storage.
-**Instead:** Add a periodic cleanup job to the scheduler (e.g., every 6 hours), capped by either COUNT > N or age > TTL.
-
-### Anti-Pattern 5: Silent JSON Fallback
-
-**What:** `serde_json::from_str(&profile.field).unwrap_or_else(|e| { warn!(...); Vec::new() })`
-**Why Bad:** Corrupted profile data causes scoring to silently degrade — user sees poor recommendations with no explanation.
-**Instead:** Surface deserialization failures as `AppError::InvalidInput`; let the command layer return an error the UI can handle (show a profile-repair prompt).
+**What people do:** Add `backdrop-filter: blur(12px)` to every DiscoverCard in a virtualised list.
+**Why it's wrong:** `backdrop-filter` triggers a compositing layer per element. 30+ cards with blur = severe GPU pressure in Tauri's Chromium view.
+**Do this instead:** Reserve glassmorphism for fixed/sticky elements (TopBar, Modal, Sidebar) — never list items. For cards, use `--surface-glass` (opacity-only) without blur.
 
 ---
 
-## Scalability Considerations
+## Build Order (Minimises Breakage Risk)
 
-| Concern | Current (Single User Desktop) | If Feed Count Grows to 100+ | If Article DB Exceeds 100k |
-|---------|-------------------------------|------------------------------|---------------------------|
-| Collection loop | Serial per feed, adequate for <30 feeds | Serial becomes bottleneck; switch to `join_all` with concurrency limit | N/A (fetch is incremental) |
-| Dedup lookup | `recent_articles_for_dedup` loads last 72h into memory; manageable | Memory pressure if category has 10k+ recent articles | Add DB-side index scan instead of in-memory Jaccard loop |
-| Personal scoring | 5 DB queries × rescore_all calls | Merge to 1 query; no change needed | Add `article_scores` materialized table (already designed for this) |
-| FTS search | In-memory slice after FTS match | Add rowid subquery pagination (fix now) | Add BM25 ranking + index optimization |
-| DeepDive cache | Grows unbounded; cleanup at startup only | Add periodic LRU eviction | Add `MAX(cache_size_mb)` limit |
-| Rate limiter | Per-client singleton; single-token bucket | Sufficient for 1 user; not applicable to multi-user | N/A |
-| Digest generation | Serial, 4 categories | `join_all` reduces wait from 4x to 1x LLM latency | N/A (content bounded by 24h window) |
+The key constraint is that token changes are backward-compatible, but component overhauls are not. Build in this order:
+
+```
+Step 1 — Stitch Mockup Session
+  Create prompts, generate designs, identify final palette
+  Output: approved Figma file with annotated tokens
+
+Step 2 — Design Token Update (Pass 1)
+  - Create src/styles/tokens/palette.css with @theme entries
+  - Update :root semantic tokens in globals.css to new values
+  - Update design.md Stitch Token Mapping table
+  - Verify: npm run dev, visual check 5 wings, npm run check, npm run typecheck
+  Output: new palette visible everywhere, zero broken components
+
+Step 3 — Legacy Alias Removal (Pass 2)
+  - Search-replace legacy var names across all .tsx and .css files
+  - Delete legacy aliases block from globals.css
+  - Verify: same checks as Step 2
+  Output: clean token reference tree
+
+Step 4 — UI Primitives Overhaul (Pass 3, top-down by dependency)
+  Order: Badge → Spinner → Button → Input → ToggleGroup → Card → Modal
+  (Badge has no dependents among primitives; Modal depends on all others)
+  - For each: implement → visual check → biome → typecheck
+  Output: 7 primitives with new visual + new variants
+
+Step 5 — Layout Overhaul
+  - Extract SidebarNav from AppShell
+  - Update AppShell with new layout tokens
+  - Update TopBarSearch neon focus
+  Output: new navigation visual identity
+
+Step 6 — Feature Components
+  - Wings visual treatment (backgrounds, section headers)
+  - DiscoverCard, AiringCard, ArticleReader overhaul
+  - HighlightsSection hero treatment
+  Output: content areas match design spec
+
+Step 7 — New Decorative Components (Pass 4, additive)
+  - Add GlowBorder, ScanlineOverlay, AnimeTag
+  - Add new CSS @keyframes
+  - Integrate into feature components
+  Output: optional otaku flair layer active
+
+Step 8 — Motion Enhancements
+  - Add new variants to motion-variants.ts
+  - Integrate wing transitions via AnimatePresence
+  - Verify useMotionConfig() reduced-motion path
+  Output: polished interaction transitions
+```
 
 ---
 
-## Build Order for Stabilization Phases
+## Scaling Considerations
 
-The following dependency graph drives the recommended phase ordering:
+| Concern | Current (1 user, desktop) | Future (if web/mobile added) |
+|---------|--------------------------|------------------------------|
+| Token complexity | Flat 3-tier is sufficient | Consider Style Dictionary for multi-platform output |
+| Animation perf | motion/react + CSS hybrid fine for Chromium | Web: same. Mobile Tauri: GPU budget tighter |
+| Component library | Local primitives sufficient | Could extract to separate package |
+| Dark-only theme | No light mode needed | If added: wrap semantic tokens in `color-scheme` queries |
 
-```
-Phase 1: Foundation Safety (no regressions possible without this)
-  ├── AppError variant correctness (rate_limiter → AppError::RateLimit)
-  ├── lib.rs panic → structured error (startup reliability)
-  ├── Unicode normalization fix (dedup correctness; everything downstream depends on dedup)
-  └── URL param sort canonicalization (dedup correctness)
+---
 
-Phase 2: Async Safety (fixes structural problems in scheduler/rate limiter)
-  ├── Rate limiter f64 token accounting (correctness)
-  ├── CancellationToken for scheduler loops (shutdown safety)
-  ├── Arc<RwLock<SchedulerConfig>> propagation (config sync)
-  └── Digest loop parallelization (performance, but architecturally adjacent to CancellationToken work)
+## Integration Points
 
-Phase 3: Query Optimization (requires Phase 1 dedup fixes to be testable)
-  ├── personal_scoring: 5 queries → 1 query
-  ├── FTS pagination fix
-  ├── highlights N+1 elimination
-  └── JSON profile validation (AppError::InvalidInput, not silent fallback)
+### Stitch Integration
 
-Phase 4: Cache Hardening (requires Phase 1 + 2 to be stable)
-  ├── DeepDive cache: add summary_hash to cache key
-  ├── DeepDive follow_up: log + repair instead of unwrap_or_default
-  ├── DeepDive cleanup: periodic job in scheduler (requires Phase 2 scheduler work)
-  └── LRU eviction cap for deepdive cache
+| Integration | Method | Notes |
+|-------------|--------|-------|
+| Stitch → Figma | "Paste to Figma" export (standard mode) | Use standard mode; experimental mode layouts may not match Tauri window constraints |
+| Figma → Code | Figma MCP + manual token extraction | Read component tokens directly into Claude Code context for accurate implementation |
+| Design values → CSS | design.md Stitch Token Mapping table | All Stitch HEX values MUST be translated to CSS variables via this table before use |
 
-Phase 5: Test Coverage (can run after each Phase, but listed separately)
-  ├── dedup_service: 20+ test cases (Unicode, URL variants, hash collisions)
-  ├── rate_limiter: concurrency stress test, 429 simulation
-  ├── scheduler: CancellationToken shutdown test
-  ├── personal_scoring: edge cases (empty profile, NaN guard, bounds)
-  └── TypeScript hooks: Tauri error shape test (plain object, not Error instance)
+### Internal Architecture Boundaries
 
-Phase 6: Security Audit
-  ├── Perplexity API key log scrub audit
-  ├── user_profile JSON size limit (DB CHECK constraint + UI input limit)
-  └── OPML URL validation before insert
-```
-
-**Critical Dependency:** Phases 3 and 4 depend on Phase 1 being complete because query optimization and cache hardening are only meaningful once dedup correctness is established (otherwise you're optimizing on top of broken data).
+| Boundary | Communication | Notes |
+|----------|--------------|-------|
+| AppShell ↔ SidebarNav | Props (activeWing, onNavigate) | No Zustand for nav state — ephemeral, local to AppShell |
+| Component ↔ Design Tokens | CSS variables via Tailwind classes | Never bypass token system with inline styles |
+| Animated component ↔ motion-variants | useMotionConfig() hook only | Direct import of variants bypasses reduced-motion guard |
+| Wings ↔ Zustand stores | Unchanged — stores are backend-facing, not design-coupled | Visual overhaul does not touch store interfaces |
+| CSS @theme ↔ :root | @theme for raw palette; :root for semantic | Never duplicate a name across both (causes specificity confusion) |
+| components.css ↔ Tailwind classes | components.css uses CSS var() only; no Tailwind in .css | Keep concerns separated: Tailwind in JSX, var() in .css |
 
 ---
 
 ## Sources
 
-| Source | Type | Confidence | Notes |
-|--------|------|------------|-------|
-| `src-tauri/src/infra/rate_limiter.rs` | Direct code analysis | HIGH | Token truncation bug confirmed at line 47 |
-| `src-tauri/src/services/scheduler.rs` | Direct code analysis | HIGH | No CancellationToken, no config sync confirmed |
-| `src-tauri/src/services/personal_scoring.rs:63-138` | Direct code analysis | HIGH | 5 separate DB queries confirmed |
-| `src-tauri/src/services/dedup_service.rs:79` | Direct code analysis | HIGH | `nfc()` call confirmed, NFKC needed for JA |
-| `src-tauri/src/lib.rs:37,51,178` | Direct code analysis | HIGH | 3 panic sites confirmed |
-| `src-tauri/src/error.rs` | Direct code analysis | HIGH | `AppError::RateLimit` variant exists but unused in rate_limiter |
-| `src-tauri/src/services/deepdive_service.rs:55` | Direct code analysis | HIGH | `unwrap_or_default()` on cache JSON confirmed |
-| `.planning/codebase/CONCERNS.md` | Prior analysis document | HIGH | Cross-referenced all findings |
-| tokio-util `CancellationToken` | Established Tokio ecosystem pattern | HIGH | Standard pattern since tokio-util 0.6; no API changes |
-| SQLite FTS5 rowid pagination | SQLite official docs pattern | HIGH | Standard FTS5 rowid subquery technique |
-| Rust `unicode_normalization` crate | Crate documentation | HIGH | `nfkc()` method is stable, same API as `nfc()` |
+- Tailwind CSS 4 `@theme` directive documentation: https://tailwindcss.com/docs/theme (HIGH confidence — official docs)
+- Tailwind CSS 4 release blog: https://tailwindcss.com/blog/tailwindcss-v4 (HIGH confidence — official)
+- Google Stitch announcement and workflow: https://developers.googleblog.com/stitch-a-new-way-to-design-uis/ (HIGH confidence — official Google Developers Blog)
+- Google Stitch 2026 guide (Vibe Design, export pipeline): https://www.nxcode.io/resources/news/google-stitch-complete-guide-vibe-design-2026 (MEDIUM confidence — third-party)
+- motion/react (Framer Motion) animation library: https://motion.dev/ (HIGH confidence — official)
+- Existing codebase analysis: `src/lib/motion-variants.ts`, `src/hooks/useMotionConfig.ts`, `src/styles/globals.css`, `src/styles/animations.css`, `src/components/layout/AppShell.tsx`, `design.md` (HIGH confidence — direct code analysis)
+- Cyberpunk CSS design patterns: https://www.cssscript.com/cyberpunk-css-framework-cybercore/ (MEDIUM confidence — reference only)
+- Design token migration strategies: https://medium.com/@stevedodierlazaro/automate-design-token-migrations-with-codemods-a21cf8bbd53b (MEDIUM confidence — community)
+
+---
+
+*Architecture research for: OtakuPulse v2.0 — Anime/Otaku-Rich Design System Overhaul*
+*Researched: 2026-03-28*

@@ -1,259 +1,206 @@
-# Technology Stack — Stabilization & Optimization
+# Technology Stack — v2.0 Otaku-Rich Design Overhaul
 
 **Project:** OtakuPulse
-**Researched:** 2026-03-27
-**Mode:** Ecosystem — what tools/patterns to add/confirm for stabilizing an existing Tauri v2 + Rust + React codebase
+**Researched:** 2026-03-28
+**Milestone:** v2.0 UI/UX Design Overhaul (subsequent to v1.0 Stabilization)
+**Mode:** Ecosystem — what NEW packages are needed for anime/otaku visual identity overhaul
 
 ---
 
 ## Executive Summary
 
-The existing stack is well-chosen and requires no major additions. The stabilization milestone calls for a small number of targeted additions on top of the existing dependencies: `tokio-util` for `CancellationToken`, `rayon` for CPU-parallel normalization, `cargo-llvm-cov` for Rust coverage, and `@vitest/coverage-v8` for TypeScript coverage. Everything else is already present and at a current version. No framework swaps, no new runtimes.
+The existing stack (React 19 + Tailwind CSS 4 + motion 12 + Zustand 5) already covers 80% of the design overhaul needs. The key additions are: a utility-first class composition layer (clsx + tailwind-merge) to handle variant logic cleanly, an icon library (lucide-react), self-hosted Japanese variable fonts (@fontsource-variable/noto-sans-jp), and a lightweight class-variance component pattern (class-variance-authority). Particle effects and heavy animation libraries are explicitly NOT recommended — they destroy Tauri desktop performance. All neon, glassmorphism, and gradient effects are achievable with pure CSS custom properties on top of the existing Tailwind 4 @theme system. The existing `motion` library (Framer Motion fork) is already installed and sufficient for all UI animation needs.
+
+**Zero new animation libraries are needed.** `motion` 12.x already provides springs, keyframes, gestures, SVG path drawing, and scroll-linked animations. Adding GSAP, anime.js, react-spring, or tsParticles on top would create redundancy and bloat.
 
 ---
 
-## Current Stack Audit
+## What Is Already Sufficient (Do Not Re-Add)
 
-All versions are confirmed from `Cargo.lock` and `package-lock.json` as of 2026-03-27.
+These are confirmed installed and cover the stated design needs without additions:
 
-### Rust — Locked Versions
-
-| Crate | Locked Version | Status |
-|-------|---------------|--------|
-| tokio | 1.50.0 | Current — no action needed |
-| thiserror | 2.0.18 | Current — already at v2 |
-| anyhow | 1.0.102 | Current |
-| sqlx | 0.8.6 | Current |
-| tracing | 0.1.x | Current |
-| tracing-subscriber | 0.3.x | Current |
-| wiremock | 0.6 | Current |
-| reqwest | 0.12.x | Current |
-| tokio-cron-scheduler | 0.13.0 | Current |
-| unicode-normalization | 0.1.x | Current — already present, use it consistently |
-
-### TypeScript — Locked Versions
-
-| Package | Locked Version | Status |
-|---------|---------------|--------|
-| react | 19.1.0 | Current |
-| vitest | 4.1.0 | Current |
-| zustand | 5.0.11 | Current |
-| tailwindcss | 4.2.1 | Current |
-| @biomejs/biome | 2.4.7 | Current |
-| pino | 10.3.1 | Current |
+| Package | Version | Covers |
+|---------|---------|--------|
+| `motion` | 12.38.0 | Spring physics, keyframes, SVG draw, scroll-linked, gestures, exit animations |
+| `tailwindcss` | 4.2.1 | @theme design tokens, backdrop-blur, gradients, arbitrary values |
+| `@tanstack/react-virtual` | 3.13.23 | Virtualized card lists (already installed, unused — activate it) |
+| `zustand` | 5.0.11 | Animation state (reduced motion preference, panel open/close) |
 
 ---
 
-## Recommended Stack — Additions Only
+## Recommended Stack Additions (New Packages Only)
 
-The following are the only additions needed for stabilization. Rationale is project-specific.
+### Priority 1 — Required for Design System
 
-### Rust Additions
+| Package | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `lucide-react` | `^1.7.0` | SVG icon library | v1.0 released 2026. 1400+ icons, tree-shakable (each icon is a separate import), pure inline SVG, TypeScript-typed. Zero runtime API calls unlike Iconify. Matches the existing design language (clean lines, adjustable stroke). Install: `npm i lucide-react`. Use: `import { Flame, Star, Bookmark } from 'lucide-react'`. |
+| `clsx` | `^2.1.1` | Conditional className construction | 239 bytes gzipped. Replaces ad-hoc string concatenation in components. Pairs with tailwind-merge for safe class overriding. Pattern: `cn(base, conditional, override)`. No dependencies. |
+| `tailwind-merge` | `^3.5.0` | Conflict-safe Tailwind class merging | v3.5.0 explicitly supports Tailwind CSS 4.x (v2.x was for Tailwind 3 only — do not use v2 here). Prevents class conflicts in component `className` props. Required for any reusable component that accepts a `className` override prop. |
+| `class-variance-authority` | `^0.7.1` | Component variant system | Declarative API for Button sizes/variants, Badge colors, Card states. Avoids sprawling ternary expressions in JSX. Works with any class string — not Tailwind-specific. Last published ~1 year ago but stable/maintained. Alternative: `tailwind-variants` (newer, Tailwind-native) — see Alternatives below. |
 
-| Crate | Version to Add | Purpose | Why |
-|-------|---------------|---------|-----|
-| `tokio-util` | `0.7` (features = ["rt"]) | `CancellationToken` for scheduler shutdown | Tokio's own utility crate. `CancellationToken` is the idiomatic way to signal graceful shutdown to `collect_loop` and `digest_loop`. CONCERNS.md identifies this as the fix for "Scheduler loop shutdown untested". Alternative of `tokio::sync::oneshot` requires manual propagation; `CancellationToken` is cloneable and composable across multiple tasks. |
-| `rayon` | `1.10` | CPU-parallel URL normalization | CONCERNS.md: "normalize_url is O(n) per URL; called on every article before DB write". `rayon` adds data-parallelism for CPU-bound work (regex, lowercasing, param sorting) without async complexity. Should not be used inside `async fn` — call via `tokio::task::spawn_blocking`. |
-| `lru` | `0.12` | LRU cache eviction for DeepDive cache | CONCERNS.md: "implement LRU eviction when cache size exceeds threshold". The `lru` crate (MIT, no unsafe) provides `LruCache<K, V>`. Lighter than `moka` (which is for concurrent async caches). In-process cache keyed by `(article_id, question)`. Wrap in `Arc<Mutex<LruCache<...>>>` — acceptable here because eviction is fast. |
-| `cargo-llvm-cov` | `0.6` (dev tool only) | Rust test coverage | The standard for Tauri/Tokio projects. Produces LCOV and HTML reports. Supports `--doctests`. Install once: `cargo install cargo-llvm-cov`. Command: `cargo llvm-cov --all-features`. Provides line + branch coverage that `cargo test` alone does not. |
-
-**Confidence:** HIGH — all four are referenced in official tokio / rayon / Rust docs and are de facto standard choices for their respective problems.
-
-### TypeScript Additions
-
-| Package | Version to Add | Purpose | Why |
-|---------|---------------|---------|-----|
-| `@vitest/coverage-v8` | `4.x` (matches vitest version) | TypeScript test coverage | The V8 provider is Vitest's recommended coverage backend for non-browser environments. The project already uses `environment: 'node'` in vitest.config.ts, making V8 the correct choice over Istanbul. Command: `vitest run --coverage`. Requires zero configuration changes beyond adding the package. |
-| `@testing-library/react` | `16.x` | Component rendering tests | CONCERNS.md identifies "Component rendering with missing data" as untested. Testing Library is the only ergonomic way to test React 19 components in Vitest. It renders into jsdom and exposes the DOM API cleanly. Note: requires changing `environment` to `'jsdom'` in vitest.config.ts for component test files (can be set per-file via `@vitest-environment jsdom`). |
-| `@testing-library/user-event` | `14.x` | Simulated user interactions in component tests | Companion to Testing Library. Required for testing keyboard shortcuts (`useKeyboardShortcuts.ts`) and modal interactions (`Modal.tsx`). Uses real browser event simulation rather than synthetic `.fireEvent()`. |
-
-**Confidence:** HIGH — these are the ecosystem standard for the stated Vitest version.
-
----
-
-## Existing Libraries — How to Use for Stabilization
-
-These are already in `Cargo.toml` but require pattern changes for the stabilization work.
-
-### `thiserror` 2.0 + `anyhow` 1.x (already present)
-
-**Pattern:** Use `thiserror` for all library/service layer error types (`AppError`). Use `anyhow` only in test setup code or binary entry points (`main.rs`). Do not use `anyhow` in `services/` or `infra/` — callers need to pattern-match on `AppError::Kind`.
-
-The `thiserror` v2 change relevant here: `#[error(transparent)]` now correctly avoids double-formatting. The existing `AppError` should use `#[from]` on inner error variants rather than `anyhow::Error` as a catch-all field. This preserves `kind` discrimination for the frontend.
-
-```rust
-// Use this pattern in services/
-#[derive(Debug, thiserror::Error, serde::Serialize)]
-pub enum AppError {
-    #[error("database error: {0}")]
-    Database(#[from] sqlx::Error),
-    #[error("not found: {0}")]
-    NotFound(String),
-    #[error("rate limited: retry after {retry_after}s")]
-    RateLimited { retry_after: u64 },
-    #[error("internal: {0}")]
-    Internal(String),
-}
-// Do NOT add: Other(#[from] anyhow::Error) — loses kind discrimination
-```
-
-**Confidence:** HIGH — derived from thiserror docs and the existing AppError usage pattern in the codebase.
-
-### `tokio` 1.50 `CancellationToken` via `tokio-util` (addition needed)
-
-**Pattern:** The scheduler's `collect_loop` and `digest_loop` currently run forever with no shutdown path. The fix is:
-
-```rust
-// In scheduler::start()
-let token = tokio_util::sync::CancellationToken::new();
-let collect_token = token.child_token();
-let digest_token = token.child_token();
-
-tauri::async_runtime::spawn(async move {
-    tokio::select! {
-        _ = collect_loop(...) => {}
-        _ = collect_token.cancelled() => { info!("collect_loop shutdown"); }
-    }
-});
-// Store token in AppState for on_exit hook to call token.cancel()
-```
-
-Store the root `CancellationToken` in `app.manage()` so the `on_exit` Tauri hook can call `token.cancel()`. This enables testable shutdown.
-
-**Confidence:** HIGH — `tokio_util::sync::CancellationToken` is the canonical tokio shutdown pattern since tokio 1.x.
-
-### `tokio::join!` / `futures::future::join_all` for parallel digest loop
-
-The `digest_loop` currently runs 4 categories sequentially. The fix uses `tokio::join!` (for a fixed 4 tasks) rather than `join_all` (for dynamic N tasks). `join!` is simpler, avoids a `Vec<Box<dyn Future>>` allocation, and the categories are always 4.
-
-```rust
-// Replace the for loop with:
-let (r1, r2, r3, r4) = tokio::join!(
-    generate_with_timeout(&state, "anime", timeout),
-    generate_with_timeout(&state, "manga", timeout),
-    generate_with_timeout(&state, "game", timeout),
-    generate_with_timeout(&state, "pc", timeout),
-);
-```
-
-Wrap each in `tokio::time::timeout(Duration::from_secs(120), ...)` to prevent one slow API from blocking the others.
-
-**Confidence:** HIGH — standard tokio concurrent futures pattern.
-
-### `sqlx` offline mode for CI
-
-`sqlx` 0.8 supports `SQLX_OFFLINE=true` which reads from `.sqlx/` directory committed to git. This prevents CI failures when the SQLite file is not present at compile time. Enable with:
-
+**Combined install:**
 ```bash
-cargo sqlx prepare   # generates .sqlx/ metadata
-# commit .sqlx/ to git
+npm i lucide-react clsx tailwind-merge class-variance-authority
 ```
 
-Set `SQLX_OFFLINE=true` in CI environment. No version change needed.
+**Standard `cn()` helper to add to `src/lib/utils.ts`:**
+```typescript
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-**Confidence:** HIGH — documented in sqlx README, standard practice for Tauri CI.
-
-### SQLite WAL mode (via sqlx pool options)
-
-The existing `SqlitePool` should be configured with WAL mode and optimal settings. This is a connection-time change, not a schema migration.
-
-```rust
-SqlitePoolOptions::new()
-    .max_connections(5)
-    .connect_with(
-        SqliteConnectOptions::new()
-            .filename(&db_path)
-            .journal_mode(SqliteJournalMode::Wal)
-            .synchronous(SqliteSynchronous::Normal)  // Safe with WAL
-            .pragma("cache_size", "-64000")          // 64MB page cache
-            .pragma("temp_store", "memory")
-            .pragma("mmap_size", "268435456")        // 256MB mmap
-            .pragma("foreign_keys", "ON")
-            .create_if_missing(true),
-    )
-    .await?
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
 ```
 
-WAL mode allows concurrent reads during writes, which benefits the scheduler (writes) and query commands (reads) running simultaneously. This is a one-line config change with measurable throughput improvement for this access pattern.
+### Priority 2 — Typography (Japanese Font Support)
 
-**Confidence:** HIGH — official SQLite documentation + sqlx `SqliteConnectOptions` API.
+| Package | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `@fontsource-variable/noto-sans-jp` | `^5.x` | Self-hosted Japanese variable font (UI body/labels) | Tauri desktop apps cannot reliably load Google Fonts at runtime. Fontsource bundles font files as npm assets, loaded by Vite at build time. Variable font means one file covers weights 100–900. Noto Sans JP is the standard for legible Japanese text UI. The `@fontsource-variable` variant uses a single wght axis file rather than 7 separate weight files — critical for Tauri bundle size. Import: `import "@fontsource-variable/noto-sans-jp"` in `main.tsx`. |
+| `@fontsource-variable/noto-serif-jp` | `^5.x` | Self-hosted Japanese serif variable font (display headings) | Optional but recommended for anime aesthetic headings. Noto Serif JP variable gives the editorial, manga-adjacent look suitable for article titles and section headers. Only import specific weights (ExtraBold/Black) to minimize bundle: `import "@fontsource-variable/noto-serif-jp/wght-italic.css"`. |
 
-### FTS5 query with pagination via ROWID subquery
-
-CONCERNS.md identifies that FTS search loads all matches before paginating. The fix is a ROWID subquery:
-
-```sql
-SELECT a.* FROM articles a
-WHERE a.id IN (
-    SELECT rowid FROM fts_articles
-    WHERE fts_articles MATCH ?1
-    ORDER BY rank
-    LIMIT ?3 OFFSET ?2
-)
-ORDER BY a.published_at DESC
+**Install:**
+```bash
+npm i @fontsource-variable/noto-sans-jp @fontsource-variable/noto-serif-jp
 ```
 
-This is a sqlx query change, not a dependency change. The FTS5 `rank` column provides relevance scoring for free.
+**CSS integration in `globals.css` @theme:**
+```css
+@theme {
+  --font-sans: "Noto Sans JP Variable", system-ui, sans-serif;
+  --font-display: "Noto Serif JP Variable", Georgia, serif;
+}
+```
 
-**Confidence:** HIGH — SQLite FTS5 documentation, confirmed pattern.
+**Confidence:** MEDIUM — Fontsource self-hosting is verified as the correct approach for Tauri (no external network access during app use), but exact bundle impact on a Tauri binary has not been measured. CJK fonts are large; lazy-loading specific subsets via Vite is recommended.
+
+### Priority 3 — Optional Utility Enhancements
+
+| Package | Version | Purpose | Why | Threshold |
+|---------|---------|---------|-----|-----------|
+| `@tauri-apps/plugin-window-state` | already installed | Persist custom titlebar state | Already in package.json. Enabling `decorations: false` in tauri.conf.json + `data-tauri-drag-region` on custom titlebar element is sufficient for anime-styled window chrome — no new package needed. | Use existing |
 
 ---
 
-## What NOT to Add (and Why)
+## CSS-Only Techniques (No New Packages Needed)
+
+These effects are achievable with Tailwind 4 + CSS custom properties alone. Adding a library for these would be bloat.
+
+### Neon Glow Effects
+
+Pure `box-shadow` and `text-shadow` with CSS custom property colors:
+
+```css
+/* Add to globals.css — neon glow utilities */
+@utility neon-primary {
+  box-shadow:
+    0 0 8px var(--primary),
+    0 0 24px rgba(189, 157, 255, 0.4),
+    0 0 48px rgba(189, 157, 255, 0.2);
+}
+
+@utility neon-text {
+  text-shadow:
+    0 0 8px var(--primary),
+    0 0 20px rgba(189, 157, 255, 0.6);
+}
+```
+
+**Performance note:** Animating `box-shadow` triggers GPU compositing but causes repaints on Chromium. Limit to `:hover` and entry animations only — not continuous CSS `@keyframes` loops. Use `will-change: filter` on the parent instead of box-shadow for continuous glows (uses filter: drop-shadow which composites on the GPU without repaint).
+
+### Glassmorphism Panels
+
+Tailwind 4 utilities are sufficient:
+```html
+<!-- Glass card pattern -->
+<div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-lg">
+```
+
+The existing `--surface-glass: rgba(255,255,255,0.03)` token in `globals.css` is the correct base value. Add a `--surface-glass-border: rgba(255,255,255,0.08)` token for the border.
+
+### Gradient Conic/Radial for Anime Color Palettes
+
+Tailwind 4 supports `bg-[conic-gradient(...)]` arbitrary values. For the anime cyberpunk aesthetic, add named gradient utilities to `globals.css`:
+
+```css
+@utility gradient-anime-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--tertiary) 100%);
+}
+
+@utility gradient-radial-glow {
+  background: radial-gradient(ellipse at center, rgba(189,157,255,0.15) 0%, transparent 70%);
+}
+```
+
+### SVG Path Draw Animation (motion — already installed)
+
+The existing `motion` library supports `pathLength`, `pathOffset`, and `pathSpacing` on SVG elements. No additional library needed:
+
+```tsx
+import { motion } from "motion/react";
+
+<motion.path
+  d="M..."
+  initial={{ pathLength: 0 }}
+  animate={{ pathLength: 1 }}
+  transition={{ duration: 1.5, ease: "easeInOut" }}
+/>
+```
+
+---
+
+## What NOT to Add (Bloat Prevention)
 
 | Library | Why Avoid |
 |---------|-----------|
-| `moka` (async cache) | Over-engineered for this use case. DeepDive cache is accessed from a single service, not across threads simultaneously. `Arc<Mutex<LruCache>>` is sufficient. `moka` adds ~200KB and async complexity with no benefit here. |
-| `diesel` (ORM) | Would require migrating all `sqlx` queries and losing compile-time query checking. Not justified for stabilization. |
-| `sentry` / `opentelemetry` | Telemetry scope is out of bounds for a local desktop app with no server backend. Structured `tracing` logs are sufficient. |
-| `criterion` (benchmarks) | Nice-to-have but not needed for stabilization. Adds compile time. Defer to a future perf milestone. |
-| `proptest` (property testing) | Valuable for dedup/scoring edge cases but adds significant test authoring overhead. Defer unless parameterized Vitest/Rust tests prove insufficient. |
-| `axum` or any HTTP server | Not needed. All IPC goes through Tauri's invoke system. |
-| Redux / Jotai / TanStack Query | State management is already well-handled by Zustand 5. Adding a second state library creates inconsistency. |
-| `react-query` | The project uses `useTauriCommand.ts` / `useTauriQuery.ts` abstractions over Tauri invoke. These already provide loading/error state. Adding TanStack Query would duplicate that layer. |
-| `@testing-library/jest-dom` | Jest-specific matchers. Vitest has its own assertion API. Do not add. |
-| Istanbul (c8) for TS coverage | The project's `environment: 'node'` is not compatible with Istanbul instrumentation in all cases. V8 coverage is the correct choice. |
+| `@tsparticles/react` / `tsparticles` | Bundle: 1.54 MB uncompressed. Continuous particle rendering tanks frame rates in Tauri's Chromium WebView. Anime aesthetic ambient particles can be replicated with 3–5 absolutely-positioned `motion.div` blurred orbs at near-zero cost. |
+| `gsap` (GreenSock) | 23KB gzipped core, but adds a second animation runtime alongside `motion`. GSAP excels at timeline orchestration; `motion` already covers this use case. GSAP's license (Standard License) also limits redistribution in software sold commercially. |
+| `animejs` v4 | Lightweight (under 10KB) but redundant with `motion`. Would create split animation responsibilities across the codebase. |
+| `react-spring` | Physics-based springs — exactly what `motion` already provides. Adding it creates two physics engines. |
+| `lottie-react` | Appropriate for complex multi-frame character animations (e.g., loading mascots). Only add if the design spec calls for Lottie files specifically. At 43KB gzipped for the player, it's acceptable if needed but not a default add. |
+| `three` / `@react-three/fiber` | 3D rendering is outside scope. WebGL context in Tauri has known initialization quirks on Windows. |
+| `iconify` (`@iconify/react`) | API-fetches icons at runtime by default (network call from desktop app). Offline bundle mode requires per-icon-set packages. Lucide is simpler for a defined icon set. |
+| `react-icons` | Bundles ALL icons from a set — no tree-shaking at the set level. Large bundle vs lucide's per-icon imports. |
+| `style-dictionary` | Token transformation tool for multi-platform. This project uses CSS variables directly in `globals.css` with Tailwind 4 @theme. No additional transformation layer is needed. |
+| `shadcn/ui` | Component-copy system. The project already has custom `src/components/ui/` components. Adding shadcn would conflict with the existing design system and create parallel component hierarchies. |
+| `framer-motion` | Same package as the already-installed `motion`. `motion` is the renamed package. Do not install both. |
 
 ---
 
-## Supporting Libraries — Patterns to Enforce
+## Tailwind CSS 4 @theme Integration (Design Token Strategy)
 
-These are already present but used inconsistently. Stabilization enforces their proper use.
+Tailwind 4's `@theme` directive eliminates the need for any external design token management tool. All tokens defined in `@theme` are automatically:
+1. Available as CSS variables (`var(--color-primary)`)
+2. Used by Tailwind utilities (`bg-(--primary)`, `text-(--on-surface)`)
 
-### `unicode-normalization` 0.1 (already in Cargo.toml)
+**Recommended token expansion for anime aesthetic in `globals.css`:**
 
-Already present but CONCERNS.md confirms inconsistent use. Enforce: all title comparisons in `dedup_service.rs` use `use unicode_normalization::UnicodeNormalization; s.nfc().collect::<String>()`. Store normalized titles in a `title_normalized` column (new migration). This makes dedup O(1) index lookup instead of normalize-on-read.
+```css
+@theme {
+  /* Existing tokens carry over */
 
-### `sha2` 0.10 for content_hash (already present)
+  /* New: Neon glow intensity levels */
+  --glow-xs: 0 0 4px var(--primary);
+  --glow-sm: 0 0 8px var(--primary), 0 0 16px rgba(189,157,255,0.3);
+  --glow-md: 0 0 12px var(--primary), 0 0 32px rgba(189,157,255,0.4);
 
-Already used for `content_hash`. The stabilization adds validation: `content_hash` must be non-empty before DB insert. Add a `CHECK (length(content_hash) = 64)` migration constraint.
+  /* New: Animation timing tokens (used in motion variants) */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
-### `tracing` for error audit (already present)
-
-The Perplexity API key logging risk (CONCERNS.md Security section) is mitigated by auditing all `tracing::error!` / `warn!` callsites that include `reqwest::Error` or HTTP response details. Pattern to enforce: never log `{:?}` on a `reqwest::Response` — log only status code and URL.
-
----
-
-## Installation Commands
-
-```toml
-# Cargo.toml additions
-tokio-util = { version = "0.7", features = ["rt"] }
-rayon = "1.10"
-lru = "0.12"
+  /* New: Anime-themed surface variants */
+  --surface-frosted: rgba(25, 25, 31, 0.85);
+  --surface-glass-border: rgba(255, 255, 255, 0.08);
+  --gradient-primary: linear-gradient(135deg, var(--primary), var(--secondary));
+}
 ```
 
-```bash
-# Dev tool (once per machine, not in Cargo.toml)
-cargo install cargo-llvm-cov --locked
-```
-
-```bash
-# npm additions
-npm install --save-dev @vitest/coverage-v8@^4.1.0
-npm install --save-dev @testing-library/react@^16.0.0
-npm install --save-dev @testing-library/user-event@^14.0.0
-```
+**Confidence:** HIGH — verified against Tailwind CSS 4 official documentation on `@theme` and custom utilities.
 
 ---
 
@@ -261,14 +208,32 @@ npm install --save-dev @testing-library/user-event@^14.0.0
 
 | Category | Recommended | Alternative | Why Not Alternative |
 |----------|-------------|-------------|---------------------|
-| Cancellation | `tokio-util` CancellationToken | `tokio::sync::oneshot` | Oneshot is not cloneable; can't share across multiple loop tasks without wrapping in `Arc` |
-| Cancellation | `tokio-util` CancellationToken | `tokio::sync::broadcast` | Broadcast is for multiple producers; overkill for shutdown signaling |
-| CPU parallelism | `rayon` | `tokio::task::spawn_blocking` per item | spawn_blocking has per-task overhead; rayon is designed for data parallelism with work-stealing |
-| LRU cache | `lru` crate | `moka` | moka is async-aware and heavier; overkill when cache is always accessed from one task |
-| LRU cache | `lru` crate | `linked-hash-map` | `lru` is the successor and has a simpler API |
-| TS coverage | `@vitest/coverage-v8` | `@vitest/coverage-istanbul` | Istanbul requires source transforms incompatible with `environment: 'node'` in some cases; V8 is native to Node 18+ |
-| Component tests | `@testing-library/react` | `enzyme` | Enzyme does not support React 19; unmaintained |
-| Rust coverage | `cargo-llvm-cov` | `tarpaulin` | tarpaulin requires Linux; this is a Windows development environment |
+| Icon library | `lucide-react` | `@iconify/react` | Iconify fetches at runtime by default; offline bundle requires per-set packages; more complex setup for a fixed icon vocabulary |
+| Icon library | `lucide-react` | `react-icons` | No tree-shaking at icon-set level; bundle includes entire sets |
+| Variant system | `class-variance-authority` | `tailwind-variants` | `tailwind-variants` 0.3.x is Tailwind 4 native and slightly newer, but CVA 0.7.1 is stable and widely adopted; either is acceptable — CVA is the safer choice given its ecosystem maturity |
+| Variant system | `class-variance-authority` | Manual ternary expressions | Ternaries scale poorly beyond 2–3 variants; CVA is the standard solution |
+| Font delivery | `@fontsource-variable/noto-sans-jp` | Google Fonts CDN | Tauri desktop apps run offline; external CDN fonts fail silently without network |
+| Font delivery | `@fontsource-variable/noto-sans-jp` | Bundled `.ttf` files in `public/` | Fontsource handles unicode-range subsetting and `@font-face` generation automatically; manual bundling requires maintaining these manually |
+| Class merging | `tailwind-merge` | `classnames` | `classnames` has no awareness of Tailwind specificity conflicts — `tailwind-merge` resolves e.g. `p-4` vs `p-6` correctly |
+| Particle effects | CSS motion.div orbs | `tsparticles` | 1.54 MB bundle + continuous canvas repaints at 60fps destroy Tauri WebView performance |
+| Animation | `motion` (already installed) | `gsap` | Redundant runtime; `motion` already provides timeline, spring, scroll APIs |
+| Custom titlebar | `data-tauri-drag-region` + CSS | `tauri-plugin-decorum` | The project's `decorations: false` is already set in `tauri.conf.json`; custom CSS titlebar with drag region is sufficient; decorum adds dependency without material benefit for this design direction |
+
+---
+
+## Installation Commands (Complete New Additions)
+
+```bash
+# Priority 1: Design system utilities
+npm i lucide-react clsx tailwind-merge class-variance-authority
+
+# Priority 2: Japanese typography (variable font)
+npm i @fontsource-variable/noto-sans-jp @fontsource-variable/noto-serif-jp
+```
+
+**Total new production dependencies: 6 packages**
+**Total new devDependencies: 0**
+**Estimated bundle impact:** lucide-react (tree-shaken, ~2KB per icon × N used), clsx (0.24KB), tailwind-merge (3KB), cva (5KB), fonts (CJK variable fonts are large — ~500KB each for the full Unicode range; mitigate with Vite font subsetting or import only Latin+Japanese subsets explicitly).
 
 ---
 
@@ -276,26 +241,29 @@ npm install --save-dev @testing-library/user-event@^14.0.0
 
 | Area | Level | Reason |
 |------|-------|--------|
-| Existing stack versions | HIGH | Confirmed from Cargo.lock and package-lock.json directly |
-| tokio-util CancellationToken | HIGH | tokio's own ecosystem, documented pattern |
-| rayon for CPU parallelism | HIGH | Widely established; `spawn_blocking` bridging is documented |
-| sqlx WAL mode config | HIGH | Verified against sqlx SqliteConnectOptions API |
-| lru crate selection | MEDIUM | Correct category; `moka` is also viable if async eviction needed later |
-| cargo-llvm-cov | HIGH | De facto Rust coverage standard; Windows support confirmed |
-| @vitest/coverage-v8 | HIGH | Vitest official package, same version family as installed vitest |
-| @testing-library/react v16 | HIGH | Current version supporting React 19 |
+| lucide-react recommendation | HIGH | v1.7.0 confirmed current from web search; tree-shaking architecture verified from official docs |
+| tailwind-merge v3 for Tailwind 4 | HIGH | Explicit v3 = Tailwind 4, v2 = Tailwind 3 confirmed from maintainer's own release notes and GitHub discussion |
+| @fontsource-variable packages | HIGH | Fontsource is the established standard for self-hosted fonts; variable font NPM packages confirmed from npm registry |
+| class-variance-authority | MEDIUM | v0.7.1 stable, last published ~1 year ago — no active development; functional for stated use case; `tailwind-variants` is an alternative if CVA shows staleness issues |
+| CSS neon/glassmorphism techniques | HIGH | Pure CSS; verified against MDN, Tailwind docs, and multiple implementations |
+| motion SVG path animation | HIGH | Verified from official motion.dev documentation |
+| tsParticles avoidance | HIGH | Bundle size confirmed from bundlephobia; performance concern is established for WebView-based desktop apps |
+| Noto Sans JP CJK font sizes | MEDIUM | CJK font files are known to be large; exact Vite subsetting behavior in Tauri needs validation during implementation |
 
 ---
 
 ## Sources
 
-- `src-tauri/Cargo.lock` (2026-03-27) — exact locked versions for all Rust dependencies
-- `package.json` (2026-03-27) — TypeScript dependency versions
-- `.planning/codebase/CONCERNS.md` (2026-03-27) — identified bottlenecks and fragile areas
-- `.planning/PROJECT.md` (2026-03-27) — scope and constraints
-- `src-tauri/src/services/scheduler.rs` — current loop implementation confirming no cancellation exists
-- `src-tauri/src/services/deepdive_service.rs` — current cache implementation confirming `unwrap_or_default`
-- `vitest.config.ts` — confirms `environment: 'node'`, relevant to coverage backend choice
-- tokio-util crate documentation — `CancellationToken` API [Source: Knowledge, HIGH confidence]
-- SQLite WAL mode documentation — journal_mode=WAL semantics [Source: Knowledge, HIGH confidence]
-- SQLite FTS5 documentation — rank column and ROWID subquery pattern [Source: Knowledge, HIGH confidence]
+- [lucide-react npm — v1.7.0](https://www.npmjs.com/package/lucide-react) (2026-03-28)
+- [Lucide official docs — React package](https://lucide.dev/guide/packages/lucide-react)
+- [tailwind-merge GitHub releases](https://github.com/dcastil/tailwind-merge/releases) — v3.5.0 supports Tailwind 4.0–4.2
+- [class-variance-authority — cva.style docs](https://cva.style/docs)
+- [clsx GitHub — 239B utility](https://github.com/lukeed/clsx) — v2.1.1
+- [@fontsource-variable/noto-sans-jp — npm](https://www.npmjs.com/package/@fontsource-variable/noto-sans-jp)
+- [Fontsource docs — Vite/React install](https://fontsource.org/docs/getting-started/install)
+- [Tailwind CSS 4 @theme — official docs](https://tailwindcss.com/docs/theme)
+- [motion.dev — SVG animation docs](https://motion.dev/docs/react-svg-animation)
+- [tsparticles npm — bundle sizes](https://www.npmjs.com/package/tsparticles) — 1.54 MB for full package
+- [Tauri v2 Window Customization](https://v2.tauri.app/learn/window-customization/) — drag region, no-decoration pattern
+- [Dark Glassmorphism in 2026 — Medium](https://medium.com/@developer_89726/dark-glassmorphism-the-aesthetic-that-will-define-ui-in-2026-93aa4153088f)
+- [Tailwind CSS 4 @theme design tokens guide](https://medium.com/@sureshdotariya/tailwind-css-4-theme-the-future-of-design-tokens-at-2025-guide-48305a26af06)
