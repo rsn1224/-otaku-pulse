@@ -22,11 +22,16 @@ pub fn sanitize_fts_query(query: &str) -> Option<String> {
     Some(format!("{fts_query}*"))
 }
 
-/// Task 1: 全文検索 (FTS5)
+/// 全文検索 (FTS5) with subquery-based pagination (PERF-04)
+///
+/// Uses a subquery `SELECT rowid FROM articles_fts WHERE ... LIMIT ? OFFSET ?` to
+/// prevent FTS from loading all matches into memory before the JOIN. Pass `offset = 0`
+/// for the first page (backward-compatible default for existing call sites).
 pub async fn search_articles(
     db: &SqlitePool,
     query: &str,
     limit: i64,
+    offset: i64,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let fts_query = match sanitize_fts_query(query) {
         Some(q) => q,
@@ -39,13 +44,17 @@ pub async fn search_articles(
          a.language, a.thumbnail_url, f.name as feed_name
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
-         JOIN articles_fts fts ON a.id = fts.rowid
-         WHERE articles_fts MATCH ?
-         ORDER BY rank
-         LIMIT ?",
+         WHERE a.id IN (
+             SELECT rowid FROM articles_fts
+             WHERE articles_fts MATCH ?
+             ORDER BY rank
+             LIMIT ? OFFSET ?
+         )
+         ORDER BY a.published_at DESC",
     )
     .bind(fts_query)
     .bind(limit)
+    .bind(offset)
     .fetch_all(db)
     .await
     .map_err(|e| {

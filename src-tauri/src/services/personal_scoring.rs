@@ -5,7 +5,8 @@ use std::collections::HashMap;
 
 /// スコアリング対象の最新記事数上限
 const SCORING_ARTICLE_LIMIT: i64 = 2000;
-/// dwell_time ボーナスの上限（30秒超過ごとに+0.5、最大+2.0）
+/// dwell_time ボーナスの上限（30秒超過ごとに+0.5、最大+2.0）。SQL の MIN() 式にも反映済み。
+#[allow(dead_code)]
 const DWELL_BONUS_CAP: f64 = 2.0;
 /// mute キーワードによるスコア減衰率
 const MUTE_SCORE_FACTOR: f64 = 0.1;
@@ -61,80 +62,50 @@ fn calc_personal_score(
 }
 
 async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>, AppError> {
-    let mut bonuses: HashMap<i64, f64> = HashMap::new();
-
-    let bookmarked: Vec<(i64,)> =
-        sqlx::query_as("SELECT id FROM articles WHERE is_bookmarked = 1 AND is_duplicate = 0")
-            .fetch_all(db)
-            .await?;
-    for (id,) in &bookmarked {
-        *bonuses.entry(*id).or_insert(0.0) += 3.0;
-    }
-
-    let deepdived: Vec<(i64,)> = sqlx::query_as(
-        "SELECT DISTINCT article_id FROM article_interactions WHERE action = 'deepdive'",
-    )
-    .fetch_all(db)
-    .await?;
-    for (id,) in &deepdived {
-        *bonuses.entry(*id).or_insert(0.0) += 1.0;
-    }
-
-    let feed_rates: Vec<(i64, f64)> = sqlx::query_as(
-        "SELECT a.feed_id,
-                CAST(SUM(CASE WHEN ai.action = 'open' THEN 1 ELSE 0 END) AS REAL)
-                / CASE WHEN COUNT(*) = 0 THEN 1 ELSE COUNT(*) END
-         FROM article_interactions ai
-         JOIN articles a ON ai.article_id = a.id
-         GROUP BY a.feed_id",
-    )
-    .fetch_all(db)
-    .await?;
-
-    let feed_rate_map: HashMap<i64, f64> = feed_rates.into_iter().collect();
-
-    let feed_articles: Vec<(i64, i64)> = sqlx::query_as(
-        "SELECT id, feed_id FROM articles WHERE is_duplicate = 0
-         ORDER BY published_at DESC LIMIT ?",
+    // PERF-03: Single CTE query replaces 5 sequential queries (~5x fewer round-trips)
+    // DWELL_BONUS_CAP (2.0) enforced via MIN() in the SQL expression
+    let rows: Vec<(i64, f64)> = sqlx::query_as(
+        "WITH
+          bookmarks AS (
+            SELECT id AS article_id, 3.0 AS bonus FROM articles WHERE is_bookmarked = 1 AND is_duplicate = 0
+          ),
+          deepdives AS (
+            SELECT DISTINCT article_id, 1.0 AS bonus FROM article_interactions WHERE action = 'deepdive'
+          ),
+          dwell_stats AS (
+            SELECT article_id,
+                   AVG(dwell_seconds) AS avg_dwell,
+                   (SELECT AVG(dwell_seconds) FROM article_interactions WHERE dwell_seconds > 0) AS global_avg
+            FROM article_interactions WHERE dwell_seconds > 0 GROUP BY article_id
+          ),
+          feed_engagement AS (
+            SELECT a.id AS article_id,
+                   CAST(SUM(CASE WHEN ai.action = 'open' THEN 1 ELSE 0 END) AS REAL)
+                   / CASE WHEN COUNT(*) = 0 THEN 1 ELSE COUNT(*) END * 1.5 AS bonus
+            FROM articles a
+            JOIN article_interactions ai ON ai.article_id = a.id
+            WHERE a.is_duplicate = 0
+            GROUP BY a.id
+          )
+        SELECT
+          a.id AS article_id,
+          COALESCE(b.bonus, 0.0) + COALESCE(d.bonus, 0.0) + COALESCE(fe.bonus, 0.0)
+          + CASE WHEN ds.avg_dwell > ds.global_avg
+                 THEN MIN((ds.avg_dwell - ds.global_avg) / 30.0 * 0.5, 2.0)
+                 ELSE 0.0 END AS total_bonus
+        FROM articles a
+        LEFT JOIN bookmarks b ON b.article_id = a.id
+        LEFT JOIN deepdives d ON d.article_id = a.id
+        LEFT JOIN dwell_stats ds ON ds.article_id = a.id
+        LEFT JOIN feed_engagement fe ON fe.article_id = a.id
+        WHERE a.is_duplicate = 0
+        ORDER BY a.published_at DESC LIMIT ?",
     )
     .bind(SCORING_ARTICLE_LIMIT)
     .fetch_all(db)
     .await?;
 
-    for (article_id, feed_id) in &feed_articles {
-        if let Some(rate) = feed_rate_map.get(feed_id) {
-            *bonuses.entry(*article_id).or_insert(0.0) += rate * 1.5;
-        }
-    }
-
-    // dwell_time ボーナス: グローバル平均を超えた滞在時間に応じてスコア加算
-    let global_avg_dwell: (f64,) = sqlx::query_as(
-        "SELECT COALESCE(AVG(dwell_seconds), 0.0)
-         FROM article_interactions WHERE dwell_seconds > 0",
-    )
-    .fetch_one(db)
-    .await?;
-
-    if global_avg_dwell.0 > 0.0 {
-        let dwell_per_article: Vec<(i64, f64)> = sqlx::query_as(
-            "SELECT article_id, AVG(dwell_seconds) as avg_dwell
-             FROM article_interactions
-             WHERE dwell_seconds > 0
-             GROUP BY article_id",
-        )
-        .fetch_all(db)
-        .await?;
-
-        for (article_id, avg_dwell) in &dwell_per_article {
-            let excess = avg_dwell - global_avg_dwell.0;
-            if excess > 0.0 {
-                let dwell_bonus = (excess / 30.0 * 0.5).min(DWELL_BONUS_CAP);
-                *bonuses.entry(*article_id).or_insert(0.0) += dwell_bonus;
-            }
-        }
-    }
-
-    Ok(bonuses)
+    Ok(rows.into_iter().collect())
 }
 
 /// 全記事のスコアを再計算して article_scores に保存

@@ -12,6 +12,7 @@ pub async fn get_daily_highlights(
     db: &SqlitePool,
     llm: &dyn LlmClient,
 ) -> Result<Vec<HighlightEntry>, AppError> {
+    // PERF-05: Verified — single query fetches top 5 highlights. No N+1 issue.
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(
         "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author, \
                 a.published_at, a.is_read, a.is_bookmarked, a.language, \

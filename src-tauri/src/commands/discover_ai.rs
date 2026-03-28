@@ -156,7 +156,7 @@ pub async fn ai_search(
     state: tauri::State<'_, AppState>,
     query: String,
 ) -> CmdResult<AiSearchResult> {
-    let local = fts_queries::search_articles(&state.db, &query, 20)
+    let local = fts_queries::search_articles(&state.db, &query, 20, 0)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "FTS search failed, falling back to empty results");
@@ -205,6 +205,7 @@ pub async fn search_discover(
     state: tauri::State<'_, AppState>,
     query: String,
     limit: Option<i64>,
+    offset: Option<i64>,
 ) -> CmdResult<Vec<crate::models::ArticleDto>> {
-    fts_queries::search_articles(&state.db, &query, limit.unwrap_or(30)).await
+    fts_queries::search_articles(&state.db, &query, limit.unwrap_or(30), offset.unwrap_or(0)).await
 }
