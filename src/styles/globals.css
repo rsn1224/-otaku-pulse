@@ -13,16 +13,35 @@
   /* Content */
   --on-surface: #f9f5fd;
   --on-surface-variant: #acaab1;
-  --outline: #76747b;
+  --outline: #8a8890;
   --outline-variant: #48474d;
 
   /* Accent */
   --primary: #bd9dff;
   --primary-soft: rgba(189, 157, 255, 0.15);
   --primary-glow: rgba(189, 157, 255, 0.06);
+  --primary-hover: #a98ae6;
+  --on-primary: #ffffff;
   --secondary: #699cff;
   --tertiary: #ff97b2;
   --error: #ff6e84;
+
+  /* Surface overlays */
+  --surface-hover: rgba(255, 255, 255, 0.04);
+  --surface-hover-strong: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 255, 255, 0.08);
+  --surface-glass: rgba(255, 255, 255, 0.03);
+  --surface-backdrop: rgba(14, 14, 19, 0.97);
+
+  /* Shadows */
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
+
+  /* Typography */
+  --font-jp: "Noto Sans JP Variable", system-ui, sans-serif;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
 
   /* === Legacy aliases (remove in Phase 3) === */
   --bg-primary: var(--surface);
@@ -48,4 +67,55 @@ body,
 #root {
   min-height: 100vh;
   background-color: var(--surface);
+}
+
+body {
+  font-family: var(--font-jp);
+}
+
+/* === Accessibility === */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 999;
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: var(--surface);
+  font-weight: 600;
+  border-radius: 0 0 0.5rem 0;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+/* === Focus Ring === */
+:root {
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* === Reduce Motion === */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
