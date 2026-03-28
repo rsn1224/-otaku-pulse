@@ -50,6 +50,7 @@ created: 2026-03-28
 Exceptions:
 - TopBar height: 44px (touch-target minimum; matches existing 2.75rem definition)
 - Focus ring offset uses 2px inner + 4px outer (defined in `--focus-ring` token)
+- `md` (12px): 3× base-unit half-step on the 4px grid; used for component internal padding. Retained from v1.0 design system. No usages are changed in Phase 4.
 
 **Phase 4 note:** No spacing token changes in this phase. The spacing scale is carried forward unchanged from v1.0.
 
@@ -329,7 +330,7 @@ The following must ALL pass before Phase 4 is marked complete:
 - [ ] Dimension 2 Visuals: PASS — pending Stitch session for surface/accent HEX values
 - [ ] Dimension 3 Color: PASS — pending Stitch session + WCAG AA verification
 - [ ] Dimension 4 Typography: PASS — 4 sizes declared, 3 weights (300/400/600), font declared
-- [ ] Dimension 5 Spacing: PASS — existing 8-point scale preserved unchanged
+- [ ] Dimension 5 Spacing: PASS — existing 8-point scale preserved unchanged; `md` (12px) exception justified
 - [ ] Dimension 6 Registry Safety: PASS — npm package only (OFL-1.1), no third-party shadcn registries
 
 **Approval:** pending
