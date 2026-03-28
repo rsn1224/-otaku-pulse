@@ -1,5 +1,20 @@
 /* === Component Styles === */
 
+/* Bold Glass — glassmorphism base */
+.bold-glass {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  background: var(--surface-glass);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.bold-glass-sm {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  background: var(--surface-glass);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 /* DiscoverCard */
 .discover-card {
   position: relative;
