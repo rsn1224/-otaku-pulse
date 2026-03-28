@@ -21,9 +21,9 @@
 
 ### Security
 
-- [ ] **SEC-01**: Perplexity API キーがエラーログに出力されないことを監査し、テストで検証する
-- [ ] **SEC-02**: user profile JSON に DB レベルのサイズ制限（CHECK 制約）と UI 入力制限を追加する
-- [ ] **SEC-03**: OPML インポート時に URL バリデーション（http/https スキーム、有効なホスト名）を実施する
+- [x] **SEC-01**: Perplexity API キーがエラーログに出力されないことを監査し、テストで検証する
+- [x] **SEC-02**: user profile JSON に DB レベルのサイズ制限（CHECK 制約）と UI 入力制限を追加する
+- [x] **SEC-03**: OPML インポート時に URL バリデーション（http/https スキーム、有効なホスト名）を実施する
 
 ### Performance
 
@@ -107,9 +107,9 @@
 | RESL-03 | Phase 2 | Complete |
 | RESL-04 | Phase 2 | Complete |
 | RESL-05 | Phase 2 | Complete |
-| SEC-01 | Phase 2 | Pending |
-| SEC-02 | Phase 2 | Pending |
-| SEC-03 | Phase 2 | Pending |
+| SEC-01 | Phase 2 | Complete |
+| SEC-02 | Phase 2 | Complete |
+| SEC-03 | Phase 2 | Complete |
 | PERF-02 | Phase 3 | Pending |
 | PERF-03 | Phase 3 | Pending |
 | PERF-04 | Phase 3 | Pending |
