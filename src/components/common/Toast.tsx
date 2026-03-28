@@ -1,7 +1,9 @@
+import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type React from 'react';
 import { createContext, type ReactNode, useContext, useState } from 'react';
 import { toastSlideIn } from '../../lib/motion-variants';
+import { cn } from '../../lib/utils';
 
 interface Toast {
   id: string;
@@ -86,18 +88,19 @@ interface ToastItemProps {
 }
 
 const TOAST_STYLES: Record<string, string> = {
-  success: 'bg-green-600 text-white border-green-500',
-  error: 'bg-red-600 text-white border-red-500',
-  info: 'bg-blue-600 text-white border-blue-500',
+  success: 'border-l-2 border-l-(--accent-game)',
+  error: 'border-l-2 border-l-(--error)',
+  info: 'border-l-2 border-l-(--secondary)',
 };
 
-const TOAST_ICONS: Record<string, string> = {
-  success: '✨',
-  error: '⚠️',
-  info: '📰',
+const TOAST_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  success: CheckCircle,
+  error: AlertTriangle,
+  info: Info,
 };
 
 function ToastItem({ toast, onRemove }: ToastItemProps): React.JSX.Element {
+  const IconComponent = TOAST_ICONS[toast.type] ?? Info;
   return (
     <motion.div
       layout
@@ -105,22 +108,27 @@ function ToastItem({ toast, onRemove }: ToastItemProps): React.JSX.Element {
       initial="hidden"
       animate="visible"
       exit="exit"
-      className={`px-4 py-3 rounded-lg shadow-lg border max-w-sm ${TOAST_STYLES[toast.type] ?? ''}`}
+      className={cn(
+        'bold-glass rounded-[0.875rem] shadow-(--shadow-lg) px-4 py-3 max-w-sm',
+        TOAST_STYLES[toast.type],
+      )}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="text-lg" aria-hidden="true">
-            {TOAST_ICONS[toast.type]}
-          </span>
-          <span className="text-sm font-medium">{toast.message}</span>
+        <div className="flex items-center gap-2">
+          <IconComponent
+            size={16}
+            className="text-(--on-surface-variant) shrink-0"
+            aria-hidden="true"
+          />
+          <span className="text-[0.8125rem] font-medium text-(--on-surface)">{toast.message}</span>
         </div>
         <button
           type="button"
           onClick={() => onRemove(toast.id)}
-          className="ml-4 text-white hover:text-gray-200 transition-colors"
+          className="ml-4 text-(--on-surface-variant) hover:text-(--on-surface) transition-colors"
           aria-label="通知を閉じる"
         >
-          ×
+          <X size={14} aria-hidden="true" />
         </button>
       </div>
     </motion.div>
