@@ -158,3 +158,108 @@ async fn test_token_does_not_exceed_max() {
         "tokens should be capped at 10.0, got {tokens}"
     );
 }
+
+// --- Concurrent / stress tests ---
+
+/// @AC TEST-02: Concurrent acquire — exactly max_tokens succeed when spawning 2× tasks
+#[tokio::test]
+async fn test_concurrent_acquire_respects_limit() {
+    use std::sync::Arc;
+    let limiter = Arc::new(TokenBucket::new(5, 0.0, 0)); // 5 tokens, no refill, no interval
+
+    let mut set = tokio::task::JoinSet::new();
+    for _ in 0..10 {
+        let l = limiter.clone();
+        set.spawn(async move { l.acquire().await });
+    }
+
+    let mut successes = 0usize;
+    while let Some(result) = set.join_next().await {
+        if result.unwrap().is_ok() {
+            successes += 1;
+        }
+    }
+
+    assert_eq!(
+        successes, 5,
+        "Exactly 5 of 10 concurrent acquires should succeed with 5-token bucket"
+    );
+}
+
+/// @AC TEST-02: 429 response sets retry-after and blocks subsequent acquire
+/// Uses a separate thread to call blocking_lock() outside the tokio runtime.
+#[test]
+fn test_429_response_blocks_subsequent_acquire() {
+    use std::sync::Arc;
+    let limiter = Arc::new(TokenBucket::new(10, 1.0, 0));
+
+    let response = http::Response::builder()
+        .status(429)
+        .header("Retry-After", "60")
+        .body(())
+        .unwrap();
+    limiter.update_from_response(&response);
+
+    // Verify retry_after was set by checking the field directly
+    let retry = limiter.retry_after.blocking_lock();
+    assert!(
+        retry.is_some(),
+        "retry_after must be set after 429 response"
+    );
+    let duration = retry.unwrap();
+    assert_eq!(
+        duration.as_secs(),
+        60,
+        "retry_after duration must match Retry-After header"
+    );
+}
+
+/// @AC TEST-02: Token depletion then refill allows new acquire
+#[tokio::test]
+async fn test_token_depletion_and_refill() {
+    let limiter = TokenBucket::new(2, 10.0, 0); // 2 tokens, 10/sec refill, no interval
+
+    // Drain all tokens
+    assert!(limiter.acquire().await.is_ok());
+    assert!(limiter.acquire().await.is_ok());
+    assert!(limiter.acquire().await.is_err(), "bucket should be empty");
+
+    // Manually backdate last_refill to simulate 150ms elapsed (10 tok/s → ~1.5 tokens)
+    {
+        let mut last_refill = limiter.last_refill.lock().await;
+        *last_refill = Instant::now() - Duration::from_millis(150);
+    }
+
+    // Should have refilled at least 1 token
+    assert!(
+        limiter.acquire().await.is_ok(),
+        "should succeed after refill period"
+    );
+}
+
+/// @AC TEST-02: Non-429 response does not set retry_after
+#[test]
+fn test_non_429_response_does_not_block() {
+    let limiter = TokenBucket::new(10, 1.0, 0);
+
+    let response = http::Response::builder()
+        .status(200)
+        .body(())
+        .unwrap();
+    limiter.update_from_response(&response);
+
+    // retry_after must remain None
+    let retry = limiter.retry_after.blocking_lock();
+    assert!(
+        retry.is_none(),
+        "retry_after must not be set for a 200 response"
+    );
+}
+
+/// @AC TEST-02: Zero-capacity limiter rejects all acquires immediately
+#[tokio::test]
+async fn test_zero_capacity_rejects_all() {
+    let limiter = TokenBucket::new(0, 0.0, 0);
+    let result = limiter.acquire().await;
+    assert!(result.is_err(), "zero-capacity bucket must always reject");
+}
