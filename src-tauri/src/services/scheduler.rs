@@ -299,6 +299,101 @@ fn build_scheduler_llm_client(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    use tokio_util::sync::CancellationToken;
+
+    /// collect_loop / digest_loop の中核パターン (tokio::select! + CancellationToken) を
+    /// 独立して検証する。AppHandle / AppState の構築を避け、キャンセレーションの動作のみを確認。
+
+    /// CancellationToken を即時キャンセルすると 1 秒以内にループが終了することを証明する。
+    #[tokio::test]
+    async fn test_cancellation_token_exits_loop_immediately() {
+        let token = CancellationToken::new();
+        let token_clone = token.clone();
+
+        let handle = tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = token_clone.cancelled() => {
+                        break;
+                    }
+                    _ = tokio::time::sleep(Duration::from_secs(3600)) => {
+                        // 本来 1 時間 sleep するが、cancel が優先される
+                    }
+                }
+            }
+        });
+
+        // 即時キャンセル
+        token.cancel();
+
+        let result = tokio::time::timeout(Duration::from_secs(1), handle).await;
+        assert!(result.is_ok(), "ループが 1 秒以内に終了しなかった");
+        assert!(result.unwrap().is_ok(), "ループタスクがパニックした");
+    }
+
+    /// スリープ中にキャンセルが届いた場合も 1 秒以内に終了することを証明する。
+    #[tokio::test]
+    async fn test_cancellation_during_sleep_exits_promptly() {
+        let token = CancellationToken::new();
+        let token_clone = token.clone();
+
+        let handle = tokio::spawn(async move {
+            tokio::select! {
+                _ = token_clone.cancelled() => "cancelled",
+                _ = tokio::time::sleep(Duration::from_secs(60)) => "slept",
+            }
+        });
+
+        // 少し待ってからキャンセル
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        token.cancel();
+
+        let result = tokio::time::timeout(Duration::from_secs(1), handle).await;
+        assert!(result.is_ok(), "タスクが 1 秒以内に終了しなかった");
+        assert_eq!(result.unwrap().unwrap(), "cancelled");
+    }
+
+    /// watch::channel の設定変更が sleep を割り込んで即座に反映されることを証明する。
+    /// digest_loop が SchedulerConfig 変更で再スケジュールされる動作を模倣する。
+    #[tokio::test]
+    async fn test_config_change_interrupts_sleep() {
+        let (config_tx, mut config_rx) = tokio::sync::watch::channel(SchedulerConfig {
+            enabled: true,
+            collect_interval_minutes: 60,
+            digest_hour: 8,
+            digest_minute: 0,
+        });
+
+        let handle = tokio::spawn(async move {
+            tokio::select! {
+                result = config_rx.changed() => {
+                    if result.is_ok() { "config_changed" } else { "channel_closed" }
+                }
+                _ = tokio::time::sleep(Duration::from_secs(3600)) => "slept",
+            }
+        });
+
+        // 少し待ってから設定更新
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        config_tx
+            .send(SchedulerConfig {
+                enabled: false,
+                collect_interval_minutes: 30,
+                digest_hour: 8,
+                digest_minute: 0,
+            })
+            .unwrap();
+
+        let result = tokio::time::timeout(Duration::from_secs(1), handle).await;
+        assert!(result.is_ok(), "設定変更後 1 秒以内にタスクが応答しなかった");
+        assert_eq!(result.unwrap().unwrap(), "config_changed");
+    }
+}
+
 /// 次の hour:minute まで何秒待つか計算（日本時間 JST 基準）
 fn seconds_until(hour: u32, minute: u32) -> u64 {
     let now = Local::now();
