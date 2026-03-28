@@ -38,7 +38,7 @@ export function ToastProvider({ children }: ToastProviderProps): React.JSX.Eleme
   const showToast = (
     type: 'success' | 'error' | 'info',
     message: string,
-    duration = 3000,
+    duration = 5000,
   ): void => {
     const id = Date.now().toString();
     const newToast: Toast = { id, type, message, duration };
