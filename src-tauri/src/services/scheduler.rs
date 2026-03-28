@@ -221,37 +221,20 @@ async fn digest_loop(
             }
         };
 
-        // 4カテゴリーを順番に生成
-        for category in &["anime", "manga", "game", "pc"] {
-            match super::digest_generator::generate(&state.db, &*llm_client, category, 24).await {
-                Ok(result) => {
-                    info!(category, article_count = result.article_count, "ダイジェスト生成完了");
-
-                    // DB に保存
-                    let digest = crate::models::Digest {
-                        id: 0,
-                        category: result.category.clone(),
-                        title: format!("{}ダイジェスト", category),
-                        content_markdown: result.summary,
-                        content_html: None,
-                        article_ids: String::new(),
-                        model_used: result.model,
-                        token_count: None,
-                        generated_at: result.generated_at,
-                    };
-                    if let Err(e) = super::digest_queries::insert_digest(&state.db, &digest).await {
-                        warn!(error = %e, category, "ダイジェスト DB 保存失敗");
-                    }
-
-                    crate::infra::notification::notify_digest_ready(
-                        &app_handle,
-                        category,
-                        result.article_count,
-                    );
-                }
-                Err(e) => {
-                    warn!(error = %e, category, "ダイジェスト生成失敗");
-                }
+        // 4カテゴリーを並列生成 (PERF-02: tokio::join! で ~4x 高速化)
+        const DIGEST_TIMEOUT_SECS: u64 = 120;
+        let timeout_dur = Duration::from_secs(DIGEST_TIMEOUT_SECS);
+        let (r_anime, r_manga, r_game, r_pc) = tokio::join!(
+            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "anime")),
+            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "manga")),
+            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "game")),
+            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "pc")),
+        );
+        for (category, result) in [("anime", r_anime), ("manga", r_manga), ("game", r_game), ("pc", r_pc)] {
+            match result {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => warn!(error = %e, category, "ダイジェスト生成失敗"),
+                Err(_elapsed) => warn!(category, timeout_secs = DIGEST_TIMEOUT_SECS, "ダイジェスト生成タイムアウト"),
             }
         }
 
@@ -259,10 +242,37 @@ async fn digest_loop(
     }
 }
 
+/// Per-category digest generation with logging. Used by tokio::join! for parallelism.
+async fn generate_and_save_digest(
+    db: &sqlx::SqlitePool,
+    llm: &dyn crate::infra::llm_client::LlmClient,
+    app_handle: &AppHandle,
+    category: &str,
+) -> Result<(), crate::error::AppError> {
+    let result = super::digest_generator::generate(db, llm, category, 24).await?;
+    tracing::info!(category, article_count = result.article_count, "ダイジェスト生成完了");
+    let digest = crate::models::Digest {
+        id: 0,
+        category: result.category.clone(),
+        title: format!("{}ダイジェスト", category),
+        content_markdown: result.summary,
+        content_html: None,
+        article_ids: String::new(),
+        model_used: result.model,
+        token_count: None,
+        generated_at: result.generated_at,
+    };
+    if let Err(e) = super::digest_queries::insert_digest(db, &digest).await {
+        tracing::warn!(error = %e, category, "ダイジェスト DB 保存失敗");
+    }
+    crate::infra::notification::notify_digest_ready(app_handle, category, result.article_count);
+    Ok(())
+}
+
 /// スケジューラー用 LLM クライアント構築
 fn build_scheduler_llm_client(
     state: &AppState,
-) -> Result<Box<dyn crate::infra::llm_client::LlmClient>, crate::error::AppError> {
+) -> Result<Arc<dyn crate::infra::llm_client::LlmClient + Send + Sync>, crate::error::AppError> {
     let settings = state
         .llm
         .read()
@@ -274,13 +284,13 @@ fn build_scheduler_llm_client(
                 .perplexity_api_key
                 .clone()
                 .ok_or_else(|| crate::error::AppError::Llm("Perplexity API キーが未設定です".into()))?;
-            Ok(Box::new(crate::infra::perplexity_client::PerplexitySonarClient::new(
+            Ok(Arc::new(crate::infra::perplexity_client::PerplexitySonarClient::new(
                 api_key,
                 (*state.http).clone(),
             )))
         }
         crate::infra::llm_client::LlmProvider::Ollama => {
-            Ok(Box::new(crate::infra::ollama_client::OllamaClient::new(
+            Ok(Arc::new(crate::infra::ollama_client::OllamaClient::new(
                 settings.ollama_base_url.clone(),
                 settings.ollama_model.clone(),
                 (*state.http).clone(),
