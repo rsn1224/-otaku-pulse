@@ -1,4 +1,5 @@
 import type React from 'react';
+import { cn } from '../../lib/utils';
 import type { DiscoverArticleDto } from '../../types';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,9 +33,14 @@ export const estimateReadTime = (text: string | null): string | null => {
 interface CardHeaderProps {
   article: DiscoverArticleDto;
   onBookmark: () => void;
+  bookmarkAnimClass?: string;
 }
 
-export function CardHeader({ article, onBookmark }: CardHeaderProps): React.JSX.Element {
+export function CardHeader({
+  article,
+  onBookmark,
+  bookmarkAnimClass,
+}: CardHeaderProps): React.JSX.Element {
   const catLabel = article.category
     ? (CATEGORY_LABELS[article.category] ?? article.category)
     : null;
@@ -52,7 +58,7 @@ export function CardHeader({ article, onBookmark }: CardHeaderProps): React.JSX.
       <button
         type="button"
         onClick={onBookmark}
-        className="bookmark-btn"
+        className={cn('bookmark-btn', bookmarkAnimClass)}
         title="ブックマーク"
         aria-label={article.isBookmarked ? 'ブックマーク解除' : 'ブックマークに追加'}
       >

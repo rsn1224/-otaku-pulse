@@ -40,6 +40,7 @@ const DiscoverCardInner = ({
   const [summary, setSummary] = useState<string | null>(article.aiSummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryAttempted, setSummaryAttempted] = useState(!!article.aiSummary);
+  const [bookmarkAnimClass, setBookmarkAnimClass] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
   const dwellStart = useRef<number>(0);
 
@@ -112,12 +113,15 @@ const DiscoverCardInner = ({
   const handleBookmark = useCallback((): void => {
     if (bookmarkingRef.current) return;
     bookmarkingRef.current = true;
+    const wasBookmarked = article.isBookmarked;
     toggleBookmark(article.id);
     recordInteraction(article.id, 'bookmark');
+    setBookmarkAnimClass(wasBookmarked ? 'just-unbookmarked' : 'just-bookmarked');
     setTimeout(() => {
       bookmarkingRef.current = false;
+      setBookmarkAnimClass('');
     }, 500);
-  }, [article.id, toggleBookmark, recordInteraction]);
+  }, [article.id, article.isBookmarked, toggleBookmark, recordInteraction]);
 
   const handleMarkRead = useCallback(() => {
     markRead(article.id);
@@ -129,7 +133,7 @@ const DiscoverCardInner = ({
   function renderThumbnail(isCompact: boolean): React.JSX.Element {
     const sizeClass = isCompact
       ? 'flex-shrink-0 w-14 rounded-lg overflow-hidden'
-      : 'w-full mb-3 rounded-lg overflow-hidden';
+      : 'relative retro-scanline w-full mb-3 rounded-lg overflow-hidden';
     const aspectClass = isCompact ? 'aspect-[2/3]' : 'aspect-[2/3] max-h-[200px]';
 
     return (
@@ -153,7 +157,7 @@ const DiscoverCardInner = ({
       ref={cardRef}
       role="article"
       className={cn(
-        'discover-card cursor-pointer',
+        'discover-card retro-corner-bracket cursor-pointer',
         borderClass,
         featured ? 'featured' : '',
         article.isRead ? 'opacity-50' : '',
@@ -172,7 +176,11 @@ const DiscoverCardInner = ({
         <div className="flex gap-3">
           {renderThumbnail(true)}
           <div className="flex-1 min-w-0">
-            <CardHeader article={article} onBookmark={handleBookmark} />
+            <CardHeader
+              article={article}
+              onBookmark={handleBookmark}
+              bookmarkAnimClass={bookmarkAnimClass}
+            />
             <button type="button" className="card-title" onClick={handleOpen}>
               {article.title}
             </button>

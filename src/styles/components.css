@@ -26,7 +26,8 @@
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    box-shadow 0.25s ease;
+    box-shadow 0.25s ease,
+    transform 0.15s ease;
 }
 
 .discover-card:hover {
@@ -187,6 +188,10 @@
 
 .bookmark-btn.just-bookmarked svg {
   animation: bookmarkPop 0.3s ease;
+}
+
+.bookmark-btn.just-unbookmarked svg {
+  animation: bookmarkUnpop 0.2s ease;
 }
 
 /* Skeleton */
@@ -559,7 +564,7 @@
 .highlight-card:hover {
   background: var(--surface-hover-strong);
   border-color: var(--outline-variant);
-  transform: scale(1.01);
+  transform: translateY(-2px) scale(1.01);
 }
 
 .highlight-reason {
@@ -831,13 +836,68 @@
   pointer-events: none;
 }
 
-/* Phase 6 retro decoration hooks — styles populated in Phase 6 */
-.retro-decoration {
-  /* populated in Phase 6 */
-}
+/* Phase 6 retro decoration — CSS ::before/::after only, no JavaScript */
 .retro-corner-bracket {
-  /* populated in Phase 6 */
+  position: relative;
 }
+
+.retro-corner-bracket::before,
+.retro-corner-bracket::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: rgba(189, 147, 249, 0.4);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.retro-corner-bracket::before {
+  top: 6px;
+  left: 6px;
+  border-top-width: 1.5px;
+  border-left-width: 1.5px;
+}
+
+.retro-corner-bracket::after {
+  bottom: 6px;
+  right: 6px;
+  border-bottom-width: 1.5px;
+  border-right-width: 1.5px;
+}
+
 .retro-scanline {
-  /* populated in Phase 6 */
+  position: relative;
+}
+
+.retro-scanline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.retro-decoration {
+  position: relative;
+}
+
+.retro-decoration::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--primary-glow) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
 }

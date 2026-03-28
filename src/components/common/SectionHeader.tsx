@@ -28,7 +28,7 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        'border-l-4 pl-3 shadow-[-4px_0_12px_var(--glow-secondary)]',
+        'relative retro-decoration border-l-4 pl-3 shadow-[-4px_0_12px_var(--glow-secondary)]',
         borderClass,
         className,
       )}

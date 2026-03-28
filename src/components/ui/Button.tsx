@@ -6,19 +6,19 @@ import { Spinner } from './Spinner';
 export const buttonVariants = cva(
   [
     'inline-flex items-center justify-center rounded-lg font-medium',
-    'transition-all duration-150 active:scale-95',
+    'transition-all duration-150 transition-transform active:scale-95',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-1 focus-visible:ring-offset-(--surface)',
     'disabled:opacity-50 disabled:pointer-events-none',
   ],
   {
     variants: {
       variant: {
-        primary: 'bg-(--primary) text-white hover:brightness-110',
+        primary: 'bg-(--primary) text-white hover:brightness-110 hover:-translate-y-px',
         secondary:
           'bg-transparent text-(--on-surface-variant) hover:bg-white/[0.06] hover:text-(--on-surface)',
         ghost: 'bg-transparent text-(--on-surface-variant) hover:text-(--on-surface)',
         danger: 'bg-(--error) text-white hover:brightness-110',
-        neon: 'border border-(--primary) bg-(--primary-glow) text-(--primary) hover:shadow-[0_0_16px_var(--glow-primary)]',
+        neon: 'border border-(--primary) bg-(--primary-glow) text-(--primary) hover:shadow-[0_0_16px_var(--glow-primary)] hover:-translate-y-px',
         glass:
           'bg-(--surface-glass) border border-white/15 text-(--on-surface) backdrop-blur-[20px]',
       },
