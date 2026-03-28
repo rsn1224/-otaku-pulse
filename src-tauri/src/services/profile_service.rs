@@ -17,6 +17,34 @@ pub async fn get_profile(db: &SqlitePool) -> Result<UserProfileDto, AppError> {
     })
 }
 
+// SEC-02: Profile field size limits (defense-in-depth with DB triggers in migration 009)
+const MAX_TITLES_LEN: usize = 6000;
+const MAX_GENRES_LEN: usize = 1000;
+const MAX_CREATORS_LEN: usize = 6000;
+
+/// Validate profile field sizes before writing to DB.
+fn validate_profile_sizes(titles: &str, genres: &str, creators: &str) -> Result<(), AppError> {
+    if titles.len() > MAX_TITLES_LEN {
+        return Err(AppError::InvalidInput(format!(
+            "favorite_titles exceeds {MAX_TITLES_LEN} byte limit ({} bytes)",
+            titles.len()
+        )));
+    }
+    if genres.len() > MAX_GENRES_LEN {
+        return Err(AppError::InvalidInput(format!(
+            "favorite_genres exceeds {MAX_GENRES_LEN} byte limit ({} bytes)",
+            genres.len()
+        )));
+    }
+    if creators.len() > MAX_CREATORS_LEN {
+        return Err(AppError::InvalidInput(format!(
+            "favorite_creators exceeds {MAX_CREATORS_LEN} byte limit ({} bytes)",
+            creators.len()
+        )));
+    }
+    Ok(())
+}
+
 /// プロフィール更新
 pub async fn update_profile(db: &SqlitePool, dto: &UserProfileDto) -> Result<(), AppError> {
     let titles = serde_json::to_string(&dto.favorite_titles)
@@ -25,6 +53,8 @@ pub async fn update_profile(db: &SqlitePool, dto: &UserProfileDto) -> Result<(),
         .map_err(|e| AppError::Internal(e.to_string()))?;
     let creators = serde_json::to_string(&dto.favorite_creators)
         .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    validate_profile_sizes(&titles, &genres, &creators)?;
 
     sqlx::query(
         "UPDATE user_profile
@@ -109,6 +139,44 @@ mod tests {
 
         let profile = get_profile(&db).await.unwrap();
         assert_eq!(profile.total_read, 2);
+    }
+
+    #[test]
+    fn validate_profile_sizes_accepts_within_limits() {
+        let titles = serde_json::to_string(&vec!["title"; 10]).unwrap();
+        let genres = serde_json::to_string(&vec!["genre"; 5]).unwrap();
+        let creators = serde_json::to_string(&vec!["creator"; 10]).unwrap();
+        assert!(validate_profile_sizes(&titles, &genres, &creators).is_ok());
+    }
+
+    #[test]
+    fn validate_profile_sizes_rejects_oversized_titles() {
+        let titles = "x".repeat(MAX_TITLES_LEN + 1);
+        let genres = "[]".to_string();
+        let creators = "[]".to_string();
+        let result = validate_profile_sizes(&titles, &genres, &creators);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("favorite_titles"));
+    }
+
+    #[test]
+    fn validate_profile_sizes_rejects_oversized_genres() {
+        let titles = "[]".to_string();
+        let genres = "x".repeat(MAX_GENRES_LEN + 1);
+        let creators = "[]".to_string();
+        let result = validate_profile_sizes(&titles, &genres, &creators);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("favorite_genres"));
+    }
+
+    #[test]
+    fn validate_profile_sizes_rejects_oversized_creators() {
+        let titles = "[]".to_string();
+        let genres = "[]".to_string();
+        let creators = "x".repeat(MAX_CREATORS_LEN + 1);
+        let result = validate_profile_sizes(&titles, &genres, &creators);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("favorite_creators"));
     }
 
     #[tokio::test]
