@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Otaku-Rich Design Overhaul
 status: executing
-last_updated: "2026-03-28T12:13:07.369Z"
+last_updated: "2026-03-28T12:17:14.805Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 05 (ui-primitive-component-overhaul) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-03-28
 
@@ -42,6 +42,7 @@ Last activity: 2026-03-28
 | Phase 05 P01 | 4min | 2 tasks | 11 files |
 | Phase 05 P02 | 4min | 2 tasks | 4 files |
 | Phase 05 P03 | 6min | 2 tasks | 5 files |
+| Phase 05 P04 | 8min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,12 @@ Last activity: 2026-03-28
 - Noto Sans JP bundle size: validate Tauri binary delta before committing both JP font packages
 - CVA vs tailwind-variants: if CVA shows Tailwind 4 incompatibility in Phase 5, switch to tailwind-variants without architecture impact
 - Stitch palette values are provisional: final HEX values come from Stitch mockup session + Figma MCP before Phase 4 palette.css is committed
+
+## Key Decisions (Phase 05)
+
+- Toast semantic differentiation via border-l-2 accent token (not background color): bold-glass provides neutral glass base
+- DeepDivePanel drops deepdive-panel CSS class — glassmorphism expressed directly in Tailwind utilities via bold-glass-sm
+- Last session: Completed 05-04-PLAN.md (2026-03-28)
 
 ## Session Continuity
 

@@ -21,7 +21,7 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 
 - [x] **COMP-01**: Badge / Button / Spinner / Input / ToggleGroup / Card / Modal の全 UI プリミティブを新デザイン言語で再設計する
 - [x] **COMP-02**: DiscoverCard にポスター比率 (2:3) カバーアートモードを追加する
-- [ ] **COMP-03**: DeepDive パネル、モーダル、トーストにグラスモーフィズム効果を適用する
+- [x] **COMP-03**: DeepDive パネル、モーダル、トーストにグラスモーフィズム効果を適用する
 - [x] **COMP-04**: サイドバーナビゲーションのアクティブ状態にネオングロー + lucide-react アイコンに刷新する
 - [x] **COMP-05**: AI 処理済みカードに AI バッジチップ（紫→青グラデーション）を表示する
 - [x] **COMP-06**: セクションヘッダーにデコレーティブ左ボーダーアクセントを追加する
@@ -43,7 +43,7 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 - [ ] **A11Y-03**: 見出し階層（h1→h2→h3）とフォームラベルを正規化する
 - [ ] **PERF-01**: @tanstack/react-virtual で 1000+ 記事の仮想スクロールを実装する
 - [ ] **PERF-02**: useArticleStore をスライス分割する（フィード / ハイライト / カウント / スクロール位置）
-- [ ] **PERF-03**: glassmorphism の blur バジェットを設定し、GPU パフォーマンスを検証する
+- [x] **PERF-03**: glassmorphism の blur バジェットを設定し、GPU パフォーマンスを検証する
 
 ## Future Requirements
 
@@ -81,12 +81,12 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 | DTKN-07 | Phase 4 | Complete |
 | COMP-01 | Phase 5 | Complete |
 | COMP-02 | Phase 5 | Complete |
-| COMP-03 | Phase 5 | Pending |
+| COMP-03 | Phase 5 | Complete |
 | COMP-04 | Phase 5 | Complete |
 | COMP-05 | Phase 5 | Complete |
 | COMP-06 | Phase 5 | Complete |
 | COMP-07 | Phase 5 | Complete |
-| PERF-03 | Phase 5 | Pending |
+| PERF-03 | Phase 5 | Complete |
 | MOTN-01 | Phase 6 | Pending |
 | MOTN-02 | Phase 6 | Pending |
 | MOTN-03 | Phase 6 | Pending |
