@@ -9,13 +9,13 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 
 ### Design Token Foundation
 
-- [ ] **DTKN-01**: サーフェスカラーを void black (#0a0a0f) ベースに深化し、5層サーフェス階層を再定義する
-- [ ] **DTKN-02**: ネオングロー CSS 変数システム（--glow-primary, --glow-secondary 等）を追加し、60-30-10 ルールで適用する
-- [ ] **DTKN-03**: コンテンツタイプ別アクセントカラー4色（anime=紫, manga=ピンク, game=シアン, news=アンバー）を定義する
+- [x] **DTKN-01**: サーフェスカラーを void black (#0a0a0f) ベースに深化し、5層サーフェス階層を再定義する
+- [x] **DTKN-02**: ネオングロー CSS 変数システム（--glow-primary, --glow-secondary 等）を追加し、60-30-10 ルールで適用する
+- [x] **DTKN-03**: コンテンツタイプ別アクセントカラー4色（anime=紫, manga=ピンク, game=シアン, news=アンバー）を定義する
 - [x] **DTKN-04**: CJK フォント（Noto Sans JP / Zen Maru Gothic）をセルフホスト + unicode-range サブセットで導入する
 - [x] **DTKN-05**: タイポグラフィ階層を再定義する（title=600, body=400, meta=300 + ウェイトコントラスト強化）
 - [x] **DTKN-06**: Legacy CSS alias（--bg-card, --text-primary 等14個）を完全削除し、推奨トークンに移行する
-- [ ] **DTKN-07**: design.md を新デザインシステムで全面書き換えし、Stitch Token Mapping を更新する
+- [x] **DTKN-07**: design.md を新デザインシステムで全面書き換えし、Stitch Token Mapping を更新する
 
 ### Component Visual Overhaul
 
@@ -72,13 +72,13 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DTKN-01 | Phase 4 | Pending |
-| DTKN-02 | Phase 4 | Pending |
-| DTKN-03 | Phase 4 | Pending |
+| DTKN-01 | Phase 4 | Complete |
+| DTKN-02 | Phase 4 | Complete |
+| DTKN-03 | Phase 4 | Complete |
 | DTKN-04 | Phase 4 | Complete |
 | DTKN-05 | Phase 4 | Complete |
 | DTKN-06 | Phase 4 | Complete |
-| DTKN-07 | Phase 4 | Pending |
+| DTKN-07 | Phase 4 | Complete |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
 | COMP-03 | Phase 5 | Pending |
