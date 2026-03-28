@@ -20,10 +20,10 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 ### Component Visual Overhaul
 
 - [x] **COMP-01**: Badge / Button / Spinner / Input / ToggleGroup / Card / Modal の全 UI プリミティブを新デザイン言語で再設計する
-- [ ] **COMP-02**: DiscoverCard にポスター比率 (2:3) カバーアートモードを追加する
+- [x] **COMP-02**: DiscoverCard にポスター比率 (2:3) カバーアートモードを追加する
 - [ ] **COMP-03**: DeepDive パネル、モーダル、トーストにグラスモーフィズム効果を適用する
 - [x] **COMP-04**: サイドバーナビゲーションのアクティブ状態にネオングロー + lucide-react アイコンに刷新する
-- [ ] **COMP-05**: AI 処理済みカードに AI バッジチップ（紫→青グラデーション）を表示する
+- [x] **COMP-05**: AI 処理済みカードに AI バッジチップ（紫→青グラデーション）を表示する
 - [x] **COMP-06**: セクションヘッダーにデコレーティブ左ボーダーアクセントを追加する
 - [x] **COMP-07**: 空ステートをアニメ文化モチーフ（桜、ピクセルスター、マンガスピードライン）で統一する
 
@@ -80,10 +80,10 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 | DTKN-06 | Phase 4 | Complete |
 | DTKN-07 | Phase 4 | Complete |
 | COMP-01 | Phase 5 | Complete |
-| COMP-02 | Phase 5 | Pending |
+| COMP-02 | Phase 5 | Complete |
 | COMP-03 | Phase 5 | Pending |
 | COMP-04 | Phase 5 | Complete |
-| COMP-05 | Phase 5 | Pending |
+| COMP-05 | Phase 5 | Complete |
 | COMP-06 | Phase 5 | Complete |
 | COMP-07 | Phase 5 | Complete |
 | PERF-03 | Phase 5 | Pending |
