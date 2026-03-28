@@ -92,7 +92,12 @@ Plans:
   4. Decorative retro motifs (corner brackets, scan-line texture, dot grid) are visible on designated components and are implemented using CSS `::before`/`::after` only — no JavaScript.
   5. Enabling the OS "Reduce Motion" accessibility setting (or `prefers-reduced-motion: reduce`) removes all entrance and transition animations app-wide with no visible glitches or broken layouts.
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+- [ ] 06-01-PLAN.md — Wing AnimatePresence transition + stagger interval + useMotionConfig rollout (MOTN-01, MOTN-02, MOTN-06)
+- [ ] 06-02-PLAN.md — Retro CSS decorations + hover depth unification + micro-interaction keyframes (MOTN-03, MOTN-04, MOTN-05)
+- [ ] 06-03-PLAN.md — Automated verification + human visual checkpoint (all requirements)
 
 **UI hint**: yes
 
@@ -128,5 +133,5 @@ Plans:
 | 3. Performance & Test Coverage | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 4. Design Token Foundation | v2.0 | 0/3 | Planned | - |
 | 5. UI Primitive & Component Overhaul | v2.0 | 5/5 | Complete   | 2026-03-28 |
-| 6. Motion & Interaction Layer | v2.0 | 0/- | Not started | - |
+| 6. Motion & Interaction Layer | v2.0 | 0/3 | Planned | - |
 | 7. Accessibility, Performance & Polish | v2.0 | 0/- | Not started | - |
