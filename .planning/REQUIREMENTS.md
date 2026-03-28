@@ -14,7 +14,7 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 - [ ] **DTKN-03**: コンテンツタイプ別アクセントカラー4色（anime=紫, manga=ピンク, game=シアン, news=アンバー）を定義する
 - [x] **DTKN-04**: CJK フォント（Noto Sans JP / Zen Maru Gothic）をセルフホスト + unicode-range サブセットで導入する
 - [x] **DTKN-05**: タイポグラフィ階層を再定義する（title=600, body=400, meta=300 + ウェイトコントラスト強化）
-- [ ] **DTKN-06**: Legacy CSS alias（--bg-card, --text-primary 等14個）を完全削除し、推奨トークンに移行する
+- [x] **DTKN-06**: Legacy CSS alias（--bg-card, --text-primary 等14個）を完全削除し、推奨トークンに移行する
 - [ ] **DTKN-07**: design.md を新デザインシステムで全面書き換えし、Stitch Token Mapping を更新する
 
 ### Component Visual Overhaul
@@ -77,7 +77,7 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 | DTKN-03 | Phase 4 | Pending |
 | DTKN-04 | Phase 4 | Complete |
 | DTKN-05 | Phase 4 | Complete |
-| DTKN-06 | Phase 4 | Pending |
+| DTKN-06 | Phase 4 | Complete |
 | DTKN-07 | Phase 4 | Pending |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
