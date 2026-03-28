@@ -72,38 +72,38 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DTKN-01 | TBD | Pending |
-| DTKN-02 | TBD | Pending |
-| DTKN-03 | TBD | Pending |
-| DTKN-04 | TBD | Pending |
-| DTKN-05 | TBD | Pending |
-| DTKN-06 | TBD | Pending |
-| DTKN-07 | TBD | Pending |
-| COMP-01 | TBD | Pending |
-| COMP-02 | TBD | Pending |
-| COMP-03 | TBD | Pending |
-| COMP-04 | TBD | Pending |
-| COMP-05 | TBD | Pending |
-| COMP-06 | TBD | Pending |
-| COMP-07 | TBD | Pending |
-| MOTN-01 | TBD | Pending |
-| MOTN-02 | TBD | Pending |
-| MOTN-03 | TBD | Pending |
-| MOTN-04 | TBD | Pending |
-| MOTN-05 | TBD | Pending |
-| MOTN-06 | TBD | Pending |
-| A11Y-01 | TBD | Pending |
-| A11Y-02 | TBD | Pending |
-| A11Y-03 | TBD | Pending |
-| PERF-01 | TBD | Pending |
-| PERF-02 | TBD | Pending |
-| PERF-03 | TBD | Pending |
+| DTKN-01 | Phase 4 | Pending |
+| DTKN-02 | Phase 4 | Pending |
+| DTKN-03 | Phase 4 | Pending |
+| DTKN-04 | Phase 4 | Pending |
+| DTKN-05 | Phase 4 | Pending |
+| DTKN-06 | Phase 4 | Pending |
+| DTKN-07 | Phase 4 | Pending |
+| COMP-01 | Phase 5 | Pending |
+| COMP-02 | Phase 5 | Pending |
+| COMP-03 | Phase 5 | Pending |
+| COMP-04 | Phase 5 | Pending |
+| COMP-05 | Phase 5 | Pending |
+| COMP-06 | Phase 5 | Pending |
+| COMP-07 | Phase 5 | Pending |
+| PERF-03 | Phase 5 | Pending |
+| MOTN-01 | Phase 6 | Pending |
+| MOTN-02 | Phase 6 | Pending |
+| MOTN-03 | Phase 6 | Pending |
+| MOTN-04 | Phase 6 | Pending |
+| MOTN-05 | Phase 6 | Pending |
+| MOTN-06 | Phase 6 | Pending |
+| A11Y-01 | Phase 7 | Pending |
+| A11Y-02 | Phase 7 | Pending |
+| A11Y-03 | Phase 7 | Pending |
+| PERF-01 | Phase 7 | Pending |
+| PERF-02 | Phase 7 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 (pending roadmap creation)
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after initial definition*
+*Last updated: 2026-03-28 after roadmap creation*
