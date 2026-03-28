@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '../../lib/logger';
 import type { DiscoverArticleDto, DiscoverFeedResult } from '../../types';
 import { DiscoverCard } from '../discover/DiscoverCard';
+import { Spinner } from '../ui/Spinner';
 
-export const LibraryWing: React.FC = () => {
+export function LibraryWing(): React.JSX.Element {
   const [articles, setArticles] = useState<DiscoverArticleDto[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,12 +60,12 @@ export const LibraryWing: React.FC = () => {
   }, [hasMore, isLoading, fetchLibrary]);
 
   return (
-    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
+    <div className="h-full flex flex-col bg-(--surface)">
       <div className="universal-tabs">
         <span className="tab-item active">
           ブックマーク
           {articles.length > 0 && (
-            <span className="ml-2 text-xs text-[var(--text-tertiary)]">{articles.length}件</span>
+            <span className="ml-2 text-xs text-(--outline)">{articles.length}件</span>
           )}
         </span>
       </div>
@@ -79,14 +80,14 @@ export const LibraryWing: React.FC = () => {
 
           {isLoading && (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
+              <Spinner />
             </div>
           )}
 
           {!isLoading && articles.length === 0 && (
-            <div className="text-center py-16 text-[var(--text-secondary)]">
+            <div className="text-center py-16 text-(--on-surface-variant)">
               <p className="text-4xl mb-4">{'📚'}</p>
-              <p className="text-lg mb-2 text-[var(--text-primary)]">ブックマークがありません</p>
+              <p className="text-lg mb-2 text-(--on-surface)">ブックマークがありません</p>
               <p className="text-sm">Discover で気になる記事をブックマークしてみましょう</p>
             </div>
           )}
@@ -96,4 +97,4 @@ export const LibraryWing: React.FC = () => {
       </div>
     </div>
   );
-};
+}

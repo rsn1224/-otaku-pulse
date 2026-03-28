@@ -21,7 +21,7 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({ article, onClose }) 
 
   return (
     <>
-      <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 border-b border-(--surface-container-highest)">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button
             type="button"
@@ -41,9 +41,7 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({ article, onClose }) 
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h2 className="text-sm font-semibold truncate text-[var(--text-primary)]">
-            {article.title}
-          </h2>
+          <h2 className="text-sm font-semibold truncate text-(--on-surface)">{article.title}</h2>
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
@@ -67,8 +65,8 @@ export const ReaderHeader: React.FC<ReaderHeaderProps> = ({ article, onClose }) 
         </div>
       </div>
 
-      <div className="px-6 py-2 flex-shrink-0 border-b border-[var(--border)]">
-        <div className="flex flex-wrap gap-3 text-xs text-[var(--text-source)]">
+      <div className="px-6 py-2 flex-shrink-0 border-b border-(--surface-container-highest)">
+        <div className="flex flex-wrap gap-3 text-xs text-(--on-surface-variant)">
           {article.feedName && <span className="source-badge">{article.feedName}</span>}
           {article.publishedAt && (
             <span>{new Date(article.publishedAt).toLocaleDateString('ja-JP')}</span>

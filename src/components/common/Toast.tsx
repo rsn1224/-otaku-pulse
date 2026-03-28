@@ -1,5 +1,7 @@
+import { AnimatePresence, motion } from 'motion/react';
 import type React from 'react';
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useContext, useState } from 'react';
+import { toastSlideIn } from '../../lib/motion-variants';
 
 interface Toast {
   id: string;
@@ -14,7 +16,7 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export const useToast = () => {
+export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
@@ -26,22 +28,30 @@ interface ToastProviderProps {
   children: ReactNode;
 }
 
-export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
+const MAX_TOASTS = 5;
+
+export function ToastProvider({ children }: ToastProviderProps): React.JSX.Element {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = (type: 'success' | 'error' | 'info', message: string, duration = 3000) => {
+  const showToast = (
+    type: 'success' | 'error' | 'info',
+    message: string,
+    duration = 3000,
+  ): void => {
     const id = Date.now().toString();
     const newToast: Toast = { id, type, message, duration };
 
-    setToasts((prev) => [...prev, newToast]);
+    setToasts((prev) => {
+      const next = [...prev, newToast];
+      return next.length > MAX_TOASTS ? next.slice(-MAX_TOASTS) : next;
+    });
 
-    // 自動削除
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, duration);
   };
 
-  const removeToast = (id: string) => {
+  const removeToast = (id: string): void => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
@@ -51,90 +61,68 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </ToastContext.Provider>
   );
-};
+}
 
 interface ToastContainerProps {
   toasts: Toast[];
   onRemove: (id: string) => void;
 }
 
-const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
+function ToastContainer({ toasts, onRemove }: ToastContainerProps): React.JSX.Element {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2" role="region" aria-live="polite">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
-      ))}
-    </div>
+    <section className="fixed top-4 right-4 z-50 space-y-2" aria-live="polite">
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
+        ))}
+      </AnimatePresence>
+    </section>
   );
-};
+}
 
 interface ToastItemProps {
   toast: Toast;
   onRemove: (id: string) => void;
 }
 
-const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
-  const [isVisible, setIsVisible] = useState(false);
+const TOAST_STYLES: Record<string, string> = {
+  success: 'bg-green-600 text-white border-green-500',
+  error: 'bg-red-600 text-white border-red-500',
+  info: 'bg-blue-600 text-white border-blue-500',
+};
 
-  useEffect(() => {
-    // フェードインアニメーション
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
+const TOAST_ICONS: Record<string, string> = {
+  success: '✨',
+  error: '⚠️',
+  info: '📰',
+};
 
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => onRemove(toast.id), 300);
-  };
-
-  const getToastStyles = () => {
-    const baseStyles = 'px-4 py-3 rounded-lg shadow-lg border transition-all duration-300 max-w-sm';
-
-    switch (toast.type) {
-      case 'success':
-        return `${baseStyles} bg-green-600 text-white border-green-500`;
-      case 'error':
-        return `${baseStyles} bg-red-600 text-white border-red-500`;
-      case 'info':
-        return `${baseStyles} bg-blue-600 text-white border-blue-500`;
-      default:
-        return baseStyles;
-    }
-  };
-
-  const getIcon = () => {
-    switch (toast.type) {
-      case 'success':
-        return '✨';
-      case 'error':
-        return '⚠️';
-      case 'info':
-        return '📰';
-      default:
-        return '';
-    }
-  };
-
+function ToastItem({ toast, onRemove }: ToastItemProps): React.JSX.Element {
   return (
-    <div
-      className={`${getToastStyles()} ${
-        isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
-      }`}
+    <motion.div
+      layout
+      variants={toastSlideIn}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className={`px-4 py-3 rounded-lg shadow-lg border max-w-sm ${TOAST_STYLES[toast.type] ?? ''}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <span className="text-lg">{getIcon()}</span>
+          <span className="text-lg" aria-hidden="true">
+            {TOAST_ICONS[toast.type]}
+          </span>
           <span className="text-sm font-medium">{toast.message}</span>
         </div>
         <button
           type="button"
-          onClick={handleClose}
+          onClick={() => onRemove(toast.id)}
           className="ml-4 text-white hover:text-gray-200 transition-colors"
           aria-label="通知を閉じる"
         >
           ×
         </button>
       </div>
-    </div>
+    </motion.div>
   );
-};
+}

@@ -1,9 +1,12 @@
+import { motion } from 'motion/react';
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
+import { staggerContainer, staggerItem } from '../../lib/motion-variants';
 import type { DiscoverArticleDto, DiscoverTab } from '../../types';
 import { CardSkeletonGrid } from '../discover/CardSkeleton';
 import { DiscoverCard } from '../discover/DiscoverCard';
 import { HighlightsSection } from '../discover/HighlightsSection';
+import { Spinner } from '../ui/Spinner';
 
 interface ArticleListProps {
   tab: DiscoverTab;
@@ -18,7 +21,7 @@ interface ArticleListProps {
   saveScrollPosition: (tab: string, pos: number) => void;
 }
 
-export const ArticleList: React.FC<ArticleListProps> = ({
+export function ArticleList({
   tab,
   filteredArticles,
   isLoading,
@@ -29,7 +32,7 @@ export const ArticleList: React.FC<ArticleListProps> = ({
   clearError,
   loadMore,
   saveScrollPosition,
-}) => {
+}: ArticleListProps): React.JSX.Element {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +80,7 @@ export const ArticleList: React.FC<ArticleListProps> = ({
     <div ref={scrollRef} className="flex-1 overflow-y-auto discover-scroll">
       <div className="feed-column">
         {error && (
-          <div className="rounded-lg p-3 mb-3 text-sm flex justify-between items-center bg-[var(--bg-card)] border border-[var(--badge-hot)] text-[var(--badge-hot)]">
+          <div className="rounded-lg p-3 mb-3 text-sm flex justify-between items-center bg-(--surface-container) border border-(--error) text-(--error)">
             {error}
             <button type="button" onClick={clearError} className="ml-2 hover:opacity-80">
               ✕
@@ -92,25 +95,37 @@ export const ArticleList: React.FC<ArticleListProps> = ({
         {isLoading && filteredArticles.length === 0 ? (
           <CardSkeletonGrid />
         ) : (
-          <div className="card-grid" role="feed" aria-label="Article feed">
+          <motion.div
+            className="card-grid"
+            role="feed"
+            aria-label="Article feed"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
             {filteredArticles.map((article, i) => (
-              <DiscoverCard
-                key={article.id}
-                article={article}
-                featured={i === 0 && tab === 'for_you'}
-                isFocused={i === focusedIndex}
-              />
+              <motion.div key={article.id} variants={staggerItem}>
+                <DiscoverCard
+                  article={article}
+                  featured={i === 0 && tab === 'for_you'}
+                  isFocused={i === focusedIndex}
+                />
+              </motion.div>
             ))}
+          </motion.div>
+        )}
+
+        {isLoading && filteredArticles.length > 0 && (
+          <div className="flex justify-center py-4">
+            <Spinner />
           </div>
         )}
 
-        {isLoading && filteredArticles.length > 0 && <Spinner />}
-
         {/* Empty state */}
         {!isLoading && filteredArticles.length === 0 && (
-          <div className="text-center py-16 text-[var(--text-secondary)]">
+          <div className="text-center py-16 text-(--on-surface-variant)">
             <p className="text-4xl mb-4">{'🔍'}</p>
-            <p className="text-lg mb-2 text-[var(--text-primary)]">まだ記事がありません</p>
+            <p className="text-lg mb-2 text-(--on-surface)">まだ記事がありません</p>
             <p className="text-sm mb-4">左下の「収集」ボタンで最新記事を取得しましょう</p>
           </div>
         )}
@@ -120,7 +135,7 @@ export const ArticleList: React.FC<ArticleListProps> = ({
           !hasMore &&
           filteredArticles.length > 0 &&
           filteredArticles.every((a) => a.isRead) && (
-            <div className="text-center py-8 text-[var(--text-secondary)]">
+            <div className="text-center py-8 text-(--on-surface-variant)">
               <p className="text-2xl mb-2">{'✨'}</p>
               <p className="text-sm">全部読みました！ また来てね</p>
             </div>
@@ -130,10 +145,4 @@ export const ArticleList: React.FC<ArticleListProps> = ({
       </div>
     </div>
   );
-};
-
-const Spinner: React.FC = () => (
-  <div className="flex justify-center py-4">
-    <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
-  </div>
-);
+}

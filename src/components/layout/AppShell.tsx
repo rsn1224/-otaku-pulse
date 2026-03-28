@@ -1,8 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { logger } from '../../lib/logger';
+import { springTransition } from '../../lib/motion-variants';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useFilterStore } from '../../stores/useFilterStore';
 import { initTheme } from '../../stores/useThemeStore';
@@ -11,6 +13,7 @@ import { ErrorBoundary } from '../common/ErrorBoundary';
 import { KeyboardHelpModal } from '../common/KeyboardHelpModal';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
 import { PreferenceSuggestion } from '../onboarding/PreferenceSuggestion';
+import { Spinner } from '../ui/Spinner';
 import { CollectButton } from './CollectButton';
 import { TopBarSearch } from './TopBarSearch';
 import { WindowControls } from './WindowControls';
@@ -51,7 +54,7 @@ const NAV_ITEMS: { id: WingIdV2; label: string; icon: string }[] = [
   },
 ];
 
-export const AppShell: React.FC = () => {
+export function AppShell(): React.JSX.Element {
   const [activeWing, setActiveWing] = useState<WingIdV2>('discover');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
@@ -128,7 +131,7 @@ export const AppShell: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <div className="h-screen flex flex-col bg-(--surface) text-(--on-surface)">
         <div className="topbar" data-tauri-drag-region>
           <div className="flex items-center gap-3" data-tauri-drag-region>
             <span className="text-sm font-semibold tracking-tight" data-tauri-drag-region>
@@ -141,7 +144,7 @@ export const AppShell: React.FC = () => {
 
         <div className="flex flex-1 overflow-hidden">
           <nav className="w-[60px] flex flex-col items-center py-6 flex-shrink-0 space-y-2 bg-[rgba(19,19,25,0.9)] backdrop-blur-[20px] shadow-[40px_0_40px_-20px_rgba(189,157,255,0.06)]">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold mb-4 bg-gradient-to-br from-[var(--accent)] to-[#699cff] text-white">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold mb-4 bg-linear-to-br from-(--primary) to-(--secondary) text-white">
               OP
             </div>
             {NAV_ITEMS.map((item) => (
@@ -149,12 +152,16 @@ export const AppShell: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveWing(item.id)}
-                className={`relative flex items-center justify-center w-full h-11 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:rounded-lg ${activeWing === item.id ? 'text-[var(--accent)]' : 'text-[#94a3b8]'}`}
+                className={`relative flex items-center justify-center w-full h-11 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:rounded-lg ${activeWing === item.id ? 'text-(--primary)' : 'text-[#94a3b8]'}`}
                 title={item.label}
                 aria-label={item.label}
               >
                 {activeWing === item.id && (
-                  <span className="absolute left-0 w-[2px] h-7 bg-gradient-to-b from-[var(--accent)] to-[#699cff]" />
+                  <motion.span
+                    layoutId="nav-indicator"
+                    transition={springTransition}
+                    className="absolute left-0 w-[2px] h-7 bg-linear-to-b from-(--primary) to-[#699cff]"
+                  />
                 )}
                 <svg
                   aria-hidden="true"
@@ -172,11 +179,11 @@ export const AppShell: React.FC = () => {
               <CollectButton />
             </div>
           </nav>
-          <main className="flex-1 overflow-hidden">
+          <main id="main-content" className="flex-1 overflow-hidden">
             <React.Suspense
               fallback={
-                <div className="flex items-center justify-center h-full bg-[var(--bg-primary)]">
-                  <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
+                <div className="flex items-center justify-center h-full bg-(--surface)">
+                  <Spinner />
                 </div>
               }
             >
@@ -195,4 +202,4 @@ export const AppShell: React.FC = () => {
       )}
     </ErrorBoundary>
   );
-};
+}

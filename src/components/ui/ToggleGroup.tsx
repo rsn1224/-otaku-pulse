@@ -36,8 +36,8 @@ export function ToggleGroup<T extends string>({
               'whitespace-nowrap border-none transition-all duration-200',
               'tracking-[0.01em] cursor-pointer',
               isActive
-                ? 'bg-[var(--primary-soft)] text-[var(--primary)] font-semibold border-b-2 border-b-[var(--primary)]'
-                : 'bg-transparent text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/[0.04]',
+                ? 'bg-(--primary-soft) text-(--primary) font-semibold border-b-2 border-b-(--primary)'
+                : 'bg-transparent text-(--on-surface-variant) hover:text-(--on-surface) hover:bg-white/[0.04]',
             ].join(' ')}
           >
             {item.label}

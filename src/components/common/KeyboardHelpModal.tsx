@@ -1,5 +1,8 @@
 import type React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useFocusReturn } from '../../hooks/useFocusReturn';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import { useKeyboardStore } from '../../stores/useKeyboardStore';
 
 const NAV_SHORTCUTS: { key: string; label: string; combo?: string }[] = [
@@ -24,6 +27,11 @@ const KeyBadge: React.FC<{ children: string }> = ({ children }) => (
 
 export const KeyboardHelpModal: React.FC = () => {
   const { showHelp, toggleHelp } = useKeyboardStore();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, showHelp);
+  useFocusReturn(showHelp);
+  useScrollLock(showHelp);
 
   useEffect(() => {
     if (!showHelp) return;
@@ -35,8 +43,9 @@ export const KeyboardHelpModal: React.FC = () => {
   if (!showHelp) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="キーボードショートカット"

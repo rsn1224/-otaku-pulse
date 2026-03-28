@@ -52,7 +52,7 @@ export const TagInputStep: React.FC<TagInputStepProps> = ({
         }}
         placeholder={placeholder}
         maxLength={100}
-        className="flex-1 px-3 py-2 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)]"
+        className="flex-1 px-3 py-2 rounded-lg text-sm bg-(--surface) border border-(--surface-container-highest) text-(--on-surface)"
       />
       <button
         type="button"

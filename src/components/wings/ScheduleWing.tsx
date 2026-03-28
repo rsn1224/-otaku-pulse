@@ -17,10 +17,11 @@ import type { AiringEntry, GameReleaseEntry, ScheduleViewMode } from '../../type
 import { GameDayView, GameGridView } from '../schedule/GameViews';
 import { ScheduleDayView, ScheduleGridView } from '../schedule/ScheduleGridView';
 import { ToggleGroup } from '../schedule/ScheduleToggleGroup';
+import { Spinner } from '../ui/Spinner';
 
 type TabId = 'anime' | 'game';
 
-export const ScheduleWing: React.FC = () => {
+export function ScheduleWing(): React.JSX.Element {
   const [viewMode, setViewMode] = useState<ScheduleViewMode>('week');
   const [tab, setTab] = useState<TabId>('anime');
   const [offset, setOffset] = useState(0);
@@ -117,15 +118,15 @@ export const ScheduleWing: React.FC = () => {
     if (isLoading) {
       return (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
+          <Spinner />
         </div>
       );
     }
     if (tab === 'game' && rawgKeySet === false) {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-          <p className="text-[var(--text-secondary)] text-sm">RAWG API キーが未設定です</p>
-          <p className="text-[var(--text-tertiary)] text-xs">
+          <p className="text-(--on-surface-variant) text-sm">RAWG API キーが未設定です</p>
+          <p className="text-(--outline) text-xs">
             プロフィール &gt; API キー タブから設定してください
           </p>
         </div>
@@ -144,10 +145,10 @@ export const ScheduleWing: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
+    <div className="h-full flex flex-col bg-(--surface)">
       <div className="px-6 py-4 flex items-center justify-between flex-shrink-0 gap-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Schedule</h1>
+          <h1 className="text-xl font-bold tracking-tight text-(--on-surface)">Schedule</h1>
           <ToggleGroup
             items={[
               { id: 'anime', label: 'Anime' },
@@ -177,30 +178,30 @@ export const ScheduleWing: React.FC = () => {
           <button
             type="button"
             onClick={() => setOffset((o) => o - 1)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-card)] text-[var(--text-secondary)]"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-(--surface-container) text-(--on-surface-variant)"
           >
             {'←'}
           </button>
           <button
             type="button"
             onClick={() => setOffset(0)}
-            className="px-2.5 h-7 text-[11px] rounded-lg font-semibold bg-[var(--accent)] text-[#0e0e13]"
+            className="px-2.5 h-7 text-[11px] rounded-lg font-semibold bg-(--primary) text-[#0e0e13]"
           >
             Today
           </button>
           <button
             type="button"
             onClick={() => setOffset((o) => o + 1)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-card)] text-[var(--text-secondary)]"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-(--surface-container) text-(--on-surface-variant)"
           >
             {'→'}
           </button>
         </div>
       </div>
-      <p className="px-6 text-xs font-medium tracking-wide mb-2 text-[var(--text-secondary)]">
+      <p className="px-6 text-xs font-medium tracking-wide mb-2 text-(--on-surface-variant)">
         {headerText}
       </p>
       <div className="flex-1 overflow-auto px-4 pb-4">{renderContent()}</div>
     </div>
   );
-};
+}

@@ -1,5 +1,7 @@
+import { AnimatePresence } from 'motion/react';
 import type React from 'react';
 import { useEffect } from 'react';
+import { useAnnounce } from '../../hooks/useAnnouncer';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useKeyboardStore } from '../../stores/useKeyboardStore';
 import { useReaderStore } from '../../stores/useReaderStore';
@@ -9,9 +11,10 @@ import { ArticleReader } from '../common/ArticleReader';
 import { CitationFooter } from '../discover/CitationFooter';
 import { DiscoverCard } from '../discover/DiscoverCard';
 import { UniversalTabs } from '../discover/UniversalTabs';
+import { Spinner } from '../ui/Spinner';
 import { ArticleList } from './ArticleList';
 
-export const DiscoverWing: React.FC = () => {
+export function DiscoverWing(): React.JSX.Element {
   const {
     tab,
     articles,
@@ -29,20 +32,32 @@ export const DiscoverWing: React.FC = () => {
   const { readerArticle, closeReader } = useReaderStore();
   const { isOffline } = useSchedulerStore();
   const { focusedIndex } = useKeyboardStore();
+  const { announce } = useAnnounce();
 
   useEffect(() => {
     fetchFeed(true);
     fetchHighlights();
   }, [fetchFeed, fetchHighlights]);
 
+  // 検索完了時にスクリーンリーダーへ結果件数をアナウンス
+  useEffect(() => {
+    if (!isSearching && searchMode && searchResults.length > 0) {
+      announce(`${searchResults.length}件の記事が見つかりました`);
+    }
+  }, [isSearching, searchMode, searchResults.length, announce]);
+
   // Search mode
   if (searchMode) {
     return (
-      <div className="h-full flex flex-col bg-[var(--bg-primary)]">
+      <div className="h-full flex flex-col bg-(--surface)">
         <UniversalTabs />
         <div className="flex-1 overflow-y-auto discover-scroll">
           <div className="feed-column">
-            {isSearching && <Spinner />}
+            {isSearching && (
+              <div className="flex justify-center py-4">
+                <Spinner />
+              </div>
+            )}
 
             {/* AI Answer */}
             {!isSearching && aiAnswer && (
@@ -58,17 +73,15 @@ export const DiscoverWing: React.FC = () => {
                   </svg>
                   AI Answer
                 </div>
-                <div className="text-sm leading-[1.75] mt-2 text-[var(--text-primary)]">
-                  {aiAnswer}
-                </div>
+                <div className="text-sm leading-[1.75] mt-2 text-(--on-surface)">{aiAnswer}</div>
                 <CitationFooter citations={aiCitations} />
               </div>
             )}
 
             {!isSearching && searchResults.length === 0 && !aiAnswer && (
-              <div className="text-center py-16 text-[var(--text-secondary)]">
+              <div className="text-center py-16 text-(--on-surface-variant)">
                 <p className="text-3xl mb-3">{'🔎'}</p>
-                <p className="text-lg mb-2 text-[var(--text-primary)]">見つかりませんでした</p>
+                <p className="text-lg mb-2 text-(--on-surface)">見つかりませんでした</p>
                 <p className="text-sm">別のキーワードで試してみてください</p>
               </div>
             )}
@@ -93,13 +106,15 @@ export const DiscoverWing: React.FC = () => {
             )}
           </div>
         </div>
-        <ArticleReader article={readerArticle} onClose={closeReader} />
+        <AnimatePresence>
+          {readerArticle && <ArticleReader article={readerArticle} onClose={closeReader} />}
+        </AnimatePresence>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
+    <div className="h-full flex flex-col bg-(--surface)">
       <UniversalTabs />
 
       {isOffline && (
@@ -122,13 +137,9 @@ export const DiscoverWing: React.FC = () => {
       />
 
       {/* Article Reader slide-over */}
-      <ArticleReader article={readerArticle} onClose={closeReader} />
+      <AnimatePresence>
+        {readerArticle && <ArticleReader article={readerArticle} onClose={closeReader} />}
+      </AnimatePresence>
     </div>
   );
-};
-
-const Spinner: React.FC = () => (
-  <div className="flex justify-center py-4">
-    <div className="w-6 h-6 border-2 rounded-full animate-spin border-[var(--border)] border-t-[var(--accent)]" />
-  </div>
-);
+}

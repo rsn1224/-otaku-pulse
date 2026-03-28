@@ -10,12 +10,12 @@ interface SpinnerProps {
   size?: keyof typeof SIZE_MAP;
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({ size = 'md' }) => {
+export function Spinner({ size = 'md' }: SpinnerProps): React.JSX.Element {
   return (
     <div
-      className={`${SIZE_MAP[size]} rounded-full animate-spin border-[var(--outline-variant)] border-t-[var(--primary)]`}
+      className={`${SIZE_MAP[size]} rounded-full animate-spin border-(--outline-variant) border-t-(--primary)`}
       role="status"
       aria-label="Loading"
     />
   );
-};
+}

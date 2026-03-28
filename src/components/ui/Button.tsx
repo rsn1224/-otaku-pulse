@@ -2,11 +2,11 @@ import type React from 'react';
 import { Spinner } from './Spinner';
 
 const VARIANT_CLASSES = {
-  primary: 'bg-[var(--primary)] text-white hover:brightness-110',
+  primary: 'bg-(--primary) text-white hover:brightness-110',
   secondary:
-    'bg-transparent text-[var(--on-surface-variant)] hover:bg-white/[0.06] hover:text-[var(--on-surface)]',
-  ghost: 'bg-transparent text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]',
-  danger: 'bg-[var(--error)] text-white hover:brightness-110',
+    'bg-transparent text-(--on-surface-variant) hover:bg-white/[0.06] hover:text-(--on-surface)',
+  ghost: 'bg-transparent text-(--on-surface-variant) hover:text-(--on-surface)',
+  danger: 'bg-(--error) text-white hover:brightness-110',
 } as const;
 
 const SIZE_CLASSES = {
@@ -37,7 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
       className={[
         'inline-flex items-center justify-center rounded-lg font-medium',
         'transition-all duration-150 active:scale-95',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-1 focus-visible:ring-offset-(--surface)',
         'disabled:opacity-50 disabled:pointer-events-none',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],

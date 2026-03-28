@@ -67,7 +67,7 @@ export const ProfileSection: React.FC = () => {
     inputSetter: (v: string) => void,
   ): React.ReactNode => (
     <div className="mb-5">
-      <span className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</span>
+      <span className="block text-sm font-medium mb-2 text-(--on-surface)">{label}</span>
       <div className="flex flex-wrap gap-2 mb-2">
         {tags.map((tag) => (
           <span key={tag} className="tag-chip">
@@ -96,7 +96,7 @@ export const ProfileSection: React.FC = () => {
           }}
           placeholder="追加..."
           maxLength={100}
-          className="flex-1 px-3 py-1.5 rounded-lg text-sm h-8 bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)]"
+          className="flex-1 px-3 py-1.5 rounded-lg text-sm h-8 bg-(--surface) border border-(--surface-container-highest) text-(--on-surface)"
         />
         <button
           type="button"
@@ -112,7 +112,7 @@ export const ProfileSection: React.FC = () => {
   return (
     <>
       {error && (
-        <div className="rounded-lg p-3 mb-4 text-sm bg-[var(--bg-card)] border border-[var(--badge-hot)] text-[var(--badge-hot)]">
+        <div className="rounded-lg p-3 mb-4 text-sm bg-(--surface-container) border border-(--error) text-(--error)">
           {error}
         </div>
       )}
@@ -121,7 +121,7 @@ export const ProfileSection: React.FC = () => {
         <div className="mb-5">
           <label
             htmlFor="profile-name"
-            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+            className="block text-sm font-medium mb-2 text-(--on-surface)"
           >
             表示名
           </label>
@@ -130,7 +130,7 @@ export const ProfileSection: React.FC = () => {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-sm h-9 bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)]"
+            className="w-full px-3 py-2 rounded-lg text-sm h-9 bg-(--surface) border border-(--surface-container-highest) text-(--on-surface)"
           />
         </div>
 
@@ -138,7 +138,7 @@ export const ProfileSection: React.FC = () => {
         {renderTagInput('好きなジャンル', genres, setGenres, genreInput, setGenreInput)}
         {renderTagInput('好きなクリエイター', creators, setCreators, creatorInput, setCreatorInput)}
 
-        <p className="text-xs mb-3 text-[var(--text-tertiary)]">
+        <p className="text-xs mb-3 text-(--outline)">
           設定した好みに基づいて For You フィードの記事順が最適化されます
         </p>
 
@@ -155,8 +155,8 @@ export const ProfileSection: React.FC = () => {
       <div className="discover-card mt-4">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-sm font-medium text-[var(--text-primary)]">学習状況</span>
-            <p className="text-sm mt-1 text-[var(--text-secondary)]">
+            <span className="text-sm font-medium text-(--on-surface)">学習状況</span>
+            <p className="text-sm mt-1 text-(--on-surface-variant)">
               読んだ記事: {profile?.totalRead ?? 0} 件
             </p>
           </div>
@@ -165,7 +165,7 @@ export const ProfileSection: React.FC = () => {
             onClick={() => {
               if (window.confirm('学習データをリセットしますか？')) resetLearningData();
             }}
-            className="card-action-btn secondary text-xs text-[var(--badge-hot)]"
+            className="card-action-btn secondary text-xs text-(--error)"
           >
             リセット
           </button>

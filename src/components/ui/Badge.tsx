@@ -1,12 +1,11 @@
 import type React from 'react';
 
 const VARIANT_CLASSES = {
-  default:
-    'bg-white/[0.04] text-[var(--on-surface-variant)] border-[var(--surface-container-highest)]',
-  category: 'bg-[var(--primary-glow)] text-[var(--primary)] border-[rgba(29,185,160,0.15)]',
-  hot: 'bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/20',
-  new: 'bg-[var(--secondary)]/10 text-[var(--secondary)] border-[var(--secondary)]/20',
-  count: 'bg-[var(--primary)] text-white border-transparent',
+  default: 'bg-white/[0.04] text-(--on-surface-variant) border-(--surface-container-highest)',
+  category: 'bg-(--primary-glow) text-(--primary) border-[rgba(29,185,160,0.15)]',
+  hot: 'bg-(--error)/10 text-(--error) border-(--error)/20',
+  new: 'bg-(--secondary)/10 text-(--secondary) border-(--secondary)/20',
+  count: 'bg-(--primary) text-white border-transparent',
 } as const;
 
 interface BadgeProps {

@@ -16,7 +16,7 @@ export const ArticleBody: React.FC<ArticleBodyProps> = ({ article, related, rela
         {article.summary && (
           <div className="glass-summary rounded-2xl p-5 mb-6 relative overflow-hidden">
             <div className="flex items-center gap-1.5 mb-3">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] bg-[rgba(189,157,255,0.1)] border border-[rgba(189,157,255,0.2)]">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-(--primary) bg-[rgba(189,157,255,0.1)] border border-[rgba(189,157,255,0.2)]">
                 AI Summary
               </span>
             </div>
@@ -29,20 +29,20 @@ export const ArticleBody: React.FC<ArticleBodyProps> = ({ article, related, rela
         {article.content ? (
           containsHtml(article.content) ? (
             <div
-              className="text-sm leading-[1.85] article-html-content text-[var(--text-primary)]"
+              className="text-sm leading-[1.85] article-html-content text-(--on-surface)"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
             />
           ) : (
-            <div className="text-sm leading-[1.85] whitespace-pre-wrap text-[var(--text-primary)]">
+            <div className="text-sm leading-[1.85] whitespace-pre-wrap text-(--on-surface)">
               {stripCitations(article.content)}
             </div>
           )
         ) : article.summary ? (
-          <p className="text-sm leading-[1.85] text-[var(--text-primary)]">
+          <p className="text-sm leading-[1.85] text-(--on-surface)">
             {stripCitations(article.summary)}
           </p>
         ) : (
-          <p className="text-sm italic text-[var(--text-tertiary)]">
+          <p className="text-sm italic text-(--outline)">
             記事内容がありません。元記事をブラウザで開いてください。
           </p>
         )}

@@ -123,11 +123,7 @@ const FeedCard: React.FC<{
   onRetry: (id: number) => void;
 }> = ({ feed, onDelete, onReenable, onRetry }) => {
   const hasError = feed.consecutiveErrors > 0;
-  const statusColor = !feed.enabled
-    ? 'var(--badge-hot)'
-    : hasError
-      ? '#f59e0b'
-      : 'var(--badge-new)';
+  const statusColor = !feed.enabled ? 'var(--error)' : hasError ? '#f59e0b' : 'var(--secondary)';
 
   return (
     <div className="discover-card py-3 px-4">
@@ -138,13 +134,13 @@ const FeedCard: React.FC<{
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ background: statusColor }}
             />
-            <p className="text-sm font-medium truncate text-[var(--text-primary)]">{feed.name}</p>
+            <p className="text-sm font-medium truncate text-(--on-surface)">{feed.name}</p>
           </div>
-          <p className="text-xs truncate mt-0.5 ml-4 text-[var(--text-tertiary)]">{feed.url}</p>
+          <p className="text-xs truncate mt-0.5 ml-4 text-(--outline)">{feed.url}</p>
           <div className="flex items-center gap-2 mt-1.5 ml-4">
             <span className="source-badge cat-badge">{feed.category}</span>
             {!feed.enabled && (
-              <span className="text-xs text-[var(--badge-hot)]">
+              <span className="text-xs text-(--error)">
                 無効{feed.disabledReason ? `: ${feed.disabledReason}` : ''}
               </span>
             )}
@@ -153,9 +149,7 @@ const FeedCard: React.FC<{
             )}
           </div>
           {feed.lastError && (
-            <p className="text-xs mt-1 ml-4 truncate text-[var(--text-tertiary)]">
-              {feed.lastError}
-            </p>
+            <p className="text-xs mt-1 ml-4 truncate text-(--outline)">{feed.lastError}</p>
           )}
         </div>
 
@@ -181,7 +175,7 @@ const FeedCard: React.FC<{
           <button
             type="button"
             onClick={() => onDelete(feed.id)}
-            className="card-action-btn secondary text-xs text-[var(--badge-hot)]"
+            className="card-action-btn secondary text-xs text-(--error)"
           >
             削除
           </button>

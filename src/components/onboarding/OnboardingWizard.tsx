@@ -84,10 +84,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
         <div className="text-center animate-[fadeSlideIn_0.5s_ease-out]">
           <p className="text-5xl mb-4">{'🎉'}</p>
-          <h2 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">
-            Welcome to OtakuPulse!
-          </h2>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <h2 className="text-2xl font-bold mb-2 text-(--on-surface)">Welcome to OtakuPulse!</h2>
+          <p className="text-sm text-(--on-surface-variant)">
             あなた専用のフィードを準備しています...
           </p>
         </div>
@@ -103,22 +101,22 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
         role="dialog"
         aria-modal="true"
         aria-label="初期設定ウィザード"
-        className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]"
+        className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden bg-(--surface-container) border border-(--surface-container-highest) animate-[fadeSlideIn_0.3s_ease-out]"
       >
         {/* Progress */}
         <div className="flex gap-1 px-6 pt-5">
           {STEPS.map((s, i) => (
             <div
               key={s.title}
-              className={`flex-1 h-1.5 rounded-full ${i <= step ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}
+              className={`flex-1 h-1.5 rounded-full ${i <= step ? 'bg-(--primary)' : 'bg-(--surface-container-highest)'}`}
             />
           ))}
         </div>
 
         {/* Header */}
         <div className="px-6 pt-4 pb-2">
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">{STEPS[step]!.title}</h2>
-          <p className="text-sm mt-1 text-[var(--text-secondary)]">{STEPS[step]!.subtitle}</p>
+          <h2 className="text-lg font-bold text-(--on-surface)">{STEPS[step]!.title}</h2>
+          <p className="text-sm mt-1 text-(--on-surface-variant)">{STEPS[step]!.subtitle}</p>
         </div>
 
         {/* Content */}

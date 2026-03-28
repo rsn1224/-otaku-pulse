@@ -31,19 +31,19 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
           <div
             className={[
               viewMode === 'month' ? 'mb-1' : 'py-2 mb-2',
-              viewMode === 'week' && isToday ? 'border-b-2 border-b-[var(--accent)]' : '',
+              viewMode === 'week' && isToday ? 'border-b-2 border-b-(--primary)' : '',
               viewMode === 'week' && !isToday ? 'border-b border-b-[rgba(72,71,77,0.1)]' : '',
             ].join(' ')}
           >
             {viewMode === 'week' && (
               <h3
-                className={`text-xs font-bold ${isToday ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}
+                className={`text-xs font-bold ${isToday ? 'text-(--primary)' : 'text-(--on-surface-variant)'}`}
               >
                 {DAY_LABELS[date.getDay()]}
               </h3>
             )}
             <p
-              className={`text-[10px] font-bold ${isToday ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'}`}
+              className={`text-[10px] font-bold ${isToday ? 'text-(--primary)' : 'text-(--outline)'}`}
             >
               {fmtDate(date)}
             </p>
@@ -53,7 +53,7 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
               viewMode === 'month' ? (
                 <p
                   key={e.id}
-                  className="text-[9px] truncate text-[var(--text-secondary)]"
+                  className="text-[9px] truncate text-(--on-surface-variant)"
                   title={e.titleNative ?? e.titleRomaji}
                 >
                   {e.titleNative ?? e.titleRomaji}
@@ -63,7 +63,7 @@ export const ScheduleGridView: React.FC<Props> = ({ dates, grouped, viewMode }) 
               ),
             )}
             {viewMode === 'week' && dayEntries.length === 0 && (
-              <p className="text-xs text-[var(--text-tertiary)]">—</p>
+              <p className="text-xs text-(--outline)">—</p>
             )}
           </div>
         </div>
@@ -77,7 +77,7 @@ export const ScheduleDayView: React.FC<{ date: Date; entries: AiringEntry[] }> =
   entries,
 }) => (
   <div className="max-w-lg mx-auto space-y-2">
-    <h2 className="text-sm font-bold mb-3 text-[var(--accent)]">
+    <h2 className="text-sm font-bold mb-3 text-(--primary)">
       {date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' })}
       {' — '}
       {entries.length} 件
@@ -85,6 +85,6 @@ export const ScheduleDayView: React.FC<{ date: Date; entries: AiringEntry[] }> =
     {entries.map((e) => (
       <AiringCard key={e.id} entry={e} />
     ))}
-    {entries.length === 0 && <p className="text-xs py-4 text-[var(--text-tertiary)]">放送なし</p>}
+    {entries.length === 0 && <p className="text-xs py-4 text-(--outline)">放送なし</p>}
   </div>
 );

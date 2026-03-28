@@ -35,9 +35,9 @@ export const StepGenres: React.FC<StepGenresProps> = ({ genres, toggleGenre }) =
           style={
             genres.includes(g)
               ? {
-                  background: 'var(--accent-soft)',
-                  borderColor: 'var(--accent)',
-                  color: 'var(--accent)',
+                  background: 'var(--primary-soft)',
+                  borderColor: 'var(--primary)',
+                  color: 'var(--primary)',
                 }
               : undefined
           }

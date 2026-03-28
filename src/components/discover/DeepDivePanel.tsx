@@ -58,8 +58,8 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
   };
 
   return (
-    <div className="deepdive-panel">
-      <p className="text-xs font-medium mb-2 text-[var(--text-source)]">深堀りする</p>
+    <div className="deepdive-panel" id={`deepdive-${articleId}`}>
+      <p className="text-xs font-medium mb-2 text-(--on-surface-variant)">深堀りする</p>
 
       {/* 提案質問 */}
       <div className="flex flex-col gap-1">
@@ -72,13 +72,13 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
             className="deepdive-question-btn"
             style={
               selectedQ === q
-                ? { background: 'var(--accent-soft)', color: 'var(--accent)' }
+                ? { background: 'var(--primary-soft)', color: 'var(--primary)' }
                 : isLoading
                   ? { opacity: 0.5 }
                   : undefined
             }
           >
-            <span className="text-[var(--text-source)]">{i + 1}</span>
+            <span className="text-(--on-surface-variant)">{i + 1}</span>
             {q}
           </button>
         ))}
@@ -100,7 +100,7 @@ export const DeepDivePanel: React.FC<DeepDivePanelProps> = ({
           placeholder="自由に質問する..."
           aria-label="記事について自由に質問"
           disabled={isLoading}
-          className={`flex-1 px-3 py-1.5 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] ${isLoading ? 'opacity-50' : ''}`}
+          className={`flex-1 px-3 py-1.5 rounded-lg text-sm bg-(--surface) border border-(--surface-container-highest) text-(--on-surface) ${isLoading ? 'opacity-50' : ''}`}
         />
         <button
           type="button"

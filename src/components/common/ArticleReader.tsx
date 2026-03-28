@@ -1,29 +1,26 @@
 import { invoke } from '@tauri-apps/api/core';
+import { motion } from 'motion/react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { modalOverlay, slideInRight } from '../../lib/motion-variants';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
 import { ArticleBody } from '../reader/ArticleBody';
 import { ReaderHeader } from '../reader/ReaderHeader';
 
 interface ArticleReaderProps {
-  article: ArticleDetailDto | null;
+  article: ArticleDetailDto;
   onClose: () => void;
 }
 
-export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }) => {
-  const [closing, setClosing] = useState(false);
+export function ArticleReader({ article, onClose }: ArticleReaderProps): React.JSX.Element {
   const [related, setRelated] = useState<DiscoverArticleDto[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const { openNextArticle, openPrevArticle } = useReaderStore();
 
   const handleClose = useCallback((): void => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose();
-    }, 200);
+    onClose();
   }, [onClose]);
 
   useEffect(() => {
@@ -37,7 +34,6 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
   }, [handleClose, openNextArticle, openPrevArticle]);
 
   useEffect(() => {
-    if (!article) return;
     let stale = false;
     setRelated([]);
     setRelatedLoading(true);
@@ -57,34 +53,32 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({ article, onClose }
     };
   }, [article]);
 
-  if (!article) return null;
-
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close pattern */}
-      <div
+      <motion.div
+        variants={modalOverlay}
+        initial="hidden"
+        animate="visible"
+        exit="hidden"
+        transition={{ duration: 0.2 }}
         className="fixed inset-0 bg-black/50"
         role="presentation"
         onClick={handleClose}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') handleClose();
-        }}
       />
 
-      <div
-        className="fixed right-0 top-0 h-full w-3/5 min-w-[480px] overflow-hidden flex flex-col"
+      <motion.div
+        variants={slideInRight}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="fixed right-0 top-0 h-full w-3/5 min-w-[480px] overflow-hidden flex flex-col bg-(--surface) border-l border-(--surface-container-highest)"
         style={{
-          background: 'var(--bg-primary)',
-          borderLeft: '1px solid var(--border)',
           boxShadow: '-8px 0 40px rgba(0, 0, 0, 0.4)',
-          animation: closing
-            ? 'slideOutRight 0.2s ease-in forwards'
-            : 'slideInRight 0.25s ease-out',
         }}
       >
         <ReaderHeader article={article} onClose={handleClose} />
         <ArticleBody article={article} related={related} relatedLoading={relatedLoading} />
-      </div>
+      </motion.div>
     </div>
   );
-};
+}

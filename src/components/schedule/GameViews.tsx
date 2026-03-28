@@ -16,7 +16,7 @@ export const GameDayView: React.FC<{ date: Date; games: GameReleaseEntry[] }> = 
     {games.map((g) => (
       <GameReleaseCard key={g.id} game={g} />
     ))}
-    {games.length === 0 && <p className="text-xs py-4 text-[var(--text-tertiary)]">発売なし</p>}
+    {games.length === 0 && <p className="text-xs py-4 text-(--outline)">発売なし</p>}
   </div>
 );
 
@@ -51,13 +51,13 @@ export const GameGridView: React.FC<{
           >
             {viewMode === 'week' && (
               <h3
-                className={`text-xs font-bold ${isToday ? 'text-[#699cff]' : 'text-[var(--text-secondary)]'}`}
+                className={`text-xs font-bold ${isToday ? 'text-[#699cff]' : 'text-(--on-surface-variant)'}`}
               >
                 {DAY_LABELS[date.getDay()]}
               </h3>
             )}
             <p
-              className={`text-[10px] font-bold ${isToday ? 'text-[#699cff]' : 'text-[var(--text-tertiary)]'}`}
+              className={`text-[10px] font-bold ${isToday ? 'text-[#699cff]' : 'text-(--outline)'}`}
             >
               {fmtDate(date)}
             </p>
@@ -67,7 +67,7 @@ export const GameGridView: React.FC<{
               viewMode === 'month' ? (
                 <p
                   key={g.id}
-                  className="text-[9px] truncate text-[var(--text-secondary)]"
+                  className="text-[9px] truncate text-(--on-surface-variant)"
                   title={g.name}
                 >
                   {g.name}
@@ -77,7 +77,7 @@ export const GameGridView: React.FC<{
               ),
             )}
             {viewMode === 'week' && dayGames.length === 0 && (
-              <p className="text-xs text-[var(--text-tertiary)]">—</p>
+              <p className="text-xs text-(--outline)">—</p>
             )}
           </div>
         </div>

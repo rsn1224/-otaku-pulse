@@ -77,7 +77,7 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
         role="dialog"
         aria-modal="true"
         aria-label="AI による好み提案"
-        className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] animate-[fadeSlideIn_0.3s_ease-out]"
+        className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden bg-(--surface-container) border border-(--surface-container-highest) animate-[fadeSlideIn_0.3s_ease-out]"
       >
         <div className="px-6 pt-5 pb-3">
           <div className="ai-summary-label mb-2">
@@ -86,10 +86,10 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
             </svg>
             AI Suggestion
           </div>
-          <h2 className="text-base font-bold text-[var(--text-primary)]">
+          <h2 className="text-base font-bold text-(--on-surface)">
             好みが更新されたかもしれません
           </h2>
-          <p className="text-xs mt-1 text-[var(--text-secondary)]">{suggestion.reason}</p>
+          <p className="text-xs mt-1 text-(--on-surface-variant)">{suggestion.reason}</p>
         </div>
 
         <div className="px-6 pb-4 space-y-3">
@@ -124,7 +124,7 @@ export const PreferenceSuggestion: React.FC<PreferenceSuggestionProps> = ({ onCl
 
 const SuggestionGroup: React.FC<{ label: string; items: string[] }> = ({ label, items }) => (
   <div>
-    <span className="text-xs font-medium text-[var(--text-tertiary)]">{label}</span>
+    <span className="text-xs font-medium text-(--outline)">{label}</span>
     <div className="flex flex-wrap gap-1.5 mt-1">
       {items.map((item) => (
         <span key={item} className="source-badge cat-badge">

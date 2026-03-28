@@ -37,7 +37,7 @@ export const TopBarSearch: React.FC = () => {
         aria-hidden="true"
         className="w-3.5 h-3.5 flex-shrink-0"
         fill="none"
-        stroke="var(--text-tertiary)"
+        stroke="var(--outline)"
         strokeWidth={2}
         viewBox="0 0 24 24"
       >
@@ -65,7 +65,7 @@ export const TopBarSearch: React.FC = () => {
         <button
           type="button"
           onClick={clearSearch}
-          className="text-xs flex-shrink-0 text-[var(--text-tertiary)]"
+          className="text-xs flex-shrink-0 text-(--outline)"
           aria-label="検索をクリア"
         >
           ✕

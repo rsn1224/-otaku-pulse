@@ -155,6 +155,7 @@ const DiscoverCardInner: React.FC<DiscoverCardProps> = ({
         state={state}
         isRead={article.isRead}
         hasUrl={!!article.url}
+        articleId={article.id}
         onDeepDive={handleDeepDive}
         onOpen={handleOpen}
         onMarkRead={handleMarkRead}

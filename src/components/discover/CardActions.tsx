@@ -5,6 +5,7 @@ interface CardActionsProps {
   state: CardState;
   isRead: boolean;
   hasUrl: boolean;
+  articleId: number;
   onDeepDive: () => void | Promise<void>;
   onOpen: () => void;
   onMarkRead: () => void;
@@ -14,6 +15,7 @@ export const CardActions: React.FC<CardActionsProps> = ({
   state,
   isRead,
   hasUrl,
+  articleId,
   onDeepDive,
   onOpen,
   onMarkRead,
@@ -23,7 +25,13 @@ export const CardActions: React.FC<CardActionsProps> = ({
   return (
     <div className="flex items-center gap-2 mt-3">
       {(state === 'summary' || state === 'deepdive') && (
-        <button type="button" onClick={onDeepDive} className="card-action-btn primary">
+        <button
+          type="button"
+          onClick={onDeepDive}
+          aria-expanded={state === 'deepdive'}
+          aria-controls={state === 'deepdive' ? `deepdive-${articleId}` : undefined}
+          className="card-action-btn primary"
+        >
           <svg
             aria-hidden="true"
             className="w-3.5 h-3.5"

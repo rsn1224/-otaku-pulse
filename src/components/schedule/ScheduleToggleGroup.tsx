@@ -8,7 +8,7 @@ interface ToggleGroupProps {
 }
 
 export const ToggleGroup: React.FC<ToggleGroupProps> = ({ items, active, onSelect, accent }) => (
-  <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
+  <div className="flex rounded-lg overflow-hidden border border-(--surface-container-highest)">
     {items.map((item) => (
       <button
         key={item.id}
@@ -19,15 +19,10 @@ export const ToggleGroup: React.FC<ToggleGroupProps> = ({ items, active, onSelec
           background:
             active === item.id
               ? accent
-                ? 'var(--accent)'
-                : 'var(--bg-card-hover)'
+                ? 'var(--primary)'
+                : 'var(--surface-container-high)'
               : 'transparent',
-          color:
-            active === item.id
-              ? accent
-                ? '#0e0e13'
-                : 'var(--text-primary)'
-              : 'var(--text-tertiary)',
+          color: active === item.id ? (accent ? '#0e0e13' : 'var(--on-surface)') : 'var(--outline)',
         }}
       >
         {item.label}

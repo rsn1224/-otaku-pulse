@@ -42,7 +42,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ article, onBookmark }) =
 
   return (
     <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-0 text-xs text-[var(--text-source)]">
+      <div className="flex items-center gap-0 text-xs text-(--on-surface-variant)">
         <span className="font-medium">{article.feedName ?? 'Unknown'}</span>
         <span className="meta-dot">{formatRelativeTime(article.publishedAt)}</span>
         {catLabel && <span className="source-badge cat-badge ml-2">{catLabel}</span>}
@@ -59,8 +59,8 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ article, onBookmark }) =
         <svg
           aria-hidden="true"
           className="w-4 h-4"
-          fill={article.isBookmarked ? 'var(--accent)' : 'none'}
-          stroke={article.isBookmarked ? 'var(--accent)' : 'var(--text-tertiary)'}
+          fill={article.isBookmarked ? 'var(--primary)' : 'none'}
+          stroke={article.isBookmarked ? 'var(--primary)' : 'var(--outline)'}
           viewBox="0 0 24 24"
         >
           <path
