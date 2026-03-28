@@ -89,6 +89,11 @@ Last activity: 2026-03-28
 - 17 pre-existing Biome warnings (style/unsafe, unrelated to Phase 5 scope)
 - 102 tests passing (grew from prior phases)
 
+### Pending Todos
+
+1 todo(s) in `.planning/todos/pending/`:
+- アプリ全体のデータ取得パフォーマンス最適化 (`2026-03-28-app-wide-data-fetch-perf.md`)
+
 ## Session Continuity
 
 To resume: run `/gsd:plan-phase 4`
