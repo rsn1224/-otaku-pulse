@@ -40,7 +40,10 @@
   4. Japanese text (CJK) in article titles and metadata renders in Noto Sans JP with no FOIT flash visible on cold launch.
   5. Running `grep -r` for all 14 legacy aliases returns zero matches in `src/` and `src-tauri/` source files.
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+  - Plan 01 (Wave 1): CJK font installation + typography hierarchy (DTKN-04, DTKN-05)
+  - Plan 02 (Wave 1): Legacy alias batch replacement + deletion (DTKN-06)
+  - Plan 03 (Wave 2): Stitch palette session + surface/glow/accent tokens + design.md rewrite (DTKN-01, DTKN-02, DTKN-03, DTKN-07)
 
 **UI hint**: yes
 
@@ -116,7 +119,7 @@
 | 1. Foundation Correctness | v1.0 | 3/3 | Complete | 2026-03-28 |
 | 2. Resilience & Security | v1.0 | 3/3 | Complete | 2026-03-28 |
 | 3. Performance & Test Coverage | v1.0 | 4/4 | Complete | 2026-03-28 |
-| 4. Design Token Foundation | v2.0 | 0/- | Not started | - |
+| 4. Design Token Foundation | v2.0 | 0/3 | Planned | - |
 | 5. UI Primitive & Component Overhaul | v2.0 | 0/- | Not started | - |
 | 6. Motion & Interaction Layer | v2.0 | 0/- | Not started | - |
 | 7. Accessibility, Performance & Polish | v2.0 | 0/- | Not started | - |
