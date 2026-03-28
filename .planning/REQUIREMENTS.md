@@ -19,7 +19,7 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 
 ### Component Visual Overhaul
 
-- [ ] **COMP-01**: Badge / Button / Spinner / Input / ToggleGroup / Card / Modal の全 UI プリミティブを新デザイン言語で再設計する
+- [x] **COMP-01**: Badge / Button / Spinner / Input / ToggleGroup / Card / Modal の全 UI プリミティブを新デザイン言語で再設計する
 - [ ] **COMP-02**: DiscoverCard にポスター比率 (2:3) カバーアートモードを追加する
 - [ ] **COMP-03**: DeepDive パネル、モーダル、トーストにグラスモーフィズム効果を適用する
 - [ ] **COMP-04**: サイドバーナビゲーションのアクティブ状態にネオングロー + lucide-react アイコンに刷新する
@@ -79,7 +79,7 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 | DTKN-05 | Phase 4 | Complete |
 | DTKN-06 | Phase 4 | Complete |
 | DTKN-07 | Phase 4 | Complete |
-| COMP-01 | Phase 5 | Pending |
+| COMP-01 | Phase 5 | Complete |
 | COMP-02 | Phase 5 | Pending |
 | COMP-03 | Phase 5 | Pending |
 | COMP-04 | Phase 5 | Pending |
