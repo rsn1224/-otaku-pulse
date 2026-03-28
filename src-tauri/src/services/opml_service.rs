@@ -1,5 +1,26 @@
 use crate::error::AppError;
 use crate::models::Feed;
+use url::Url;
+
+/// Maximum allowed URL length for OPML feed entries
+const MAX_FEED_URL_LEN: usize = 2048;
+
+/// Validate a feed URL: must be http or https, and within length limits.
+fn validate_feed_url(raw: &str) -> Result<String, AppError> {
+    if raw.len() > MAX_FEED_URL_LEN {
+        return Err(AppError::InvalidInput(
+            "URL is too long (max 2048 characters)".to_string(),
+        ));
+    }
+    let parsed = Url::parse(raw)
+        .map_err(|e| AppError::InvalidInput(format!("Invalid URL: {e}")))?;
+    match parsed.scheme() {
+        "http" | "https" => Ok(parsed.to_string()),
+        other => Err(AppError::InvalidInput(format!(
+            "Unsupported URL scheme: {other}. Only http and https are allowed."
+        ))),
+    }
+}
 
 /// OPML XML を生成
 pub fn export_opml(feeds: &[Feed]) -> String {
@@ -65,12 +86,15 @@ pub fn parse_opml(xml: &str) -> Result<Vec<(String, String, String)>, AppError> 
         // RSSフィード
         if trimmed.starts_with("<outline")
             && trimmed.contains("type=\"rss\"")
-            && let (Some(name), Some(url)) = (
+            && let (Some(name), Some(xml_url)) = (
                 extract_attribute(trimmed, "text"),
                 extract_attribute(trimmed, "xmlUrl"),
             )
         {
-            feeds.push((name, url, current_category.clone()));
+            match validate_feed_url(&xml_url) {
+                Ok(validated_url) => feeds.push((name, validated_url, current_category.clone())),
+                Err(e) => tracing::warn!(url = xml_url, error = %e, "Skipping invalid OPML entry"),
+            }
         }
     }
 
@@ -127,6 +151,64 @@ mod tests {
         assert!(opml.contains("<title>OtakuPulse Feeds</title>"));
         assert!(opml.contains("<outline text=\"anime\""));
         assert!(opml.contains("xmlUrl=\"https://example.com/rss\""));
+    }
+
+    #[test]
+    fn test_validate_feed_url_accepts_https() {
+        assert!(validate_feed_url("https://example.com/feed.xml").is_ok());
+    }
+
+    #[test]
+    fn test_validate_feed_url_accepts_http() {
+        assert!(validate_feed_url("http://example.com/rss").is_ok());
+    }
+
+    #[test]
+    fn test_validate_feed_url_rejects_javascript() {
+        let result = validate_feed_url("javascript:alert(1)");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Unsupported URL scheme"));
+    }
+
+    #[test]
+    fn test_validate_feed_url_rejects_file() {
+        let result = validate_feed_url("file:///etc/passwd");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Unsupported URL scheme"));
+    }
+
+    #[test]
+    fn test_validate_feed_url_rejects_data() {
+        let result = validate_feed_url("data:text/html,<h1>hi</h1>");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Unsupported URL scheme"));
+    }
+
+    #[test]
+    fn test_validate_feed_url_rejects_too_long() {
+        let long_url = format!("https://example.com/{}", "a".repeat(2049));
+        let result = validate_feed_url(&long_url);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("too long"));
+    }
+
+    #[test]
+    fn test_parse_opml_skips_invalid_urls() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>Test</title></head>
+  <body>
+    <outline text="test" title="test">
+      <outline type="rss" text="Valid Feed" xmlUrl="https://example.com/rss" />
+      <outline type="rss" text="Evil Feed" xmlUrl="javascript:alert(1)" />
+      <outline type="rss" text="File Feed" xmlUrl="file:///etc/passwd" />
+    </outline>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].0, "Valid Feed");
     }
 
     #[test]
