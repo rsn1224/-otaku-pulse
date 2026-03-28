@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
 import type { LlmProvider } from '../../types';
 import { OllamaSettings } from './OllamaSettings';
-import { PerplexitySettings } from './PerplexitySettings';
 
 interface LlmSettings {
   provider: LlmProvider;
@@ -21,7 +20,6 @@ interface LlmSettingsSectionProps {
 
 export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettingsChange }) => {
   const [settings, setSettings] = useState<LlmSettings | null>(null);
-  const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,35 +47,6 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
       onSettingsChange?.();
     } catch (error) {
       logger.error({ error }, 'Failed to set provider');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApiKeySave = async () => {
-    if (!apiKey.trim()) return;
-
-    setIsLoading(true);
-    try {
-      await invoke('set_perplexity_api_key', { apiKey });
-      await loadSettings();
-      onSettingsChange?.();
-      setApiKey(''); // 入力クリア
-    } catch (error) {
-      logger.error({ error }, 'Failed to save API key');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApiKeyClear = async () => {
-    setIsLoading(true);
-    try {
-      await invoke('clear_perplexity_api_key');
-      await loadSettings();
-      onSettingsChange?.();
-    } catch (error) {
-      logger.error({ error }, 'Failed to clear API key');
     } finally {
       setIsLoading(false);
     }
@@ -150,14 +119,18 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
       </div>
 
       {settings.provider === 'perplexity_sonar' && (
-        <PerplexitySettings
-          apiKey={apiKey}
-          setApiKey={setApiKey}
-          isLoading={isLoading}
-          apiKeySet={settings.perplexity_api_key_set}
-          onSave={handleApiKeySave}
-          onClear={handleApiKeyClear}
-        />
+        <div className="rounded-lg border border-(--outline-variant) p-4">
+          <div className="flex items-center gap-2 text-sm">
+            {settings.perplexity_api_key_set ? (
+              <span className="text-green-400">✅ API キー設定済み</span>
+            ) : (
+              <span className="text-yellow-400">⚠️ API キー未設定</span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-(--on-surface-variant)">
+            API キーは「API キー」タブで管理できます
+          </p>
+        </div>
       )}
 
       {settings.provider === 'ollama' && (
