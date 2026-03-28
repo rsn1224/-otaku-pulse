@@ -1,5 +1,5 @@
-import { BookOpen, Gamepad2, Newspaper, Tv } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { BookOpen, Gamepad2, Newspaper, Tv } from 'lucide-react';
 import type React from 'react';
 import { cn } from '../../lib/utils';
 

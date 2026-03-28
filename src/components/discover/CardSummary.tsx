@@ -1,5 +1,7 @@
+import { Sparkles } from 'lucide-react';
 import type React from 'react';
 import { stripCitations } from '../../lib/textUtils';
+import { Badge } from '../ui/Badge';
 import { SummarySkeleton } from './SummarySkeleton';
 
 interface CardSummaryProps {
@@ -8,21 +10,22 @@ interface CardSummaryProps {
   fallbackSummary: string | null | undefined;
 }
 
-export const CardSummary: React.FC<CardSummaryProps> = ({
+export function CardSummary({
   summary,
   summaryLoading,
   fallbackSummary,
-}) => {
+}: CardSummaryProps): React.JSX.Element | null {
   if (summaryLoading) return <SummarySkeleton />;
 
   if (summary) {
     return (
       <div className="ai-summary">
         <div className="ai-summary-label">
-          <svg aria-hidden="true" className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
-          AI Summary
+          <Badge variant="ai">
+            <Sparkles size={10} aria-hidden="true" />
+            AI
+          </Badge>
+          {' Summary'}
         </div>
         {stripCitations(summary)}
       </div>
@@ -38,4 +41,4 @@ export const CardSummary: React.FC<CardSummaryProps> = ({
   }
 
   return null;
-};
+}
