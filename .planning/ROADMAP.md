@@ -38,7 +38,7 @@
   2. Neon glow variables (`--glow-primary`, `--glow-secondary`, `--glow-subtle`) are defined and the app compiles with zero TypeScript or Biome errors.
   3. Content-type accent colors (anime=purple, manga=pink, game=cyan, news=amber) appear correctly on their respective content cards with no contrast failures below 4.5:1.
   4. Japanese text (CJK) in article titles and metadata renders in Noto Sans JP with no FOIT flash visible on cold launch.
-  5. Running `grep -r` for all 14 legacy aliases returns zero matches in `src/` and `src-tauri/` source files.
+  5. Running `grep -r` for all 16 legacy aliases returns zero matches in `src/` and `src-tauri/` source files.
 
 **Plans**: 3 plans in 2 waves
   - Plan 01 (Wave 1): CJK font installation + typography hierarchy (DTKN-04, DTKN-05)

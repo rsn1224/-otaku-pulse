@@ -29,7 +29,7 @@ The most operationally complex part is the legacy alias sweep: 212 occurrences a
 - **D-07:** font-display: swap でローディング。FOIT を防ぎ、システムフォントで即座に描画後にカスタムフォントに切り替え。
 - **D-08:** フォントウェイトは 3 種（300=meta/light, 400=body, 600=title/heading）に絞り込み。
 - **D-09:** @fontsource-variable/noto-sans-jp を使用。unicode-range サブセットで必要なグリフのみロード。Tauri バイナリサイズへの影響を検証すること。
-- **D-10:** Phase 4 で 14 個の Legacy alias を一括置換・削除する。段階的移行は行わない。
+- **D-10:** Phase 4 で 16 個の Legacy alias を一括置換・削除する。段階的移行は行わない。
 - **D-11:** grep で全使用箇所を特定 → 推奨トークンに一括置換 → globals.css から Legacy aliases セクション削除。
 - **D-12:** マップ不能な Legacy alias（--bg-secondary: #131319, --bg-deepdive: #131319）は新 5 層サーフェス階層の最も近い層に吸収する。専用トークンは新設しない。
 
@@ -262,7 +262,7 @@ Pass 2 — TSX files (Tailwind arbitrary syntax):
 
 ## Legacy Alias Inventory
 
-### Current Legacy Aliases (14 defined + 1 undocumented = 15 total in globals.css)
+### Current Legacy Aliases (16 total in globals.css)
 
 | Legacy Alias | Current Value | Replacement Token | Occurrences in src/ |
 |-------------|---------------|-------------------|---------------------|
@@ -298,7 +298,7 @@ Pass 2 — TSX files (Tailwind arbitrary syntax):
 
 ### Pitfall 2: Partial Legacy Alias Removal Causes Silent Failures
 **What goes wrong:** Some legacy aliases are replaced, the Legacy section in `globals.css` is deleted, and remaining usages now reference undefined CSS custom properties. CSS silently inherits or renders as transparent/invisible without errors.
-**How to avoid:** Run `grep -rn` for ALL 15 aliases after the batch replace and before the Legacy section deletion. The grep must return zero matches before deletion.
+**How to avoid:** Run `grep -rn` for ALL 16 aliases after the batch replace and before the Legacy section deletion. The grep must return zero matches before deletion.
 **Warning signs:** After replacing, running grep on any individual alias still returns hits in `.tsx` or `.css` files.
 
 ### Pitfall 3: Neon Accent Colors Failing WCAG AA at 4.5:1

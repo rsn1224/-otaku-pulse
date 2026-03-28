@@ -31,7 +31,7 @@
 - **D-09:** @fontsource-variable/noto-sans-jp を使用。unicode-range サブセットで必要なグリフのみロード。Tauri バイナリサイズへの影響を検証すること。
 
 ### Legacy Alias 移行
-- **D-10:** Phase 4 で 14 個の Legacy alias を一括置換・削除する。段階的移行は行わない。
+- **D-10:** Phase 4 で 16 個の Legacy alias を一括置換・削除する。段階的移行は行わない。
 - **D-11:** grep で全使用箇所を特定 → 推奨トークンに一括置換 → globals.css から Legacy aliases セクション削除。
 - **D-12:** マップ不能な Legacy alias（--bg-secondary: #131319, --bg-deepdive: #131319）は新 5 層サーフェス階層の最も近い層に吸収する。専用トークンは新設しない。
 
