@@ -64,7 +64,14 @@
   4. AI-processed cards show a purple-to-blue gradient AI badge chip; section headers show decorative left-border accents; empty states display anime-culture motifs.
   5. Every rebuilt modal and panel passes manual focus-trap verification: Tab key cycles within the overlay and Escape closes it without stranding keyboard focus.
 
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+
+Plans:
+- [ ] 05-01-PLAN.md — CVA package install + cn() utility + 7 UI primitives migration + bold-glass CSS (COMP-01)
+- [ ] 05-02-PLAN.md — Sidebar lucide-react icons + neon active state + SectionHeader + EmptyState (COMP-04, COMP-06, COMP-07)
+- [ ] 05-03-PLAN.md — DiscoverCard poster mode + CoverArtFallback + AI badge chip (COMP-02, COMP-05)
+- [ ] 05-04-PLAN.md — DeepDive/Toast glassmorphism + blur budget validation (COMP-03, PERF-03)
+- [ ] 05-05-PLAN.md — Automated verification + human visual checkpoint (all requirements)
 
 **UI hint**: yes
 
@@ -120,6 +127,6 @@
 | 2. Resilience & Security | v1.0 | 3/3 | Complete | 2026-03-28 |
 | 3. Performance & Test Coverage | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 4. Design Token Foundation | v2.0 | 0/3 | Planned | - |
-| 5. UI Primitive & Component Overhaul | v2.0 | 0/- | Not started | - |
+| 5. UI Primitive & Component Overhaul | v2.0 | 0/5 | Planned | - |
 | 6. Motion & Interaction Layer | v2.0 | 0/- | Not started | - |
 | 7. Accessibility, Performance & Polish | v2.0 | 0/- | Not started | - |
