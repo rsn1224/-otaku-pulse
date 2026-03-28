@@ -1,3 +1,5 @@
+<!-- DEPRECATED: Claude Code 一本化済み。ルールは .claude/rules/ に統合済み。
+     Windsurf を使う場合のみ参照。2026-03-28 -->
 <rules>
   <project name="OtakuPulse" description="AI-powered otaku news aggregator">
 
