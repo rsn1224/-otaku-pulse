@@ -277,4 +277,73 @@ mod tests {
         let boosted = original_score + HIGHLIGHT_SCORE_BONUS;
         assert!((boosted - 3.0).abs() < 0.001);
     }
+
+    // --- エッジケーステスト (TEST-04) ---
+
+    /// お気に入りがすべて空のとき personal score は 0.0 になる
+    #[test]
+    fn test_calc_personal_score_empty_favorites() {
+        let score = calc_personal_score("Some Anime Title", &[], &[], &[]);
+        assert_eq!(score, 0.0, "空のお気に入りは personal score = 0.0 になるべき");
+    }
+
+    /// published_at が None のとき fallback score 0.3 を返す
+    #[test]
+    fn test_calc_base_score_none_published_at() {
+        let score = calc_base_score(&None);
+        assert!(
+            (score - 0.3).abs() < 0.01,
+            "published_at = None は ~0.3 を返すべき、実際: {score}"
+        );
+    }
+
+    /// 73 時間前の記事は 0〜1 時間前の記事より低いスコアになる
+    #[test]
+    fn test_calc_base_score_73h_old_article() {
+        let old_date =
+            (Utc::now() - chrono::Duration::hours(73)).to_rfc3339();
+        let old_score = calc_base_score(&Some(old_date));
+        let recent_score = calc_base_score(&Some(Utc::now().to_rfc3339()));
+        assert!(
+            old_score < recent_score,
+            "73h 前の記事 ({old_score}) は新着記事 ({recent_score}) より低くなるべき"
+        );
+    }
+
+    /// 日付文字列がパースできない場合も fallback を返しパニックしない
+    #[test]
+    fn test_calc_base_score_unparseable_date() {
+        let score = calc_base_score(&Some("not-a-date".to_string()));
+        assert!(
+            score >= 0.0 && score <= 1.0,
+            "パース不能な日付は有効な fallback スコアを返すべき、実際: {score}"
+        );
+    }
+
+    /// dwell bonus cap: 過剰な dwell 超過は DWELL_BONUS_CAP (2.0) に頭打ちになる
+    #[test]
+    fn test_dwell_bonus_cap() {
+        let excess = 1000.0_f64; // 1000 秒超過
+        let dwell_bonus = (excess / 30.0 * 0.5).min(DWELL_BONUS_CAP);
+        assert_eq!(
+            dwell_bonus, DWELL_BONUS_CAP,
+            "dwell ボーナスは DWELL_BONUS_CAP ({DWELL_BONUS_CAP}) を超えてはならない"
+        );
+    }
+
+    /// 空の DB に対して batch_interaction_bonuses は空の HashMap を返す (PERF-03 CTE クエリ検証)
+    #[tokio::test]
+    async fn test_batch_interaction_bonuses_empty_db() {
+        let db = crate::services::test_helpers::setup_test_db().await;
+        let bonuses = batch_interaction_bonuses(&db).await.unwrap();
+        assert!(bonuses.is_empty(), "空の DB はボーナス空マップを返すべき");
+    }
+
+    /// 空の DB に対して rescore_all は 0 を返す (user_profile は setup_test_db が seed 済み)
+    #[tokio::test]
+    async fn test_rescore_all_empty_db() {
+        let db = crate::services::test_helpers::setup_test_db().await;
+        let count = rescore_all(&db).await.unwrap();
+        assert_eq!(count, 0, "空の DB の rescore_all は 0 を返すべき");
+    }
 }
