@@ -1,5 +1,6 @@
 import type React from 'react';
 import { forwardRef } from 'react';
+import { cn } from '../../lib/utils';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,7 +9,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, leftIcon, className = '', id, ...rest }, ref) => {
+  ({ label, error, leftIcon, className, id, ...rest }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
@@ -19,14 +20,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div
-          className={[
+          className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-lg',
-            'bg-white/[0.04] border border-(--surface-container-highest)',
+            'bg-(--surface-container) border border-(--outline-variant)',
             'transition-all duration-200',
-            'focus-within:border-(--primary) focus-within:shadow-[0_0_0_2px_var(--primary-soft)]',
+            'focus-within:border-(--primary) focus-within:shadow-(--focus-ring)',
             error ? 'border-(--error)' : '',
             className,
-          ].join(' ')}
+          )}
         >
           {leftIcon && <span className="text-(--outline) flex-shrink-0">{leftIcon}</span>}
           <input
@@ -36,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...rest}
           />
         </div>
-        {error && <span className="text-xs text-(--error)">{error}</span>}
+        {error && <span className="text-[0.6875rem] text-(--error)">{error}</span>}
       </div>
     );
   },

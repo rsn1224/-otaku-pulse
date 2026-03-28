@@ -1,51 +1,63 @@
+import { cva, type VariantProps } from 'class-variance-authority';
 import type React from 'react';
+import { cn } from '../../lib/utils';
 import { Spinner } from './Spinner';
 
-const VARIANT_CLASSES = {
-  primary: 'bg-(--primary) text-white hover:brightness-110',
-  secondary:
-    'bg-transparent text-(--on-surface-variant) hover:bg-white/[0.06] hover:text-(--on-surface)',
-  ghost: 'bg-transparent text-(--on-surface-variant) hover:text-(--on-surface)',
-  danger: 'bg-(--error) text-white hover:brightness-110',
-} as const;
+export const buttonVariants = cva(
+  [
+    'inline-flex items-center justify-center rounded-lg font-medium',
+    'transition-all duration-150 active:scale-95',
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-1 focus-visible:ring-offset-(--surface)',
+    'disabled:opacity-50 disabled:pointer-events-none',
+  ],
+  {
+    variants: {
+      variant: {
+        primary: 'bg-(--primary) text-white hover:brightness-110',
+        secondary:
+          'bg-transparent text-(--on-surface-variant) hover:bg-white/[0.06] hover:text-(--on-surface)',
+        ghost: 'bg-transparent text-(--on-surface-variant) hover:text-(--on-surface)',
+        danger: 'bg-(--error) text-white hover:brightness-110',
+        neon: 'border border-(--primary) bg-(--primary-glow) text-(--primary) hover:shadow-[0_0_16px_var(--glow-primary)]',
+        glass:
+          'bg-(--surface-glass) border border-white/15 text-(--on-surface) backdrop-blur-[20px]',
+      },
+      size: {
+        sm: 'px-2 py-1 text-xs gap-1',
+        md: 'px-3.5 py-1.5 text-[0.8125rem] gap-1.5',
+        lg: 'px-5 py-2.5 text-sm gap-2',
+      },
+    },
+    defaultVariants: {
+      variant: 'secondary',
+      size: 'md',
+    },
+  },
+);
 
-const SIZE_CLASSES = {
-  sm: 'px-2 py-1 text-xs gap-1',
-  md: 'px-3.5 py-1.5 text-[0.8125rem] gap-1.5',
-  lg: 'px-5 py-2.5 text-sm gap-2',
-} as const;
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: keyof typeof VARIANT_CLASSES;
-  size?: keyof typeof SIZE_CLASSES;
+interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  variant = 'secondary',
-  size = 'md',
+export function Button({
+  variant,
+  size,
   isLoading = false,
   disabled,
   children,
-  className = '',
+  className,
   ...rest
-}) => {
+}: ButtonProps): React.JSX.Element {
   return (
     <button
       type="button"
       disabled={disabled || isLoading}
-      className={[
-        'inline-flex items-center justify-center rounded-lg font-medium',
-        'transition-all duration-150 active:scale-95',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-1 focus-visible:ring-offset-(--surface)',
-        'disabled:opacity-50 disabled:pointer-events-none',
-        VARIANT_CLASSES[variant],
-        SIZE_CLASSES[size],
-        className,
-      ].join(' ')}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...rest}
     >
       {isLoading ? <Spinner size="sm" /> : children}
     </button>
   );
-};
+}

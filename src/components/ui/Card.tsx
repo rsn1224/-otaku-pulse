@@ -1,32 +1,49 @@
+import { cva, type VariantProps } from 'class-variance-authority';
 import type React from 'react';
+import { cn } from '../../lib/utils';
 
-interface CardProps {
+export const cardVariants = cva(
+  'relative rounded-[0.875rem] p-6 mb-4 transition-all duration-200',
+  {
+    variants: {
+      variant: {
+        default: 'bg-(--surface-container) border border-(--surface-container-highest)',
+        glass: 'bold-glass shadow-(--shadow-md)',
+        featured: 'bg-(--surface-container) border-l-4',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+);
+
+interface CardProps extends VariantProps<typeof cardVariants> {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
   isInteractive?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({
+export function Card({
+  variant,
   children,
   onClick,
-  className = '',
+  className,
   isInteractive = false,
-}) => {
+}: CardProps): React.JSX.Element {
   const interactive = isInteractive || !!onClick;
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: role is conditionally applied
     <div
-      className={[
-        'relative rounded-[0.875rem] border border-(--surface-container-highest)',
-        'bg-(--surface-container) p-6 mb-4',
-        'transition-all duration-200',
+      className={cn(
+        cardVariants({ variant }),
         interactive
-          ? 'cursor-pointer hover:bg-(--surface-container-high) hover:border-(--outline-variant) hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] hover:-translate-y-0.5 hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary)'
+          ? 'cursor-pointer hover:bg-(--surface-container-high) hover:shadow-(--shadow-md) hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-(--primary)'
           : '',
         className,
-      ].join(' ')}
+      )}
       onClick={onClick}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
@@ -41,4 +58,4 @@ export const Card: React.FC<CardProps> = ({
       {children}
     </div>
   );
-};
+}

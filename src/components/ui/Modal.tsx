@@ -5,6 +5,7 @@ import { useFocusReturn } from '../../hooks/useFocusReturn';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { modalContent, modalOverlay } from '../../lib/motion-variants';
+import { cn } from '../../lib/utils';
 
 const WIDTH_CLASSES = {
   sm: 'max-w-sm',
@@ -66,7 +67,7 @@ export function Modal({
           animate="visible"
           exit="hidden"
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-(--surface-backdrop)"
           onClick={handleOverlayClick}
           role="presentation"
         >
@@ -80,7 +81,10 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             aria-label={title ? undefined : 'ダイアログ'}
-            className={`w-full ${WIDTH_CLASSES[width]} rounded-xl border border-(--outline-variant) bg-(--surface) overflow-hidden`}
+            className={cn(
+              'w-full bold-glass shadow-(--shadow-lg) overflow-hidden rounded-[0.75rem]',
+              WIDTH_CLASSES[width],
+            )}
           >
             {title && (
               <div className="px-6 py-4 border-b border-(--surface-container-highest)">
