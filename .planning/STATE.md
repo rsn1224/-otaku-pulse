@@ -83,6 +83,12 @@ Last activity: 2026-03-29
 - CVA vs tailwind-variants: if CVA shows Tailwind 4 incompatibility in Phase 5, switch to tailwind-variants without architecture impact
 - Stitch palette values are provisional: final HEX values come from Stitch mockup session + Figma MCP before Phase 4 palette.css is committed
 
+## Key Decisions (Phase 06-01)
+
+- Dedicated wingTransition variant separates Wing transitions from Toast/Modal fadeSlideIn to prevent cross-component interference
+- Index guard i<10 in ArticleList limits stagger animation to above-fold cards, preserving animation budget
+- useMotionConfig centralization ensures all 5 motion-using components respect prefers-reduced-motion (commit d0547d2)
+
 ## Key Decisions (Phase 05)
 
 - Toast semantic differentiation via border-l-2 accent token (not background color): bold-glass provides neutral glass base
