@@ -29,12 +29,12 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 
 ### Motion & Interaction
 
-- [ ] **MOTN-01**: Wing 切り替え時に AnimatePresence トランジションを適用する
-- [ ] **MOTN-02**: フィードカードリストにスタッガーフェードイン（~150ms 間隔）を実装する
-- [ ] **MOTN-03**: 平成/Y2K レトロ装飾（コーナーブラケット、スキャンライン、ドットグリッド）を CSS のみで実装する
-- [ ] **MOTN-04**: ホバー深度フィードバック（translateY + shadow lift + glow）を全インタラクティブ要素に適用する
-- [ ] **MOTN-05**: ブックマーク、いいね等のマイクロインタラクションアニメーションを実装する
-- [ ] **MOTN-06**: prefers-reduced-motion 完全対応（全モーションに useMotionConfig ガード適用）
+- [x] **MOTN-01**: Wing 切り替え時に AnimatePresence トランジションを適用する
+- [x] **MOTN-02**: フィードカードリストにスタッガーフェードイン（~150ms 間隔）を実装する
+- [x] **MOTN-03**: 平成/Y2K レトロ装飾（コーナーブラケット、スキャンライン、ドットグリッド）を CSS のみで実装する
+- [x] **MOTN-04**: ホバー深度フィードバック（translateY + shadow lift + glow）を全インタラクティブ要素に適用する
+- [x] **MOTN-05**: ブックマーク、いいね等のマイクロインタラクションアニメーションを実装する
+- [x] **MOTN-06**: prefers-reduced-motion 完全対応（全モーションに useMotionConfig ガード適用）
 
 ### Accessibility & Performance
 
@@ -87,12 +87,12 @@ Requirements for design overhaul milestone. Each maps to roadmap phases.
 | COMP-06 | Phase 5 | Complete |
 | COMP-07 | Phase 5 | Complete |
 | PERF-03 | Phase 5 | Complete |
-| MOTN-01 | Phase 6 | Pending |
-| MOTN-02 | Phase 6 | Pending |
-| MOTN-03 | Phase 6 | Pending |
-| MOTN-04 | Phase 6 | Pending |
-| MOTN-05 | Phase 6 | Pending |
-| MOTN-06 | Phase 6 | Pending |
+| MOTN-01 | Phase 6 | Complete |
+| MOTN-02 | Phase 6 | Complete |
+| MOTN-03 | Phase 6 | Complete |
+| MOTN-04 | Phase 6 | Complete |
+| MOTN-05 | Phase 6 | Complete |
+| MOTN-06 | Phase 6 | Complete |
 | A11Y-01 | Phase 7 | Pending |
 | A11Y-02 | Phase 7 | Pending |
 | A11Y-03 | Phase 7 | Pending |

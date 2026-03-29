@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Otaku-Rich Design Overhaul
-status: active
-last_updated: "2026-03-29T00:00:00.000Z"
+status: executing
+last_updated: "2026-03-29T14:43:24.021Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 ## Current Position
 
-Phase: 6
-Plan: 03 (verification — next)
-Status: Plans 01+02 complete — ready for 06-03 verification
+Phase: 06 (motion-interaction-layer) — EXECUTING
+Plan: 3 of 3
+Status: Ready to execute
 Last activity: 2026-03-29
 
 ## Performance Metrics
@@ -44,6 +44,8 @@ Last activity: 2026-03-29
 | Phase 05 P03 | 6min | 2 tasks | 5 files |
 | Phase 05 P04 | 8min | 2 tasks | 2 files |
 | Phase 05 P05 | 8min | 1 tasks | 1 files |
+| Phase 06-motion-interaction-layer P01 | pre-committed | 2 tasks | 6 files |
+| Phase 06-motion-interaction-layer P02 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -89,9 +91,17 @@ Last activity: 2026-03-29
 - 17 pre-existing Biome warnings (style/unsafe, unrelated to Phase 5 scope)
 - 102 tests passing (grew from prior phases)
 
+## Key Decisions (Phase 06-02)
+
+- Corner bracket decoration uses ::before (top-left) + ::after (bottom-right) on single element — avoids extra DOM nodes
+- Bookmark animation state owned by DiscoverCard (parent), not CardHeader — keeps CardHeader stateless and reusable
+- ghost/danger Button variants excluded from hover translateY — ghost is inline text, danger lift feels wrong for destructive actions
+- retro-scanline applied to non-compact thumbnail only — compact mode skips scanlines to preserve readability at small size
+
 ### Pending Todos
 
 1 todo(s) in `.planning/todos/pending/`:
+
 - アプリ全体のデータ取得パフォーマンス最適化 (`2026-03-28-app-wide-data-fetch-perf.md`)
 
 ## Session Continuity
