@@ -1,9 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
 import { motion } from 'motion/react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { logger } from '../../lib/logger';
+import { getRelatedArticles } from '../../lib/tauri-commands';
 import { useReaderStore } from '../../stores/useReaderStore';
 import type { ArticleDetailDto, DiscoverArticleDto } from '../../types';
 import { ArticleBody } from '../reader/ArticleBody';
@@ -38,7 +38,7 @@ export function ArticleReader({ article, onClose }: ArticleReaderProps): React.J
     let stale = false;
     setRelated([]);
     setRelatedLoading(true);
-    invoke<DiscoverArticleDto[]>('get_related_articles', { articleId: article.id })
+    getRelatedArticles(article.id)
       .then((r) => {
         if (!stale) setRelated(r);
       })

@@ -1,6 +1,10 @@
-import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
 import { logger } from '../lib/logger';
+import {
+  getUserProfile,
+  resetLearningData as resetLearningDataCmd,
+  updateUserProfile,
+} from '../lib/tauri-commands';
 import type { UserProfileDto } from '../types';
 
 interface ProfileState {
@@ -29,7 +33,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
   fetchProfile: async () => {
     set({ isLoading: true, error: null });
     try {
-      const profile = await invoke<UserProfileDto>('get_user_profile');
+      const profile = await getUserProfile();
       set({ profile, isLoading: false });
     } catch (e) {
       logger.error({ error: e }, 'fetchProfile failed');
@@ -44,7 +48,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
   updateProfile: async (profile: UserProfileDto) => {
     set({ isLoading: true, error: null });
     try {
-      await invoke('update_user_profile', { profile });
+      await updateUserProfile(profile);
       set({ profile, isLoading: false });
     } catch (e) {
       logger.error({ error: e }, 'updateProfile failed');
@@ -54,8 +58,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
 
   resetLearningData: async () => {
     try {
-      await invoke('reset_learning_data');
-      const profile = await invoke<UserProfileDto>('get_user_profile');
+      await resetLearningDataCmd();
+      const profile = await getUserProfile();
       set({ profile });
     } catch (e) {
       logger.error({ error: e }, 'resetLearningData failed');

@@ -1,14 +1,13 @@
-import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { create } from 'zustand';
 import { logger } from '../lib/logger';
-
-interface SchedulerConfig {
-  collect_interval_minutes: number;
-  digest_hour: number;
-  digest_minute: number;
-  enabled: boolean;
-}
+import {
+  type DigestResult,
+  getSchedulerConfig,
+  runDigestNow as runDigestNowCmd,
+  type SchedulerConfig,
+  setSchedulerConfig,
+} from '../lib/tauri-commands';
 
 interface CollectResult {
   fetched: number;
@@ -46,7 +45,7 @@ interface SchedulerState {
   loadConfig: () => Promise<void>;
   saveConfig: (config: SchedulerConfig) => Promise<void>;
   startListening: () => Promise<() => void>;
-  runDigestNow: () => Promise<DigestReadyPayload[]>;
+  runDigestNow: () => Promise<DigestResult[]>;
   setOffline: (offline: boolean) => void;
 }
 
@@ -65,7 +64,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
 
   loadConfig: async () => {
     try {
-      const config = await invoke<SchedulerConfig>('get_scheduler_config');
+      const config = await getSchedulerConfig();
       set({ config });
     } catch (error) {
       logger.error({ error }, 'Failed to load scheduler config');
@@ -74,7 +73,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
 
   saveConfig: async (config: SchedulerConfig) => {
     try {
-      await invoke('set_scheduler_config', { config });
+      await setSchedulerConfig(config);
       set({ config });
     } catch (error) {
       logger.error({ error }, 'Failed to save scheduler config');
@@ -127,7 +126,7 @@ export const useSchedulerStore = create<SchedulerState>((set) => ({
 
   runDigestNow: async () => {
     try {
-      const results = await invoke<DigestReadyPayload[]>('run_digest_now');
+      const results = await runDigestNowCmd();
 
       // 各結果を個別にdigest-readyイベントとして処理
       // ダイジェスト結果はイベント経由で通知済み

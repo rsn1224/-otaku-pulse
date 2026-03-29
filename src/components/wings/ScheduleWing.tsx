@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { logger } from '../../lib/logger';
@@ -13,6 +12,7 @@ import {
   groupAiring,
   groupGames,
 } from '../../lib/scheduleUtils';
+import { getAiringSchedule, getGameReleases, isRawgApiKeySet } from '../../lib/tauri-commands';
 import type { AiringEntry, GameReleaseEntry, ScheduleViewMode } from '../../types';
 import { GameDayView, GameGridView } from '../schedule/GameViews';
 import { ScheduleDayView, ScheduleGridView } from '../schedule/ScheduleGridView';
@@ -45,7 +45,7 @@ export function ScheduleWing(): React.JSX.Element {
 
   const checkRawgKey = useCallback(async () => {
     try {
-      const isSet = await invoke<boolean>('is_rawg_api_key_set');
+      const isSet = await isRawgApiKeySet();
       setRawgKeySet(isSet);
       return isSet;
     } catch (e) {
@@ -61,10 +61,7 @@ export function ScheduleWing(): React.JSX.Element {
     try {
       if (tab === 'anime') {
         const ts = Math.floor(startDate.getTime() / 1000);
-        const result = await invoke<AiringEntry[]>('get_airing_schedule', {
-          startTimestamp: ts,
-          daysAhead: DAYS_MAP[viewMode],
-        });
+        const result = await getAiringSchedule(ts, DAYS_MAP[viewMode]);
         setEntries(result);
       } else {
         const keySet = await checkRawgKey();
@@ -72,10 +69,7 @@ export function ScheduleWing(): React.JSX.Element {
           setGames([]);
           return;
         }
-        const result = await invoke<GameReleaseEntry[]>('get_game_releases', {
-          startDate: fmtISO(startDate),
-          endDate: fmtISO(endDate),
-        });
+        const result = await getGameReleases(fmtISO(startDate), fmtISO(endDate));
         setGames(result);
       }
     } catch (e) {

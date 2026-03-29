@@ -1,8 +1,8 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '../../lib/logger';
-import type { DiscoverArticleDto, DiscoverFeedResult } from '../../types';
+import { getLibraryArticles } from '../../lib/tauri-commands';
+import type { DiscoverArticleDto } from '../../types';
 import { EmptyState } from '../common/EmptyState';
 import { DiscoverCard } from '../discover/DiscoverCard';
 import { Spinner } from '../ui/Spinner';
@@ -23,10 +23,7 @@ export function LibraryWing(): React.JSX.Element {
     setIsLoading(true);
     const newOffset = reset ? 0 : offsetRef.current;
     try {
-      const result = await invoke<DiscoverFeedResult>('get_library_articles', {
-        limit: 30,
-        offset: newOffset,
-      });
+      const result = await getLibraryArticles(30, newOffset);
       setArticles((prev) => (reset ? result.articles : [...prev, ...result.articles]));
       setHasMore(result.hasMore);
       offsetRef.current = newOffset + result.articles.length;

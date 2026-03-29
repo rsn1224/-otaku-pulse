@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDeepDive } from '../../hooks/useDeepDive';
 import { logger } from '../../lib/logger';
+import { getOrGenerateSummary } from '../../lib/tauri-commands';
 import { cn } from '../../lib/utils';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useReaderStore } from '../../stores/useReaderStore';
@@ -67,7 +67,7 @@ const DiscoverCardInner = ({
           if (!summary && !summaryLoading && !summaryAttempted) {
             setSummaryLoading(true);
             setSummaryAttempted(true);
-            invoke<string>('get_or_generate_summary', { articleId: article.id })
+            getOrGenerateSummary(article.id)
               .then((s) => {
                 setSummary(s);
                 updateArticleSummary(article.id, s);

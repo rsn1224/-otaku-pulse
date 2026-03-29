@@ -1,14 +1,21 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
+import {
+  deleteFeed,
+  exportOpml,
+  getFeeds,
+  importOpml,
+  reenableFeed,
+  refreshFeed,
+} from '../../lib/tauri-commands';
 import type { FeedDto } from '../../types';
 
 export const FeedsSection: React.FC = () => {
   const [feeds, setFeeds] = useState<FeedDto[]>([]);
 
   const refresh = useCallback((): void => {
-    invoke<FeedDto[]>('get_feeds')
+    getFeeds()
       .then(setFeeds)
       .catch((e) => logger.warn({ error: e }, 'fetchFeeds failed'));
   }, []);
@@ -20,7 +27,7 @@ export const FeedsSection: React.FC = () => {
   const handleDelete = async (feedId: number): Promise<void> => {
     if (!window.confirm('このフィードを削除しますか？')) return;
     try {
-      await invoke('delete_feed', { feedId });
+      await deleteFeed(feedId);
       setFeeds((prev) => prev.filter((f) => f.id !== feedId));
     } catch (e) {
       logger.warn({ error: e }, 'deleteFeed failed');
@@ -29,7 +36,7 @@ export const FeedsSection: React.FC = () => {
 
   const handleReenable = async (feedId: number): Promise<void> => {
     try {
-      await invoke('reenable_feed', { feedId });
+      await reenableFeed(feedId);
       refresh();
     } catch (e) {
       logger.warn({ error: e }, 'reenableFeed failed');
@@ -38,7 +45,7 @@ export const FeedsSection: React.FC = () => {
 
   const handleRetry = async (feedId: number): Promise<void> => {
     try {
-      await invoke('refresh_feed', { feedId });
+      await refreshFeed(feedId);
       refresh();
     } catch (e) {
       logger.warn({ error: e }, 'refreshFeed failed');
@@ -47,7 +54,7 @@ export const FeedsSection: React.FC = () => {
 
   const handleExport = async (): Promise<void> => {
     try {
-      const opml = await invoke<string>('export_opml');
+      const opml = await exportOpml();
       const blob = new Blob([opml], { type: 'text/xml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -71,7 +78,7 @@ export const FeedsSection: React.FC = () => {
       if (!file) return;
       try {
         const text = await file.text();
-        const count = await invoke<number>('import_opml', { xml: text });
+        const count = await importOpml(text);
         window.alert(`${count}件のフィードをインポートしました`);
         refresh();
       } catch (err) {

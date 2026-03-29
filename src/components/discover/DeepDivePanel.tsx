@@ -1,10 +1,10 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { askDeepDive } from '../../lib/tauri-commands';
 import { stripCitations } from '../../lib/textUtils';
 import { cn } from '../../lib/utils';
-import type { Citation, DeepDiveResult } from '../../types';
+import type { Citation } from '../../types';
 import { CitationFooter } from './CitationFooter';
 import { SummarySkeleton } from './SummarySkeleton';
 
@@ -33,10 +33,7 @@ export function DeepDivePanel({
     setAnswer(null);
 
     try {
-      const result = await invoke<DeepDiveResult>('ask_deepdive', {
-        articleId,
-        question: q,
-      });
+      const result = await askDeepDive(articleId, q);
       setAnswer(result.answer);
       setCitations(result.citations ?? []);
       if (result.followUpQuestions.length > 0) {

@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
 import { logger } from '../lib/logger';
-import type { AiSearchResult, ArticleDto, Citation } from '../types';
+import { aiSearch } from '../lib/tauri-commands';
+import type { ArticleDto, Citation } from '../types';
 
 interface SearchState {
   searchQuery: string;
@@ -38,7 +38,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
 
     set({ isSearching: true, searchMode: true, aiAnswer: null, aiCitations: [] });
     try {
-      const result = await invoke<AiSearchResult>('ai_search', { query: q });
+      const result = await aiSearch(q);
       set({
         searchResults: result.localArticles,
         aiAnswer: result.aiAnswer,

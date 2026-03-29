@@ -1,18 +1,15 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
-
-interface KeywordFilter {
-  id: number;
-  keyword: string;
-  filter_type: string;
-  category: string | null;
-  created_at: string;
-}
+import {
+  addKeywordFilter,
+  getKeywordFilters,
+  type KeywordFilterDto,
+  removeKeywordFilter,
+} from '../../lib/tauri-commands';
 
 export const KeywordFilterSection: React.FC = () => {
-  const [filters, setFilters] = useState<KeywordFilter[]>([]);
+  const [filters, setFilters] = useState<KeywordFilterDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState('');
@@ -22,7 +19,7 @@ export const KeywordFilterSection: React.FC = () => {
   const fetchFilters = useCallback(async () => {
     try {
       setError(null);
-      const result = await invoke<KeywordFilter[]>('get_keyword_filters');
+      const result = await getKeywordFilters();
       setFilters(result);
     } catch (e) {
       logger.error({ error: e }, 'fetchKeywordFilters failed');
@@ -37,11 +34,11 @@ export const KeywordFilterSection: React.FC = () => {
 
     try {
       setError(null);
-      const result = await invoke<KeywordFilter>('add_keyword_filter', {
-        keyword: newKeyword.trim(),
-        filterType: newFilterType,
-        category: newCategory.trim() || null,
-      });
+      const result = await addKeywordFilter(
+        newKeyword.trim(),
+        newFilterType,
+        newCategory.trim() || null,
+      );
 
       setFilters((prev) => [result, ...prev]);
       setNewKeyword('');
@@ -55,7 +52,7 @@ export const KeywordFilterSection: React.FC = () => {
   const removeFilter = async (id: number) => {
     try {
       setError(null);
-      await invoke('remove_keyword_filter', { id });
+      await removeKeywordFilter(id);
       setFilters((prev) => prev.filter((f) => f.id !== id));
     } catch (e) {
       logger.error({ error: e }, 'removeKeywordFilter failed');
@@ -67,8 +64,8 @@ export const KeywordFilterSection: React.FC = () => {
     fetchFilters();
   }, [fetchFilters]);
 
-  const muteFilters = filters.filter((f) => f.filter_type === 'mute');
-  const highlightFilters = filters.filter((f) => f.filter_type === 'highlight');
+  const muteFilters = filters.filter((f) => f.filterType === 'mute');
+  const highlightFilters = filters.filter((f) => f.filterType === 'highlight');
 
   return (
     <div className="space-y-6">

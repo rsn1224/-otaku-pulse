@@ -1,14 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
 import { logger } from '../lib/logger';
-
-interface KeywordFilterDto {
-  id: number;
-  keyword: string;
-  filter_type: string;
-  category: string | null;
-  created_at: string;
-}
+import { getKeywordFilters } from '../lib/tauri-commands';
 
 interface FilterState {
   muteKeywords: string[];
@@ -22,11 +14,11 @@ export const useFilterStore = create<FilterState>((set) => ({
 
   fetchFilters: async () => {
     try {
-      const filters = await invoke<KeywordFilterDto[]>('get_keyword_filters');
+      const filters = await getKeywordFilters();
       set({
-        muteKeywords: filters.filter((f) => f.filter_type === 'mute').map((f) => f.keyword),
+        muteKeywords: filters.filter((f) => f.filterType === 'mute').map((f) => f.keyword),
         highlightKeywords: filters
-          .filter((f) => f.filter_type === 'highlight')
+          .filter((f) => f.filterType === 'highlight')
           .map((f) => f.keyword),
       });
     } catch (e) {

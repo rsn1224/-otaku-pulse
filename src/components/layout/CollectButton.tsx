@@ -1,15 +1,8 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useState } from 'react';
 import { logger } from '../../lib/logger';
+import { batchGenerateSummaries, rescoreArticles, runCollectNow } from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
-
-interface CollectResult {
-  fetched: number;
-  saved: number;
-  deduped: number;
-  errors: string[];
-}
 
 export function CollectButton(): React.JSX.Element {
   const [collecting, setCollecting] = useState(false);
@@ -18,9 +11,9 @@ export function CollectButton(): React.JSX.Element {
   const handleCollect = async (): Promise<void> => {
     setCollecting(true);
     try {
-      const result = await invoke<CollectResult>('run_collect_now');
-      await invoke('rescore_articles');
-      await invoke('batch_generate_summaries', { limit: 8 });
+      const result = await runCollectNow();
+      await rescoreArticles();
+      await batchGenerateSummaries(8);
 
       if (result.saved > 0) {
         showToast('success', `${result.saved}件の新着記事を取得しました`);

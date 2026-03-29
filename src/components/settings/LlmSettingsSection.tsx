@@ -1,31 +1,27 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
+import {
+  getLlmSettings,
+  type LlmSettingsResponse,
+  setLlmProvider,
+  setOllamaSettings,
+} from '../../lib/tauri-commands';
 import type { LlmProvider } from '../../types';
 import { OllamaSettings } from './OllamaSettings';
-
-interface LlmSettings {
-  provider: LlmProvider;
-  perplexity_api_key_set: boolean;
-  ollama_base_url: string;
-  ollama_model: string;
-  available_ollama_models: string[];
-  ollama_running: boolean;
-}
 
 interface LlmSettingsSectionProps {
   onSettingsChange?: () => void;
 }
 
 export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettingsChange }) => {
-  const [settings, setSettings] = useState<LlmSettings | null>(null);
+  const [settings, setSettings] = useState<LlmSettingsResponse | null>(null);
   const [selectedModel, setSelectedModel] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const loadSettings = async () => {
     try {
-      const llmSettings = await invoke<LlmSettings>('get_llm_settings');
+      const llmSettings = await getLlmSettings();
       setSettings(llmSettings);
       setSelectedModel(llmSettings.ollama_model);
     } catch (error) {
@@ -42,7 +38,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
   const handleProviderChange = async (provider: LlmProvider) => {
     setIsLoading(true);
     try {
-      await invoke('set_llm_provider', { provider });
+      await setLlmProvider(provider);
       await loadSettings();
       onSettingsChange?.();
     } catch (error) {
@@ -57,10 +53,7 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
     if (settings) {
       setIsLoading(true);
       try {
-        await invoke('set_ollama_settings', {
-          baseUrl: settings.ollama_base_url,
-          model,
-        });
+        await setOllamaSettings(settings.ollama_base_url, model);
         await loadSettings();
         onSettingsChange?.();
       } catch (error) {

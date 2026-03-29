@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { LucideIcon } from 'lucide-react';
 import { Bookmark, CalendarDays, Library, Search, User } from 'lucide-react';
@@ -7,6 +6,13 @@ import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { logger } from '../../lib/logger';
+import {
+  batchGenerateSummaries,
+  getUserProfile,
+  initDefaultFeeds,
+  rescoreArticles,
+  runCollectNow,
+} from '../../lib/tauri-commands';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useFilterStore } from '../../stores/useFilterStore';
 import { initTheme } from '../../stores/useThemeStore';
@@ -58,7 +64,7 @@ export function AppShell(): React.JSX.Element {
 
   // 初回起動判定: プロフィール未設定ならウィザード表示
   useEffect(() => {
-    invoke<{ totalRead: number; favoriteTitles: string[] }>('get_user_profile')
+    getUserProfile()
       .then((p) => {
         if (p.totalRead === 0 && p.favoriteTitles.length === 0) {
           setShowOnboarding(true);
@@ -70,10 +76,10 @@ export function AppShell(): React.JSX.Element {
   useEffect(() => {
     const init = async (): Promise<void> => {
       try {
-        await invoke('init_default_feeds');
-        await invoke('run_collect_now');
-        await invoke('rescore_articles');
-        await invoke('batch_generate_summaries', { limit: 10 });
+        await initDefaultFeeds();
+        await runCollectNow();
+        await rescoreArticles();
+        await batchGenerateSummaries(10);
       } catch (e) {
         logger.debug({ error: e }, 'initCollect failed, scheduler will retry');
       }
@@ -88,7 +94,7 @@ export function AppShell(): React.JSX.Element {
       fetchFeed(true);
       fetchHighlights();
       // 定期好み提案: 50 記事ごとにチェック
-      invoke<{ totalRead: number }>('get_user_profile')
+      getUserProfile()
         .then((p) => {
           if (p.totalRead > 0 && p.totalRead % 50 === 0) {
             setShowSuggestion(true);

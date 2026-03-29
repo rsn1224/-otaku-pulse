@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { rescoreArticles } from '../../lib/tauri-commands';
 import { useProfileStore } from '../../stores/useProfileStore';
 import type { UserProfileDto } from '../../types';
 import { StepCreators } from './StepCreators';
@@ -64,7 +64,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     };
     await updateProfile(profile);
     try {
-      await invoke('rescore_articles');
+      await rescoreArticles();
     } catch (e) {
       logger.warn({ error: e }, 'rescoreArticles after onboarding failed');
     }

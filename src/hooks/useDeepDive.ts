@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useState } from 'react';
 import type { CardState } from '../components/discover/DiscoverCard';
 import { logger } from '../lib/logger';
+import { getDeepDiveQuestions } from '../lib/tauri-commands';
 
 interface UseDeepDiveResult {
   questions: string[];
@@ -29,7 +29,7 @@ export const useDeepDive = (
     setQuestionsLoading(true);
     recordInteraction(articleId, 'deepdive');
     try {
-      const qs = await invoke<string[]>('get_deepdive_questions', { articleId });
+      const qs = await getDeepDiveQuestions(articleId);
       setQuestions(qs);
     } catch (e) {
       logger.warn({ error: e }, 'getDeepDiveQuestions failed');

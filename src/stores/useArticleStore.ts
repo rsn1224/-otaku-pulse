@@ -1,6 +1,14 @@
-import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
 import { logger } from '../lib/logger';
+import {
+  getUnreadCounts as fetchUnreadCountsCmd,
+  getDailyHighlights,
+  getDiscoverFeed,
+  markAllReadCategory as markAllReadCategoryCmd,
+  markRead as markReadCmd,
+  recordInteraction as recordInteractionCmd,
+  toggleBookmark as toggleBookmarkCmd,
+} from '../lib/tauri-commands';
 import type { DiscoverArticleDto, DiscoverFeedResult, DiscoverTab, HighlightEntry } from '../types';
 
 const PAGE_SIZE = 30;
@@ -69,11 +77,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const result: DiscoverFeedResult = await invoke('get_discover_feed', {
-        tab,
-        limit: PAGE_SIZE,
-        offset: newOffset,
-      });
+      const result: DiscoverFeedResult = await getDiscoverFeed(tab, PAGE_SIZE, newOffset);
       const newArticles = reset ? result.articles : [...get().articles, ...result.articles];
       set({
         articles: newArticles,
@@ -96,7 +100,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   markRead: async (id: number) => {
     try {
-      await invoke('mark_read', { articleId: id });
+      await markReadCmd(id);
       set({
         articles: get().articles.map((a) => (a.id === id ? { ...a, isRead: true } : a)),
       });
@@ -107,7 +111,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   toggleBookmark: async (id: number) => {
     try {
-      await invoke('toggle_bookmark', { articleId: id });
+      await toggleBookmarkCmd(id);
       set({
         articles: get().articles.map((a) =>
           a.id === id ? { ...a, isBookmarked: !a.isBookmarked } : a,
@@ -120,11 +124,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   recordInteraction: async (articleId: number, action: string, dwellSeconds?: number) => {
     try {
-      await invoke('record_interaction', {
-        articleId,
-        action,
-        dwellSeconds: dwellSeconds ?? null,
-      });
+      await recordInteractionCmd(articleId, action, dwellSeconds ?? null);
     } catch (e) {
       logger.debug({ articleId, action, error: e }, 'recordInteraction failed');
     }
@@ -144,7 +144,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
     set({ highlightsLoading: true, highlightsError: false });
     try {
-      const highlights = await invoke<HighlightEntry[]>('get_daily_highlights');
+      const highlights = await getDailyHighlights();
       set({ highlights, highlightsLoading: false, highlightsFetchedAt: now });
     } catch (e) {
       logger.error({ error: e }, 'fetchHighlights failed');
@@ -154,7 +154,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   fetchUnreadCounts: async () => {
     try {
-      const counts = await invoke<Record<string, number>>('get_unread_counts');
+      const counts = await fetchUnreadCountsCmd();
       set({ unreadCounts: counts });
     } catch (e) {
       logger.debug({ error: e }, 'fetchUnreadCounts failed');
@@ -163,7 +163,7 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   markAllReadCategory: async (category: string) => {
     try {
-      await invoke('mark_all_read_category', { category });
+      await markAllReadCategoryCmd(category);
       get().fetchUnreadCounts();
       get().fetchFeed(true);
     } catch (e) {

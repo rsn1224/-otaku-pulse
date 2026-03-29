@@ -1,6 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import { create } from 'zustand';
 import { logger } from '../lib/logger';
+import { getArticleDetail } from '../lib/tauri-commands';
 import type { ArticleDetailDto } from '../types';
 import { useArticleStore } from './useArticleStore';
 
@@ -21,7 +21,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   openReader: async (articleId: number) => {
     set({ readerLoading: true });
     try {
-      const detail = await invoke<ArticleDetailDto>('get_article_detail', { articleId });
+      const detail = await getArticleDetail(articleId);
       set({ readerArticle: detail, readerLoading: false });
       useArticleStore.getState().markRead(articleId);
       useArticleStore.getState().recordInteraction(articleId, 'open');

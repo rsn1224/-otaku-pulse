@@ -1,14 +1,15 @@
-import { invoke } from '@tauri-apps/api/core';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
+import {
+  clearPerplexityApiKey,
+  clearRawgApiKey,
+  getLlmSettings,
+  isRawgApiKeySet,
+} from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
 import { PerplexitySettings } from './PerplexitySettings';
 import { RawgSettings } from './RawgSettings';
-
-interface LlmSettingsResponse {
-  perplexity_api_key_set: boolean;
-}
 
 export const ApiKeysSection: React.FC = () => {
   const [rawgApiKey, setRawgApiKey] = useState('');
@@ -20,7 +21,7 @@ export const ApiKeysSection: React.FC = () => {
 
   const checkRawgKey = async () => {
     try {
-      const isSet = await invoke<boolean>('is_rawg_api_key_set');
+      const isSet = await isRawgApiKeySet();
       setRawgKeySet(isSet);
     } catch (error) {
       logger.error({ error }, 'Failed to check RAWG API key status');
@@ -29,7 +30,7 @@ export const ApiKeysSection: React.FC = () => {
 
   const checkPerplexityKey = async () => {
     try {
-      const settings = await invoke<LlmSettingsResponse>('get_llm_settings');
+      const settings = await getLlmSettings();
       setPerplexityKeySet(settings.perplexity_api_key_set);
     } catch (error) {
       logger.error({ error }, 'Failed to check Perplexity API key status');
@@ -46,7 +47,7 @@ export const ApiKeysSection: React.FC = () => {
     if (!rawgApiKey.trim()) return;
     setIsLoading(true);
     try {
-      await invoke('set_rawg_api_key', { apiKey: rawgApiKey });
+      await setRawgApiKey(rawgApiKey);
       await checkRawgKey();
       setRawgApiKey('');
       showToast('success', 'RAWG API キーを保存しました');
@@ -61,7 +62,7 @@ export const ApiKeysSection: React.FC = () => {
   const handleRawgClear = async () => {
     setIsLoading(true);
     try {
-      await invoke('clear_rawg_api_key');
+      await clearRawgApiKey();
       await checkRawgKey();
       showToast('success', 'RAWG API キーを削除しました');
     } catch (error) {
@@ -76,7 +77,7 @@ export const ApiKeysSection: React.FC = () => {
     if (!perplexityApiKey.trim()) return;
     setIsLoading(true);
     try {
-      await invoke('set_perplexity_api_key', { apiKey: perplexityApiKey });
+      await setPerplexityApiKey(perplexityApiKey);
       await checkPerplexityKey();
       setPerplexityApiKey('');
       showToast('success', 'Perplexity API キーを保存しました');
@@ -91,7 +92,7 @@ export const ApiKeysSection: React.FC = () => {
   const handlePerplexityClear = async () => {
     setIsLoading(true);
     try {
-      await invoke('clear_perplexity_api_key');
+      await clearPerplexityApiKey();
       await checkPerplexityKey();
       showToast('success', 'Perplexity API キーを削除しました');
     } catch (error) {

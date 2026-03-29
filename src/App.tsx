@@ -4,6 +4,7 @@ import { ToastProvider, useToast } from './components/common/Toast';
 import { AppShell } from './components/layout/AppShell';
 import { Announcer } from './hooks/useAnnouncer';
 import { logger } from './lib/logger';
+import { getUserProfile } from './lib/tauri-commands';
 import { useSchedulerStore } from './stores/useSchedulerStore';
 
 function AppContent(): React.JSX.Element {
@@ -76,11 +77,10 @@ function AppContent(): React.JSX.Element {
 
     const setup = async (): Promise<void> => {
       const { listen } = await import('@tauri-apps/api/event');
-      const { invoke } = await import('@tauri-apps/api/core');
 
       unlistenFn = await listen('collect-completed', async () => {
         try {
-          const p = await invoke<{ totalRead: number }>('get_user_profile');
+          const p = await getUserProfile();
           const milestones: Record<number, string> = {
             10: '10 記事読了！ いい調子です',
             50: '50 記事！ あなたの好みを学習しました',
@@ -118,4 +118,4 @@ function App(): React.JSX.Element {
   );
 }
 
-export default App;
+export { App };

@@ -1,8 +1,8 @@
-import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '../../lib/logger';
+import { getBookmarkedArticles, toggleBookmark } from '../../lib/tauri-commands';
 import type { ArticleDto } from '../../types';
 import { EmptyState } from '../common/EmptyState';
 import { Spinner } from '../ui/Spinner';
@@ -15,7 +15,7 @@ export function SavedWing(): React.JSX.Element {
   const fetchBookmarks = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const result = await invoke<ArticleDto[]>('get_bookmarked_articles');
+      const result = await getBookmarkedArticles();
       setArticles(result);
     } catch (e) {
       logger.warn({ error: e }, 'fetchBookmarks failed');
@@ -33,7 +33,7 @@ export function SavedWing(): React.JSX.Element {
 
   const handleUnbookmark = useCallback(async (id: number): Promise<void> => {
     try {
-      await invoke('toggle_bookmark', { articleId: id });
+      await toggleBookmark(id);
       setArticles((prev) => prev.filter((a) => a.id !== id));
     } catch (e) {
       logger.warn({ error: e }, 'toggle_bookmark failed');
