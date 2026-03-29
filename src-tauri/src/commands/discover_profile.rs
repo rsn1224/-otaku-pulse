@@ -38,18 +38,7 @@ pub async fn adjust_feed_preference(
     feed_id: i64,
     delta: f64,
 ) -> CmdResult<()> {
-    sqlx::query(
-        "UPDATE article_scores SET
-           personal_score = personal_score + ?1,
-           total_score = base_score * 0.3 + (personal_score + ?1) * 0.4 + (total_score - base_score * 0.3 - personal_score * 0.4) * 1.0
-         WHERE article_id IN (SELECT id FROM articles WHERE feed_id = ?2)",
-    )
-    .bind(delta)
-    .bind(feed_id)
-    .execute(&*state.db)
-    .await?;
-
-    Ok(())
+    profile_service::adjust_feed_preference(&state.db, feed_id, delta).await
 }
 
 // ---------------------------------------------------------------------------
@@ -80,27 +69,8 @@ fn parse_json_string_array(value: &serde_json::Value, key: &str) -> Vec<String> 
 pub async fn suggest_preferences(
     state: tauri::State<'_, AppState>,
 ) -> CmdResult<PreferenceSuggestion> {
-    let stats: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT f.category, COUNT(*) as cnt
-         FROM article_interactions ai
-         JOIN articles a ON ai.article_id = a.id
-         JOIN feeds f ON a.feed_id = f.id
-         WHERE ai.action IN ('open', 'bookmark', 'deepdive')
-         GROUP BY f.category
-         ORDER BY cnt DESC",
-    )
-    .fetch_all(&*state.db)
-    .await?;
-
-    let top_titles: Vec<(String,)> = sqlx::query_as(
-        "SELECT a.title FROM article_interactions ai
-         JOIN articles a ON ai.article_id = a.id
-         WHERE ai.action IN ('bookmark', 'deepdive')
-         ORDER BY ai.created_at DESC
-         LIMIT 20",
-    )
-    .fetch_all(&*state.db)
-    .await?;
+    let stats = profile_service::get_interaction_stats(&state.db).await?;
+    let top_titles = profile_service::get_top_interaction_titles(&state.db, 20).await?;
 
     if top_titles.is_empty() {
         return Ok(PreferenceSuggestion {
@@ -117,11 +87,7 @@ pub async fn suggest_preferences(
         .collect::<Vec<_>>()
         .join(", ");
 
-    let titles_text = top_titles
-        .iter()
-        .map(|(t,)| t.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let titles_text = top_titles.join("\n");
 
     let settings = clone_llm_settings(&state)?;
     let client = build_llm_client(&settings, &state.http)?;

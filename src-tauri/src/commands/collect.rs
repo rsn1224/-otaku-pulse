@@ -1,6 +1,5 @@
 use crate::error::CmdResult;
-use crate::models::Feed;
-use crate::services::collector;
+use crate::services::{collector, feed_queries};
 use serde::Serialize;
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -25,15 +24,7 @@ pub async fn run_collect_now(
     let mut fetched = 0;
     let mut saved = 0;
 
-    let feeds = sqlx::query_as::<_, Feed>(
-        "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
-         last_fetched_at, consecutive_errors, disabled_reason, last_error,
-         etag, last_modified, created_at, updated_at
-         FROM feeds WHERE enabled = 1",
-    )
-    .fetch_all(&*db)
-    .await
-    .map_err(crate::error::AppError::Database)?;
+    let feeds = feed_queries::get_enabled_feeds(&db).await?;
 
     tracing::info!("Starting collection for {} feeds", feeds.len());
 
@@ -73,23 +64,7 @@ pub async fn init_default_feeds(db: State<'_, SqlitePool>) -> CmdResult<u32> {
     let mut added = 0u32;
 
     for &(name, url, category, feed_type) in DEFAULT_FEEDS {
-        let existing = sqlx::query("SELECT id FROM feeds WHERE url = ?")
-            .bind(url)
-            .fetch_optional(&*db)
-            .await?;
-
-        if existing.is_none() {
-            sqlx::query(
-                "INSERT INTO feeds (name, url, feed_type, category, enabled, fetch_interval_minutes)
-                 VALUES (?, ?, ?, ?, 1, 60)",
-            )
-            .bind(name)
-            .bind(url)
-            .bind(feed_type)
-            .bind(category)
-            .execute(&*db)
-            .await?;
-
+        if feed_queries::insert_default_feed(&db, name, url, feed_type, category).await? {
             added += 1;
             tracing::info!("Added default feed: {} ({})", name, url);
         }
@@ -98,19 +73,14 @@ pub async fn init_default_feeds(db: State<'_, SqlitePool>) -> CmdResult<u32> {
     tracing::info!("Initialized {} default feeds", added);
 
     for &(domain, correct_category) in CATEGORY_CORRECTIONS {
-        let updated =
-            sqlx::query("UPDATE feeds SET category = ?1 WHERE url LIKE ?2 AND category != ?1")
-                .bind(correct_category)
-                .bind(format!("%{}%", domain))
-                .execute(&*db)
-                .await?;
+        let updated = feed_queries::fix_feed_category(&db, domain, correct_category).await?;
 
-        if updated.rows_affected() > 0 {
+        if updated > 0 {
             tracing::info!(
                 "Fixed category for feeds matching '{}' -> '{}' ({} updated)",
                 domain,
                 correct_category,
-                updated.rows_affected()
+                updated
             );
         }
     }

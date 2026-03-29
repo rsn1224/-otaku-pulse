@@ -11,6 +11,8 @@ pub mod digest_generator;
 pub mod digest_queries;
 pub mod discover_queries;
 pub mod feed_queries;
+pub mod filter_queries;
+
 pub mod fts_queries;
 pub(crate) mod highlights_helpers;
 pub mod highlights_service;
@@ -21,6 +23,7 @@ pub mod profile_service;
 pub mod scheduler;
 mod scoring_keywords;
 pub mod scoring_service;
+pub mod settings_queries;
 pub mod summary_service;
 #[cfg(test)]
 pub mod test_helpers;

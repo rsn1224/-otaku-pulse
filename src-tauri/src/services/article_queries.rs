@@ -139,6 +139,16 @@ pub async fn mark_as_read(db: &SqlitePool, article_id: i64) -> Result<(), AppErr
     Ok(())
 }
 
+pub async fn mark_article_read(db: &SqlitePool, article_id: i64) -> Result<(), AppError> {
+    sqlx::query("UPDATE articles SET is_read = 1 WHERE id = ?")
+        .bind(article_id)
+        .execute(db)
+        .await?;
+
+    tracing::info!("Marked article {} as read", article_id);
+    Ok(())
+}
+
 pub async fn toggle_bookmark(db: &SqlitePool, article_id: i64) -> Result<(), AppError> {
     sqlx::query("UPDATE articles SET is_bookmarked = NOT is_bookmarked WHERE id = ?")
         .bind(article_id)

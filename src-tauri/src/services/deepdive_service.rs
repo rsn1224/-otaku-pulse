@@ -4,7 +4,38 @@ use crate::models::DeepDiveResult;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 
+use sqlx::Row;
+
 use super::deepdive_helpers::{parse_answer_with_followups, parse_question_array};
+
+/// Check if existing DeepDive cache entries for this article used a different
+/// LLM provider. If so, return an error asking the user to start a new conversation.
+pub async fn check_provider_consistency(
+    db: &SqlitePool,
+    article_id: i64,
+    current_provider: &str,
+) -> Result<(), AppError> {
+    let row = sqlx::query(
+        "SELECT provider FROM deepdive_cache
+         WHERE article_id = ?1 AND provider IS NOT NULL
+         LIMIT 1",
+    )
+    .bind(article_id)
+    .fetch_optional(db)
+    .await?;
+
+    if let Some(row) = row {
+        let cached_provider: String = row.get("provider");
+        if cached_provider != current_provider {
+            return Err(AppError::InvalidInput(
+                "LLM provider changed since conversation started. Please start a new conversation."
+                    .to_string(),
+            ));
+        }
+    }
+
+    Ok(())
+}
 
 /// Compute SHA-256 hash of a summary string for cache validation.
 fn hash_summary(summary: &str) -> String {

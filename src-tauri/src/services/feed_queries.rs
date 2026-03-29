@@ -1,6 +1,9 @@
 use crate::error::AppError;
-use crate::models::{ArticleDetailDto, Feed, FeedDto};
+use crate::models::{ArticleDetailDto, ArticleDto, Feed, FeedDto};
 use sqlx::{Row, SqlitePool};
+
+const MAX_CONSECUTIVE_ERRORS: i64 = 3;
+const DEFAULT_FETCH_INTERVAL_MINUTES: i64 = 60;
 
 // Re-export article_queries for backward compatibility
 pub use super::article_queries::{recent_articles_for_dedup, toggle_bookmark, upsert_articles};
@@ -78,7 +81,7 @@ pub async fn update_feed_failure(
         .await?;
 
     let errors: i64 = row.get("consecutive_errors");
-    if errors >= 3 {
+    if errors >= MAX_CONSECUTIVE_ERRORS {
         sqlx::query(
             "UPDATE feeds SET enabled = 0, disabled_reason = '3回連続エラーにより自動無効化' WHERE id = ?",
         )
@@ -130,5 +133,169 @@ pub async fn get_article_detail(
         feed_name: row.get("feed_name"),
         importance_score: row.get("importance_score"),
     })
+}
+
+pub async fn get_all_feeds_for_export(db: &SqlitePool) -> Result<Vec<Feed>, AppError> {
+    let feeds = sqlx::query_as::<_, Feed>(
+        "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
+         last_fetched_at, consecutive_errors, disabled_reason, last_error,
+         etag, last_modified, created_at, updated_at
+         FROM feeds ORDER BY category, name",
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(feeds)
+}
+
+pub async fn import_feed_if_new(
+    db: &SqlitePool,
+    name: &str,
+    url: &str,
+    category: &str,
+) -> Result<bool, AppError> {
+    let existing = sqlx::query("SELECT id FROM feeds WHERE url = ?")
+        .bind(url)
+        .fetch_optional(db)
+        .await?;
+
+    if existing.is_none() {
+        sqlx::query(
+            "INSERT INTO feeds (name, url, feed_type, category, enabled, fetch_interval_minutes)
+             VALUES (?, ?, 'rss', ?, 1, ?)",
+        )
+        .bind(name)
+        .bind(url)
+        .bind(category)
+        .bind(DEFAULT_FETCH_INTERVAL_MINUTES)
+        .execute(db)
+        .await?;
+
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+pub async fn delete_feed(db: &SqlitePool, feed_id: i64) -> Result<(), AppError> {
+    sqlx::query("DELETE FROM articles WHERE feed_id = ?")
+        .bind(feed_id)
+        .execute(db)
+        .await?;
+
+    sqlx::query("DELETE FROM feeds WHERE id = ?")
+        .bind(feed_id)
+        .execute(db)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn cleanup_old_articles(db: &SqlitePool, cutoff_date: &str) -> Result<u32, AppError> {
+    let result = sqlx::query(
+        "DELETE FROM articles
+         WHERE published_at < ?
+         AND is_bookmarked = 0
+         AND is_read = 1",
+    )
+    .bind(cutoff_date)
+    .execute(db)
+    .await?;
+
+    Ok(result.rows_affected() as u32)
+}
+
+pub async fn get_bookmarked_articles(db: &SqlitePool) -> Result<Vec<ArticleDto>, AppError> {
+    let articles = sqlx::query(
+        "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author, a.published_at,
+                a.is_read, a.is_bookmarked, a.language, a.thumbnail_url, a.importance_score,
+                f.name as feed_name
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         WHERE a.is_bookmarked = 1
+         ORDER BY a.created_at DESC",
+    )
+    .fetch_all(db)
+    .await?;
+
+    let dtos = articles
+        .into_iter()
+        .map(|row| ArticleDto {
+            id: row.get("id"),
+            feed_id: row.get("feed_id"),
+            title: row.get("title"),
+            url: row.get("url"),
+            summary: row.get("summary"),
+            author: row.get("author"),
+            published_at: row.get("published_at"),
+            is_read: row.get("is_read"),
+            is_bookmarked: row.get("is_bookmarked"),
+            language: row.get("language"),
+            thumbnail_url: row.get("thumbnail_url"),
+            importance_score: row.get("importance_score"),
+            feed_name: row.get("feed_name"),
+        })
+        .collect();
+
+    Ok(dtos)
+}
+
+pub async fn get_enabled_feeds(db: &SqlitePool) -> Result<Vec<Feed>, AppError> {
+    let feeds = sqlx::query_as::<_, Feed>(
+        "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
+         last_fetched_at, consecutive_errors, disabled_reason, last_error,
+         etag, last_modified, created_at, updated_at
+         FROM feeds WHERE enabled = 1",
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(feeds)
+}
+
+pub async fn insert_default_feed(
+    db: &SqlitePool,
+    name: &str,
+    url: &str,
+    feed_type: &str,
+    category: &str,
+) -> Result<bool, AppError> {
+    let existing = sqlx::query("SELECT id FROM feeds WHERE url = ?")
+        .bind(url)
+        .fetch_optional(db)
+        .await?;
+
+    if existing.is_none() {
+        sqlx::query(
+            "INSERT INTO feeds (name, url, feed_type, category, enabled, fetch_interval_minutes)
+             VALUES (?, ?, ?, ?, 1, ?)",
+        )
+        .bind(name)
+        .bind(url)
+        .bind(feed_type)
+        .bind(category)
+        .bind(DEFAULT_FETCH_INTERVAL_MINUTES)
+        .execute(db)
+        .await?;
+
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+pub async fn fix_feed_category(
+    db: &SqlitePool,
+    domain: &str,
+    correct_category: &str,
+) -> Result<u64, AppError> {
+    let updated =
+        sqlx::query("UPDATE feeds SET category = ?1 WHERE url LIKE ?2 AND category != ?1")
+            .bind(correct_category)
+            .bind(format!("%{}%", domain))
+            .execute(db)
+            .await?;
+
+    Ok(updated.rows_affected())
 }
 

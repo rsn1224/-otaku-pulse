@@ -54,7 +54,7 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // Load persisted LLM settings from DB
     {
         let settings = tauri::async_runtime::block_on(async {
-            commands::settings::load_settings(&app_state.db).await
+            services::settings_queries::load_settings(&app_state.db).await
         });
         match settings {
             Ok(map) => {

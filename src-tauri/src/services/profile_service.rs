@@ -94,6 +94,61 @@ pub async fn reset_learning_data(db: &SqlitePool) -> Result<(), AppError> {
     Ok(())
 }
 
+pub async fn adjust_feed_preference(
+    db: &SqlitePool,
+    feed_id: i64,
+    delta: f64,
+) -> Result<(), AppError> {
+    sqlx::query(
+        "UPDATE article_scores SET
+           personal_score = personal_score + ?1,
+           total_score = base_score * 0.3 + (personal_score + ?1) * 0.4 + (total_score - base_score * 0.3 - personal_score * 0.4) * 1.0
+         WHERE article_id IN (SELECT id FROM articles WHERE feed_id = ?2)",
+    )
+    .bind(delta)
+    .bind(feed_id)
+    .execute(db)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn get_interaction_stats(
+    db: &SqlitePool,
+) -> Result<Vec<(String, i64)>, AppError> {
+    let stats = sqlx::query_as(
+        "SELECT f.category, COUNT(*) as cnt
+         FROM article_interactions ai
+         JOIN articles a ON ai.article_id = a.id
+         JOIN feeds f ON a.feed_id = f.id
+         WHERE ai.action IN ('open', 'bookmark', 'deepdive')
+         GROUP BY f.category
+         ORDER BY cnt DESC",
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(stats)
+}
+
+pub async fn get_top_interaction_titles(
+    db: &SqlitePool,
+    limit: i64,
+) -> Result<Vec<String>, AppError> {
+    let rows: Vec<(String,)> = sqlx::query_as(
+        "SELECT a.title FROM article_interactions ai
+         JOIN articles a ON ai.article_id = a.id
+         WHERE ai.action IN ('bookmark', 'deepdive')
+         ORDER BY ai.created_at DESC
+         LIMIT ?",
+    )
+    .bind(limit)
+    .fetch_all(db)
+    .await?;
+
+    Ok(rows.into_iter().map(|(t,)| t).collect())
+}
+
 fn parse_json_array(json: &str) -> Vec<String> {
     serde_json::from_str(json).unwrap_or_default()
 }

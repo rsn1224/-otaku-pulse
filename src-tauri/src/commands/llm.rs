@@ -130,7 +130,7 @@ pub async fn set_llm_provider(
         .map_err(|e| AppError::Internal(format!("Failed to serialize provider: {e}")))?
         .trim_matches('"')
         .to_string();
-    crate::commands::settings::upsert_setting(&db, "llm_provider".into(), provider_str).await?;
+    crate::services::settings_queries::upsert_setting(&db, "llm_provider".into(), provider_str).await?;
 
     Ok(())
 }
@@ -189,8 +189,8 @@ pub async fn set_ollama_settings(
         tracing::info!("Ollama settings updated: {} @ {}", model, base_url);
     }
 
-    crate::commands::settings::upsert_setting(&db, "ollama_endpoint".into(), base_url).await?;
-    crate::commands::settings::upsert_setting(&db, "ollama_model".into(), model).await?;
+    crate::services::settings_queries::upsert_setting(&db, "ollama_endpoint".into(), base_url).await?;
+    crate::services::settings_queries::upsert_setting(&db, "ollama_model".into(), model).await?;
 
     Ok(())
 }
