@@ -61,3 +61,49 @@ await invoke("get_feed_items", { feedId: 1, maxCount: 50 });
 ```
 
 - フロント側は `error.kind` と `error.message` で構造化アクセスする
+- 全コマンドは `Result<T, AppError>`（型エイリアス: `CmdResult<T>`）を返す
+- エラー種別: `Database`, `Http`, `FeedParse`, `Unauthorized`, `RateLimit`, `Network`, `Parse`, `InvalidInput`, `Llm`, `Scheduler`, `Keyring`, `Internal`
+
+## `?` 演算子必須 / `unwrap()` 禁止
+
+```rust
+// OK
+let data = fetch_feed(url).await?;
+
+// NG — 本番コードでの unwrap() 禁止
+let data = fetch_feed(url).await.unwrap();
+```
+
+## Mutex\<AppState\> パターンは禁止（otaku-pulse 固有）
+
+nexus では `Mutex<AppState>` を採用しているが、otaku-pulse では **禁止**。
+
+**理由**: DB クエリ中に Mutex を保持すると他コマンドがブロックされ、デッドロックが発生した（実績あり）。
+
+### 正しいパターン: 個別 manage()
+
+各リソースを独立して `app.manage()` で登録し、`State<T>` で個別に取得する。
+
+```rust
+// setup 時に個別登録
+app.manage(db_pool);           // SqlitePool
+app.manage(http_client);       // Arc<reqwest::Client>
+app.manage(scheduler);         // Arc<JobScheduler>
+
+// コマンドで個別取得
+#[tauri::command]
+pub async fn get_feeds(
+    db: State<'_, SqlitePool>,
+    client: State<'_, Arc<reqwest::Client>>,
+) -> Result<Vec<Feed>, AppError> { ... }
+```
+
+### 禁止パターン
+
+```rust
+// NG: 一括 Mutex — 全フィールドがロックされてブロッキングが起きる
+app.manage(Mutex::new(AppState { db, client, scheduler }));
+```
+
+**Why**: `SqlitePool` は内部で接続プールを管理しており外部 Mutex は不要。
+`Arc<reqwest::Client>` はスレッドセーフ。個別管理でデッドロック可能性がゼロになる。
