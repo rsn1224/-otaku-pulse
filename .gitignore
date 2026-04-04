@@ -15,6 +15,15 @@ dist-ssr/
 
 # AI tools
 .serena/
+CLAUDE.md
+**/CLAUDE.md
+.claude/
+.claudeignore
+.windsurfrules
+
+# Planning and dev notes
+.planning/
+design.md
 
 # OS
 .DS_Store
