@@ -16,6 +16,16 @@ dist-ssr/
 # AI tools
 .serena/
 
+# AI tool configs
+CLAUDE.md
+.claude/
+.claudeignore
+.windsurfrules
+
+# Planning artifacts
+.planning/
+design.md
+
 # OS
 .DS_Store
 Thumbs.db
