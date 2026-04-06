@@ -1,6 +1,8 @@
 // commands/ — Tauri command definitions only.
 // Business logic is FORBIDDEN here. Delegate to services/.
 
+pub mod anilist_commands;
+pub mod context_memo_commands;
 pub mod articles;
 pub mod collect;
 mod default_feeds;

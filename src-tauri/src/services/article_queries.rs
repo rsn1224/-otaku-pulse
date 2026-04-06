@@ -2,6 +2,7 @@ use crate::error::AppError;
 use crate::models::Article;
 #[cfg(test)]
 use crate::models::ArticleDto;
+use crate::services::impact_classifier;
 use sqlx::SqlitePool;
 
 #[cfg(test)]
@@ -84,7 +85,23 @@ pub async fn upsert_articles(db: &SqlitePool, articles: &[Article]) -> Result<u3
         .execute(&mut *tx)
         .await?;
 
-        count += result.rows_affected() as u32;
+        if result.rows_affected() > 0 {
+            count += 1;
+
+            // Set impact_level after insert/update (Article struct has no impact_level field)
+            let level = impact_classifier::classify_impact(
+                &article.title,
+                article.summary.as_deref().or(article.content.as_deref()),
+            );
+            sqlx::query(
+                "UPDATE articles SET impact_level = ? WHERE feed_id = ? AND external_id = ?",
+            )
+            .bind(level.as_str())
+            .bind(article.feed_id)
+            .bind(&article.external_id)
+            .execute(&mut *tx)
+            .await?;
+        }
     }
 
     tx.commit().await?;

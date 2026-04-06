@@ -10,6 +10,7 @@ import type {
   AiSearchResult,
   ArticleDetailDto,
   ArticleDto,
+  ClusterGroup,
   DeepDiveResult,
   DiscoverArticleDto,
   DiscoverFeedResult,
@@ -17,6 +18,7 @@ import type {
   FeedDto,
   GameReleaseEntry,
   HighlightEntry,
+  TodayViewItem,
   UserProfileDto,
 } from '../types';
 
@@ -322,4 +324,82 @@ export function addKeywordFilter(
 
 export function removeKeywordFilter(id: number): Promise<void> {
   return invoke<void>('remove_keyword_filter', { id });
+}
+
+// ---------------------------------------------------------------------------
+// v1.1: AniList / Steam sync
+// ---------------------------------------------------------------------------
+
+export function syncAniListNow(): Promise<string> {
+  return invoke<string>('sync_anilist_now');
+}
+
+export function getAniListSyncStatus(): Promise<string | null> {
+  return invoke<string | null>('get_anilist_sync_status');
+}
+
+export function syncSteamNow(): Promise<string> {
+  return invoke<string>('sync_steam_now');
+}
+
+export function getSteamSyncStatus(): Promise<string | null> {
+  return invoke<string | null>('get_steam_sync_status');
+}
+
+// ---------------------------------------------------------------------------
+// v1.1: Clustering
+// ---------------------------------------------------------------------------
+
+export function getClusteredFeed(category?: string, limit?: number): Promise<ClusterGroup[]> {
+  return invoke<ClusterGroup[]>('get_clustered_feed', { category, limit });
+}
+
+export function runClustering(): Promise<number> {
+  return invoke<number>('run_clustering');
+}
+
+// ---------------------------------------------------------------------------
+// v1.1: Today View
+// ---------------------------------------------------------------------------
+
+export function getTodayView(): Promise<TodayViewItem[]> {
+  return invoke<TodayViewItem[]>('get_today_view');
+}
+
+// ---------------------------------------------------------------------------
+// v1.1 P2: Context Memo / Weekly Report
+// ---------------------------------------------------------------------------
+
+export function getContextMemo(articleId: number): Promise<string> {
+  return invoke<string>('get_context_memo', { articleId });
+}
+
+export function runWeeklyReportNow(): Promise<string> {
+  return invoke<string>('run_weekly_report_now');
+}
+
+// ---------------------------------------------------------------------------
+// Digest
+// ---------------------------------------------------------------------------
+
+export function getDigests(category?: string): Promise<import('../types').DigestDto[]> {
+  return invoke('get_digests', { category });
+}
+
+export function getLatestDigest(
+  category: string,
+): Promise<import('../types').DigestDto | null> {
+  return invoke('get_latest_digest', { category });
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+export function getSettings(): Promise<Record<string, string>> {
+  return invoke<Record<string, string>>('get_settings');
+}
+
+export function updateSetting(key: string, value: string): Promise<void> {
+  return invoke<void>('update_setting', { key, value });
 }

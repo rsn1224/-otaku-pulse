@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDeepDive } from '../../hooks/useDeepDive';
+import { useImplicitFeedback } from '../../hooks/useImplicitFeedback';
 import { logger } from '../../lib/logger';
-import { getOrGenerateSummary } from '../../lib/tauri-commands';
+import { getContextMemo, getOrGenerateSummary } from '../../lib/tauri-commands';
 import { cn } from '../../lib/utils';
 import { useArticleStore } from '../../stores/useArticleStore';
 import { useReaderStore } from '../../stores/useReaderStore';
@@ -40,7 +41,10 @@ const DiscoverCardInner = ({
   const [summary, setSummary] = useState<string | null>(article.aiSummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryAttempted, setSummaryAttempted] = useState(!!article.aiSummary);
+  const [contextMemo, setContextMemo] = useState<string | null>(null);
+  const [contextMemoAttempted, setContextMemoAttempted] = useState(false);
   const [bookmarkAnimClass, setBookmarkAnimClass] = useState('');
+  const [opened, setOpened] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const dwellStart = useRef<number>(0);
 
@@ -105,7 +109,21 @@ const DiscoverCardInner = ({
     }
   }, [isFocused]);
 
+  // コンテキストメモ: カードが展開されたときに一度だけ取得
+  useEffect(() => {
+    if (state !== 'collapsed' && !contextMemoAttempted) {
+      setContextMemoAttempted(true);
+      getContextMemo(article.id)
+        .then(setContextMemo)
+        .catch((e) => logger.warn({ error: e }, 'getContextMemo failed'));
+    }
+  }, [state, article.id, contextMemoAttempted]);
+
+  // v1.1: implicit feedback tracking (impression + skip)
+  useImplicitFeedback({ articleId: article.id, elementRef: cardRef, opened });
+
   const handleOpen = useCallback(() => {
+    setOpened(true);
     openReader(article.id);
   }, [article.id, openReader]);
 
@@ -211,6 +229,7 @@ const DiscoverCardInner = ({
             summary={summary}
             summaryLoading={summaryLoading}
             fallbackSummary={article.summary}
+            contextMemo={contextMemo}
           />
           <CardActions
             state={state}

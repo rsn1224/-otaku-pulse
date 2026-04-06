@@ -12,6 +12,13 @@ pub mod digest_queries;
 pub mod discover_queries;
 pub mod feed_queries;
 pub mod filter_queries;
+pub mod anilist_watch_service;
+pub mod clustering_service;
+pub mod context_memo_service;
+pub mod impact_classifier;
+pub mod steam_sync_service;
+pub mod today_view_service;
+pub mod weekly_report_service;
 
 pub mod fts_queries;
 pub(crate) mod highlights_helpers;

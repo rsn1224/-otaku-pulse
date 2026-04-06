@@ -1,6 +1,7 @@
 use crate::error::CmdResult;
+use crate::models::ClusterGroup;
 use crate::models::DiscoverFeedResult;
-use crate::services::{discover_queries, personal_scoring, profile_service};
+use crate::services::{clustering_service, discover_queries, personal_scoring, profile_service};
 use crate::state::AppState;
 
 // ---------------------------------------------------------------------------
@@ -100,4 +101,27 @@ pub async fn get_related_articles(
     article_id: i64,
 ) -> CmdResult<Vec<crate::models::DiscoverArticleDto>> {
     discover_queries::get_related_articles(&state.db, article_id).await
+}
+
+// ---------------------------------------------------------------------------
+// v1.1: Clustering
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn get_clustered_feed(
+    state: tauri::State<'_, AppState>,
+    category: Option<String>,
+    limit: Option<i64>,
+) -> CmdResult<Vec<ClusterGroup>> {
+    clustering_service::get_clustered_feed(
+        &state.db,
+        category.as_deref(),
+        limit.unwrap_or(20),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn run_clustering(state: tauri::State<'_, AppState>) -> CmdResult<usize> {
+    clustering_service::cluster_articles(&state.db).await
 }

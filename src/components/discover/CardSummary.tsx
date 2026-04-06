@@ -8,12 +8,14 @@ interface CardSummaryProps {
   summary: string | null;
   summaryLoading: boolean;
   fallbackSummary: string | null | undefined;
+  contextMemo?: string | null;
 }
 
 export function CardSummary({
   summary,
   summaryLoading,
   fallbackSummary,
+  contextMemo,
 }: CardSummaryProps): React.JSX.Element | null {
   if (summaryLoading) return <SummarySkeleton />;
 
@@ -28,15 +30,27 @@ export function CardSummary({
           {' Summary'}
         </div>
         {stripCitations(summary)}
+        {contextMemo && (
+          <p className="mt-2 pt-2 border-t border-(--surface-variant) text-xs text-(--on-surface-variant) leading-[1.6] italic">
+            ◎ {contextMemo}
+          </p>
+        )}
       </div>
     );
   }
 
   if (fallbackSummary) {
     return (
-      <p className="text-sm mt-2 line-clamp-2 text-(--on-surface-variant) leading-[1.7]">
-        {stripCitations(fallbackSummary)}
-      </p>
+      <div>
+        <p className="text-sm mt-2 line-clamp-2 text-(--on-surface-variant) leading-[1.7]">
+          {stripCitations(fallbackSummary)}
+        </p>
+        {contextMemo && (
+          <p className="mt-1 text-xs text-(--on-surface-variant) leading-[1.6] italic">
+            ◎ {contextMemo}
+          </p>
+        )}
+      </div>
     );
   }
 

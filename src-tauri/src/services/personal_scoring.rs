@@ -108,6 +108,151 @@ async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>,
     Ok(rows.into_iter().collect())
 }
 
+/// v1.1: 暗黙フィードバックスコア (impression_ctr + dwell_bonus + skip_penalty)
+///
+/// - impression_ctr: open数 / impression数 × 2.0（過去30日）
+/// - dwell_bonus: カテゴリ平均より長い滞在 → +1.0
+/// - skip_penalty: フィード全体の skip率 > 80% → -0.5
+async fn batch_implicit_feedback_scores(
+    db: &SqlitePool,
+) -> Result<HashMap<i64, f64>, AppError> {
+    let rows: Vec<(i64, f64)> = sqlx::query_as(
+        "WITH
+           impressions AS (
+             SELECT article_id, COUNT(*) AS imp_count
+             FROM article_interactions
+             WHERE action = 'impression'
+               AND created_at >= datetime('now', '-30 days')
+             GROUP BY article_id
+           ),
+           opens AS (
+             SELECT article_id, COUNT(*) AS open_count
+             FROM article_interactions
+             WHERE action = 'open'
+               AND created_at >= datetime('now', '-30 days')
+             GROUP BY article_id
+           ),
+           dwell_per_category AS (
+             SELECT f.category, AVG(ai.dwell_seconds) AS cat_avg
+             FROM article_interactions ai
+             JOIN articles a ON a.id = ai.article_id
+             JOIN feeds f ON f.id = a.feed_id
+             WHERE ai.action = 'dwell' AND ai.dwell_seconds > 0
+             GROUP BY f.category
+           ),
+           article_dwell AS (
+             SELECT ai.article_id, f.category, AVG(ai.dwell_seconds) AS article_avg
+             FROM article_interactions ai
+             JOIN articles a ON a.id = ai.article_id
+             JOIN feeds f ON f.id = a.feed_id
+             WHERE ai.action = 'dwell' AND ai.dwell_seconds > 0
+             GROUP BY ai.article_id
+           ),
+           feed_skip AS (
+             SELECT a.feed_id,
+               CAST(SUM(CASE WHEN ai.action = 'skip' THEN 1 ELSE 0 END) AS REAL)
+               / CASE WHEN COUNT(*) = 0 THEN 1 ELSE COUNT(*) END AS skip_rate
+             FROM article_interactions ai
+             JOIN articles a ON a.id = ai.article_id
+             WHERE ai.created_at >= datetime('now', '-30 days')
+             GROUP BY a.feed_id
+           )
+         SELECT a.id,
+           -- CTR bonus: capped at 2.0
+           MIN(CASE WHEN COALESCE(imp.imp_count, 0) > 0
+             THEN CAST(COALESCE(op.open_count, 0) AS REAL) / imp.imp_count * 2.0
+             ELSE 0.0 END, 2.0)
+           -- dwell bonus
+           + CASE WHEN ad.article_avg > COALESCE(dpc.cat_avg, 0) THEN 1.0 ELSE 0.0 END
+           -- skip penalty: high-skip feeds get -0.5
+           + CASE WHEN COALESCE(fs.skip_rate, 0.0) > 0.8 THEN -0.5 ELSE 0.0 END
+           AS implicit_score
+         FROM articles a
+         LEFT JOIN impressions imp ON imp.article_id = a.id
+         LEFT JOIN opens op ON op.article_id = a.id
+         LEFT JOIN article_dwell ad ON ad.article_id = a.id
+         LEFT JOIN dwell_per_category dpc ON dpc.category = ad.category
+         LEFT JOIN feed_skip fs ON fs.feed_id = a.feed_id
+         WHERE a.is_duplicate = 0
+         ORDER BY a.published_at DESC LIMIT ?",
+    )
+    .bind(SCORING_ARTICLE_LIMIT)
+    .fetch_all(db)
+    .await?;
+
+    Ok(rows.into_iter().collect())
+}
+
+/// v1.1: 外部プラットフォームボーナス (AniList + Steam)
+///
+/// AniList CURRENT → +3.0, PLANNING → +1.5
+/// Steam ≥10h → +2.0, ≥10h + recent2weeks → +3.0
+async fn batch_external_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>, AppError> {
+    // AniList bonus via title partial match (NFKC-normalized strings)
+    let anilist_rows: Vec<(i64, f64)> = sqlx::query_as(
+        "SELECT a.id,
+           COALESCE(MAX(
+             CASE
+               WHEN w.status = 'CURRENT'  THEN 3.0
+               WHEN w.status = 'PLANNING' THEN 1.5
+               ELSE 0.0
+             END
+           ), 0.0) AS anilist_bonus
+         FROM articles a
+         LEFT JOIN anilist_watchlist w ON (
+           (w.title_native IS NOT NULL AND a.title LIKE '%' || w.title_native || '%')
+           OR a.title LIKE '%' || w.title_romaji || '%'
+         )
+         WHERE a.is_duplicate = 0
+         GROUP BY a.id
+         ORDER BY a.published_at DESC LIMIT ?",
+    )
+    .bind(SCORING_ARTICLE_LIMIT)
+    .fetch_all(db)
+    .await?;
+
+    // Steam bonus via game name partial match (top 20 by playtime)
+    let steam_rows: Vec<(i64, f64)> = sqlx::query_as(
+        "SELECT a.id,
+           COALESCE(MAX(
+             CASE
+               WHEN sg.playtime_forever >= 600 AND sg.playtime_2weeks > 0 THEN 3.0
+               WHEN sg.playtime_forever >= 600                             THEN 2.0
+               ELSE 0.0
+             END
+           ), 0.0) AS steam_bonus
+         FROM articles a
+         LEFT JOIN (
+           SELECT * FROM steam_games ORDER BY playtime_forever DESC LIMIT 20
+         ) sg ON a.title LIKE '%' || sg.name || '%'
+         WHERE a.is_duplicate = 0
+         GROUP BY a.id
+         ORDER BY a.published_at DESC LIMIT ?",
+    )
+    .bind(SCORING_ARTICLE_LIMIT)
+    .fetch_all(db)
+    .await?;
+
+    // Merge AniList + Steam bonuses
+    let anilist_map: HashMap<i64, f64> = anilist_rows.into_iter().collect();
+    let steam_map: HashMap<i64, f64> = steam_rows.into_iter().collect();
+
+    let all_ids: std::collections::HashSet<i64> =
+        anilist_map.keys().chain(steam_map.keys()).copied().collect();
+
+    let merged: HashMap<i64, f64> = all_ids
+        .into_iter()
+        .map(|id| {
+            let bonus =
+                anilist_map.get(&id).copied().unwrap_or(0.0)
+                    + steam_map.get(&id).copied().unwrap_or(0.0);
+            (id, bonus)
+        })
+        .collect();
+
+    Ok(merged)
+}
+
 /// 全記事のスコアを再計算して article_scores に保存
 pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
     let profile: (String, String, String) = sqlx::query_as(
@@ -131,6 +276,8 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
     });
 
     let interaction_bonuses = batch_interaction_bonuses(db).await?;
+    let implicit_scores = batch_implicit_feedback_scores(db).await?;
+    let external_bonuses = batch_external_bonuses(db).await?;
 
     // キーワードフィルター読み込み
     let filters: Vec<(String, String)> = sqlx::query_as(
@@ -167,7 +314,12 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
         let base = calc_base_score(published_at) + importance * 0.5;
         let personal = calc_personal_score(title, &fav_titles, &fav_genres, &fav_creators);
         let interaction = interaction_bonuses.get(id).copied().unwrap_or(0.0);
-        let mut total = base * 0.3 + personal * 0.4 + interaction * 0.3;
+        let implicit = implicit_scores.get(id).copied().unwrap_or(0.0);
+        let external = external_bonuses.get(id).copied().unwrap_or(0.0);
+        // v1.1 scoring formula (ADR-101/REQUIREMENTS §4)
+        let mut total =
+            base * 0.20 + personal * 0.25 + interaction * 0.20
+            + implicit * 0.15 + external * 0.20;
 
         // キーワードフィルター適用（total 計算後に適用し mute が確実に抑制されるように）
         let title_lower = title.to_lowercase();

@@ -86,7 +86,15 @@ export type DiscoverTab =
   | 'manga'
   | 'hardware';
 
-export type WingIdV2 = 'discover' | 'library' | 'profile' | 'saved' | 'schedule';
+export type WingIdV2 = 'discover' | 'digest' | 'library' | 'profile' | 'saved' | 'schedule';
+
+export type ImpactLevel = 'confirmed' | 'rumor' | 'general';
+
+export const IMPACT_LABEL: Record<ImpactLevel, string> = {
+  confirmed: '🔴 速報',
+  rumor: '🟡 噂',
+  general: '',
+} as const;
 
 export interface DiscoverArticleDto {
   id: number;
@@ -104,6 +112,34 @@ export interface DiscoverArticleDto {
   aiSummary: string | null;
   totalScore: number | null;
   category: string | null;
+  /** v1.1: impact classification */
+  impactLevel: ImpactLevel | null;
+}
+
+export interface ClusterGroup {
+  clusterId: string;
+  label: string;
+  representative: DiscoverArticleDto;
+  others: DiscoverArticleDto[];
+  count: number;
+}
+
+export interface TodayViewItem {
+  articleId: number;
+  headline: string;
+  rank: number;
+  generatedAt: string;
+  article?: DiscoverArticleDto;
+}
+
+export interface AniListWatchEntry {
+  mediaId: number;
+  titleRomaji: string;
+  titleNative: string | null;
+  status: 'CURRENT' | 'PLANNING';
+  mediaType: string;
+  coverImageUrl: string | null;
+  fetchedAt: string;
 }
 
 export interface DiscoverFeedResult {

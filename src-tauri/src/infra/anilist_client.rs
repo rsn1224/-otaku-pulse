@@ -126,6 +126,91 @@ impl AniListClient {
     }
 }
 
+/// v1.1: ウォッチリストエントリ
+#[derive(Debug, Clone)]
+pub struct WatchlistEntry {
+    pub media_id: i64,
+    pub title_romaji: String,
+    pub title_native: Option<String>,
+    pub status: String,
+    pub media_type: String,
+    pub cover_image_url: Option<String>,
+}
+
+impl AniListClient {
+    /// v1.1: ユーザーのウォッチリストを取得 (CURRENT + PLANNING)
+    pub async fn fetch_user_watchlist(
+        &self,
+        username: &str,
+    ) -> Result<Vec<WatchlistEntry>, AppError> {
+        let query = r#"
+            query ($username: String) {
+                MediaListCollection(userName: $username, type: ANIME, status_in: [CURRENT, PLANNING]) {
+                    lists {
+                        entries {
+                            status
+                            media {
+                                id
+                                title { romaji native }
+                                type
+                                coverImage { medium }
+                            }
+                        }
+                    }
+                }
+            }
+        "#;
+
+        let variables = json!({ "username": username });
+        let response = self.execute_query(query, variables).await?;
+
+        parse_watchlist_response(&response)
+    }
+}
+
+fn parse_watchlist_response(json_str: &str) -> Result<Vec<WatchlistEntry>, AppError> {
+    let v: Value = serde_json::from_str(json_str)
+        .map_err(|e| AppError::Parse(format!("AniList watchlist JSON parse error: {e}")))?;
+
+    let lists = v
+        .pointer("/data/MediaListCollection/lists")
+        .and_then(|l| l.as_array())
+        .ok_or_else(|| AppError::Parse("AniList: missing MediaListCollection.lists".to_string()))?;
+
+    let mut entries = Vec::new();
+
+    for list in lists {
+        let list_entries = list["entries"].as_array().unwrap_or(&vec![]).to_vec();
+        for entry in list_entries {
+            let status = entry["status"].as_str().unwrap_or("").to_string();
+            let media = &entry["media"];
+            let media_id = media["id"]
+                .as_i64()
+                .ok_or_else(|| AppError::Parse("AniList: missing media.id".to_string()))?;
+            let title_romaji = media["title"]["romaji"]
+                .as_str()
+                .unwrap_or("")
+                .to_string();
+            let title_native = media["title"]["native"].as_str().map(|s| s.to_string());
+            let media_type = media["type"].as_str().unwrap_or("ANIME").to_string();
+            let cover_image_url = media["coverImage"]["medium"]
+                .as_str()
+                .map(|s| s.to_string());
+
+            entries.push(WatchlistEntry {
+                media_id,
+                title_romaji,
+                title_native,
+                status,
+                media_type,
+                cover_image_url,
+            });
+        }
+    }
+
+    Ok(entries)
+}
+
 /// Public function to execute AniList GraphQL queries
 pub async fn query_anilist(query: &str, variables: &serde_json::Value) -> Result<String, AppError> {
     let client = crate::infra::http_client::build_http_client();

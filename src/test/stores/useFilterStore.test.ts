@@ -15,9 +15,9 @@ describe('useFilterStore', () => {
   describe('fetchFilters', () => {
     it('separates mute and highlight keywords', async () => {
       mockedInvoke.mockResolvedValueOnce([
-        { id: 1, keyword: 'spoiler', filter_type: 'mute', category: null, created_at: '' },
-        { id: 2, keyword: 'pokemon', filter_type: 'highlight', category: null, created_at: '' },
-        { id: 3, keyword: 'nsfw', filter_type: 'mute', category: null, created_at: '' },
+        { id: 1, keyword: 'spoiler', filterType: 'mute', category: null, createdAt: '' },
+        { id: 2, keyword: 'pokemon', filterType: 'highlight', category: null, createdAt: '' },
+        { id: 3, keyword: 'nsfw', filterType: 'mute', category: null, createdAt: '' },
       ]);
 
       await useFilterStore.getState().fetchFilters();

@@ -6,6 +6,16 @@ use reqwest::Client;
 use serde_json::Value;
 use std::sync::Arc;
 
+/// v1.1: Steam 所有ゲームエントリ
+#[derive(Debug, Clone)]
+pub struct SteamGameEntry {
+    pub appid: i64,
+    pub name: String,
+    pub playtime_forever: i64,
+    pub playtime_2weeks: i64,
+    pub img_icon_url: Option<String>,
+}
+
 pub struct SteamClient {
     client: Arc<Client>,
 }
@@ -35,6 +45,71 @@ impl SteamClient {
             .map_err(|_| AppError::InvalidInput("Invalid AppID".to_string()))?;
 
         Ok(appid)
+    }
+
+    /// v1.1: ユーザーの所有ゲーム一覧を取得
+    pub async fn fetch_owned_games(
+        &self,
+        api_key: &str,
+        steam_id: &str,
+    ) -> Result<Vec<SteamGameEntry>, AppError> {
+        let url = format!(
+            "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}&include_appinfo=1&format=json",
+            api_key, steam_id
+        );
+
+        let response = self
+            .client
+            .get(&url)
+            .header("User-Agent", "OtakuPulse/1.0.0 (personal use)")
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(AppError::Network(format!(
+                "Steam GetOwnedGames error: {}",
+                response.status()
+            )));
+        }
+
+        let json: Value = response
+            .json()
+            .await
+            .map_err(|e| AppError::Parse(format!("Steam GetOwnedGames JSON parse error: {e}")))?;
+
+        let games = json["response"]["games"]
+            .as_array()
+            .ok_or_else(|| AppError::Parse("Steam: missing response.games".to_string()))?;
+
+        let mut entries = Vec::with_capacity(games.len());
+        for game in games {
+            let appid = game["appid"].as_i64().unwrap_or(0);
+            let name = game["name"].as_str().unwrap_or("").to_string();
+            if name.is_empty() {
+                continue;
+            }
+            let playtime_forever = game["playtime_forever"].as_i64().unwrap_or(0);
+            let playtime_2weeks = game["playtime_2weeks"].as_i64().unwrap_or(0);
+            let img_icon_url = game["img_icon_url"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .map(|s| {
+                    format!(
+                        "https://media.steampowered.com/steamcommunity/public/images/apps/{}/{}.jpg",
+                        appid, s
+                    )
+                });
+
+            entries.push(SteamGameEntry {
+                appid,
+                name,
+                playtime_forever,
+                playtime_2weeks,
+                img_icon_url,
+            });
+        }
+
+        Ok(entries)
     }
 
     /// Fetch news for a Steam app

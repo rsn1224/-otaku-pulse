@@ -94,6 +94,8 @@ pub struct DiscoverArticleDto {
     pub ai_summary: Option<String>,
     pub total_score: Option<f64>,
     pub category: Option<String>,
+    /// v1.1: impact classification ('confirmed' | 'rumor' | 'general')
+    pub impact_level: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +104,27 @@ pub struct DiscoverFeedResult {
     pub articles: Vec<DiscoverArticleDto>,
     pub total: i64,
     pub has_more: bool,
+}
+
+/// v1.1: トピッククラスタグループ
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClusterGroup {
+    pub cluster_id: i64,
+    pub label: String,
+    pub representative: DiscoverArticleDto,
+    pub others: Vec<DiscoverArticleDto>,
+    pub count: i64,
+}
+
+/// v1.1: Today View アイテム
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TodayViewItem {
+    pub article_id: i64,
+    pub headline: String,
+    pub rank: i64,
+    pub generated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

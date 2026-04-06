@@ -8,6 +8,7 @@ import {
   isRawgApiKeySet,
 } from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
+import { ExternalServicesSection } from './ExternalServicesSection';
 import { PerplexitySettings } from './PerplexitySettings';
 import { RawgSettings } from './RawgSettings';
 
@@ -122,6 +123,7 @@ export const ApiKeysSection: React.FC = () => {
         onSave={handleRawgSave}
         onClear={handleRawgClear}
       />
+      <ExternalServicesSection />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { listen } from '@tauri-apps/api/event';
 import type { LucideIcon } from 'lucide-react';
-import { Bookmark, CalendarDays, Library, Search, User } from 'lucide-react';
+import { Bookmark, BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -41,9 +41,13 @@ const SavedWing = React.lazy(() =>
 const ScheduleWing = React.lazy(() =>
   import('../wings/ScheduleWing').then((m) => ({ default: m.ScheduleWing })),
 );
+const DigestWing = React.lazy(() =>
+  import('../wings/DigestWing').then((m) => ({ default: m.DigestWing })),
+);
 
 const NAV_ITEMS: { id: WingIdV2; label: string; Icon: LucideIcon }[] = [
   { id: 'discover', label: 'Discover', Icon: Search },
+  { id: 'digest', label: 'Digest', Icon: BookOpen },
   { id: 'library', label: 'Library', Icon: Library },
   { id: 'saved', label: 'Saved', Icon: Bookmark },
   { id: 'schedule', label: 'Schedule', Icon: CalendarDays },
@@ -113,6 +117,8 @@ export function AppShell(): React.JSX.Element {
     switch (activeWing) {
       case 'discover':
         return <DiscoverWing />;
+      case 'digest':
+        return <DigestWing />;
       case 'library':
         return <LibraryWing />;
       case 'saved':

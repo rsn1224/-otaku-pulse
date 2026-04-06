@@ -131,5 +131,102 @@ pub async fn setup_test_db() -> SqlitePool {
     .await
     .unwrap();
 
+    // v1.1 P2 tables (migration 011)
+    sqlx::query(
+        "CREATE TABLE article_context_memos (
+            article_id  INTEGER PRIMARY KEY,
+            memo        TEXT NOT NULL,
+            generated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // v1.1 tables (migration 010)
+    sqlx::query(
+        "ALTER TABLE articles ADD COLUMN impact_level TEXT DEFAULT 'general'",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "ALTER TABLE articles ADD COLUMN cluster_id TEXT",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE anilist_watchlist (
+            media_id        INTEGER NOT NULL PRIMARY KEY,
+            title_romaji    TEXT NOT NULL,
+            title_native    TEXT,
+            status          TEXT NOT NULL,
+            media_type      TEXT NOT NULL DEFAULT 'ANIME',
+            cover_image_url TEXT,
+            fetched_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE steam_games (
+            appid               INTEGER PRIMARY KEY,
+            name                TEXT NOT NULL,
+            playtime_forever    INTEGER NOT NULL DEFAULT 0,
+            playtime_2weeks     INTEGER NOT NULL DEFAULT 0,
+            img_icon_url        TEXT,
+            fetched_at          TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE topic_clusters (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            label       TEXT NOT NULL,
+            category    TEXT NOT NULL,
+            article_count INTEGER NOT NULL DEFAULT 0,
+            representative_article_id INTEGER,
+            created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+            expires_at  TEXT NOT NULL
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE cluster_articles (
+            cluster_id  INTEGER NOT NULL,
+            article_id  INTEGER NOT NULL,
+            similarity  REAL NOT NULL DEFAULT 0.0,
+            added_at    TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (cluster_id, article_id)
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "CREATE TABLE today_view (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            article_id      INTEGER NOT NULL,
+            headline        TEXT NOT NULL,
+            rank            INTEGER NOT NULL,
+            generated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
     pool
 }

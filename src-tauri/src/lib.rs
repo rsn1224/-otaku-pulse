@@ -272,6 +272,17 @@ pub fn run() {
             commands::discover_profile::reset_learning_data,
             commands::discover_profile::adjust_feed_preference,
             commands::discover_profile::suggest_preferences,
+            // v1.1 features
+            commands::anilist_commands::sync_anilist_now,
+            commands::anilist_commands::get_anilist_sync_status,
+            commands::anilist_commands::sync_steam_now,
+            commands::anilist_commands::get_steam_sync_status,
+            commands::discover::get_clustered_feed,
+            commands::discover::run_clustering,
+            commands::digest::get_today_view,
+            // v1.1 P2 features
+            commands::context_memo_commands::get_context_memo,
+            commands::digest::run_weekly_report_now,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

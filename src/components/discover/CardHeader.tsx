@@ -1,6 +1,7 @@
 import type React from 'react';
 import { cn } from '../../lib/utils';
 import type { DiscoverArticleDto } from '../../types';
+import { ImpactBadge } from './ImpactBadge';
 
 const CATEGORY_LABELS: Record<string, string> = {
   anime: 'アニメ',
@@ -53,6 +54,11 @@ export function CardHeader({
         <span className="meta-dot">{formatRelativeTime(article.publishedAt)}</span>
         {catLabel && <span className="source-badge cat-badge ml-2">{catLabel}</span>}
         {readTime && <span className="meta-dot">{readTime}</span>}
+        {article.impactLevel && article.impactLevel !== 'general' && (
+          <span className="ml-2">
+            <ImpactBadge level={article.impactLevel} />
+          </span>
+        )}
       </div>
 
       <button

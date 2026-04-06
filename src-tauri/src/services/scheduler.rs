@@ -1,4 +1,4 @@
-use chrono::{Local, Timelike};
+use chrono::{Datelike, Local, Timelike};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
@@ -53,8 +53,24 @@ pub fn start(
     let config_rx_clone = config_rx.clone();
 
     // 収集ループ (tauri::async_runtime はsetup()内でも利用可能)
+    let db_pool_external = db_pool.clone();
+    let db_pool_weekly = db_pool.clone();
+    let http_client_external = http_client.clone();
+    let token_external = token.clone();
     tauri::async_runtime::spawn(async move {
         collect_loop(app_handle_clone, db_pool, http_client, token_clone, config_rx_clone).await;
+    });
+
+    // v1.1: AniList / Steam 外部同期ループ
+    tauri::async_runtime::spawn(async move {
+        external_sync_loop(db_pool_external, http_client_external, token_external).await;
+    });
+
+    // v1.1 P2: 週次 Deep Research レポートループ
+    let app_state_weekly = app_state.clone();
+    let token_weekly = token.clone();
+    tauri::async_runtime::spawn(async move {
+        weekly_report_loop(db_pool_weekly, app_state_weekly, token_weekly).await;
     });
 
     // ダイジェストループ
@@ -239,6 +255,21 @@ async fn digest_loop(
         }
 
         info!("スケジューラー: ダイジェスト生成完了");
+
+        // Today View を生成（LLM が利用可能な場合）
+        let tv_llm = build_scheduler_llm_client(&state);
+        match tv_llm {
+            Ok(client) => {
+                match super::today_view_service::get_today_view(&state.db, Some(&*client)).await {
+                    Ok(items) => info!(count = items.len(), "Today View 生成完了"),
+                    Err(e) => warn!(error = %e, "Today View 生成失敗"),
+                }
+            }
+            Err(_) => {
+                // LLM 未設定の場合はフォールバック
+                let _ = super::today_view_service::get_today_view(&state.db, None).await;
+            }
+        }
     }
 }
 
@@ -295,6 +326,116 @@ fn build_scheduler_llm_client(
                 settings.ollama_model.clone(),
                 (*state.http).clone(),
             )))
+        }
+    }
+}
+
+/// 週次 Deep Research レポートループ
+/// 毎日 digest_hour の1時間後に起動し、日曜日のみレポートを生成する。
+/// Perplexity API Key が未設定の場合はスキップ。
+async fn weekly_report_loop(
+    db_pool: Arc<sqlx::SqlitePool>,
+    state: AppState,
+    token: CancellationToken,
+) {
+    // 24時間ごとにチェック（起動直後の初回 tick は読み捨て）
+    const CHECK_INTERVAL_SECS: u64 = 24 * 60 * 60;
+    let mut timer = tokio::time::interval(Duration::from_secs(CHECK_INTERVAL_SECS));
+    timer.tick().await;
+
+    loop {
+        tokio::select! {
+            _ = token.cancelled() => {
+                info!("weekly_report_loop: shutdown signal received");
+                break;
+            }
+            _ = timer.tick() => {}
+        }
+
+        // 日曜日のみ実行 (chrono::Weekday::Sun)
+        let today = Local::now().weekday();
+        if today != chrono::Weekday::Sun {
+            continue;
+        }
+
+        info!("週次レポート生成開始 (日曜日トリガー)");
+
+        let llm_arc = build_scheduler_llm_client(&state).ok();
+        let llm_ref: Option<&dyn crate::infra::llm_client::LlmClient> =
+            llm_arc.as_deref().map(|c| c as &dyn crate::infra::llm_client::LlmClient);
+
+        let result = super::weekly_report_service::generate_weekly_report(
+            &db_pool,
+            llm_ref,
+        )
+        .await;
+
+        match result {
+            Ok(r) if r.reports_generated > 0 => {
+                info!(count = r.reports_generated, "週次レポート生成完了");
+            }
+            Ok(r) => {
+                if let Some(reason) = r.skipped_reason {
+                    info!(reason, "週次レポートスキップ");
+                }
+            }
+            Err(e) => warn!(error = %e, "週次レポート生成失敗"),
+        }
+    }
+}
+
+const ANILIST_SYNC_INTERVAL_SECS: u64 = 6 * 60 * 60;
+const STEAM_SYNC_INTERVAL_SECS: u64 = 24 * 60 * 60;
+
+/// AniList / Steam の定期同期ループ
+async fn external_sync_loop(
+    db_pool: Arc<sqlx::SqlitePool>,
+    http_client: Arc<reqwest::Client>,
+    token: CancellationToken,
+) {
+    let mut anilist_timer = tokio::time::interval(Duration::from_secs(ANILIST_SYNC_INTERVAL_SECS));
+    let mut steam_timer = tokio::time::interval(Duration::from_secs(STEAM_SYNC_INTERVAL_SECS));
+    // 起動直後の即時 tick を読み捨てる（初回は遅延あり）
+    anilist_timer.tick().await;
+    steam_timer.tick().await;
+
+    loop {
+        tokio::select! {
+            _ = token.cancelled() => {
+                info!("external_sync_loop: shutdown signal received");
+                break;
+            }
+            _ = anilist_timer.tick() => {
+                let username = match super::anilist_watch_service::get_anilist_username(&db_pool).await {
+                    Ok(u) => u,
+                    Err(e) => { warn!(error = %e, "AniList username fetch failed"); continue; }
+                };
+                match super::anilist_watch_service::sync_anilist_watchlist(
+                    &db_pool,
+                    http_client.clone(),
+                    &username,
+                ).await {
+                    Ok(r) if r.synced_count > 0 => info!(count = r.synced_count, "AniList watchlist synced"),
+                    Ok(_) => {}
+                    Err(e) => warn!(error = %e, "AniList watchlist sync failed"),
+                }
+            }
+            _ = steam_timer.tick() => {
+                let (api_key, steam_id) = match super::steam_sync_service::get_steam_credentials(&db_pool).await {
+                    Ok(creds) => creds,
+                    Err(e) => { warn!(error = %e, "Steam credentials fetch failed"); continue; }
+                };
+                match super::steam_sync_service::sync_steam_games(
+                    &db_pool,
+                    http_client.clone(),
+                    &api_key,
+                    &steam_id,
+                ).await {
+                    Ok(r) if r.synced_count > 0 => info!(count = r.synced_count, "Steam games synced"),
+                    Ok(_) => {}
+                    Err(e) => warn!(error = %e, "Steam games sync failed"),
+                }
+            }
         }
     }
 }

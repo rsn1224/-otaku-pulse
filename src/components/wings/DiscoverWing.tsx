@@ -11,6 +11,7 @@ import { ArticleReader } from '../common/ArticleReader';
 import { EmptyState } from '../common/EmptyState';
 import { CitationFooter } from '../discover/CitationFooter';
 import { DiscoverCard } from '../discover/DiscoverCard';
+import { TopicClusterCard } from '../discover/TopicClusterCard';
 import { UniversalTabs } from '../discover/UniversalTabs';
 import { Spinner } from '../ui/Spinner';
 import { ArticleList } from './ArticleList';
@@ -28,6 +29,10 @@ export function DiscoverWing(): React.JSX.Element {
     fetchHighlights,
     scrollPositions,
     saveScrollPosition,
+    displayMode,
+    clusters,
+    clustersLoading,
+    setDisplayMode,
   } = useArticleStore();
   const { searchMode, searchResults, aiAnswer, aiCitations, isSearching } = useSearchStore();
   const { readerArticle, closeReader } = useReaderStore();
@@ -95,6 +100,7 @@ export function DiscoverWing(): React.JSX.Element {
                         aiSummary: null,
                         totalScore: a.importanceScore,
                         category: null,
+                        impactLevel: null,
                       }}
                     />
                   ))}
@@ -120,18 +126,47 @@ export function DiscoverWing(): React.JSX.Element {
         </div>
       )}
 
-      <ArticleList
-        tab={tab}
-        filteredArticles={articles}
-        isLoading={isLoading}
-        hasMore={hasMore}
-        error={error}
-        focusedIndex={focusedIndex}
-        scrollPositions={scrollPositions}
-        clearError={clearError}
-        loadMore={loadMore}
-        saveScrollPosition={saveScrollPosition}
-      />
+      {/* クラスタ/フラット切り替えボタン */}
+      <div className="flex justify-end px-4 py-1 shrink-0">
+        <button
+          type="button"
+          className={`text-xs px-2 py-0.5 rounded transition-colors ${displayMode === 'cluster' ? 'bg-(--primary-soft) text-(--primary)' : 'text-(--on-surface-variant) hover:text-(--on-surface)'}`}
+          onClick={() => setDisplayMode(displayMode === 'cluster' ? 'flat' : 'cluster')}
+        >
+          {displayMode === 'cluster' ? '● クラスタ表示中' : '○ クラスタ表示'}
+        </button>
+      </div>
+
+      {displayMode === 'cluster' ? (
+        <div className="flex-1 overflow-y-auto discover-scroll">
+          <div className="feed-column">
+            {clustersLoading && (
+              <div className="flex justify-center py-4">
+                <Spinner />
+              </div>
+            )}
+            {!clustersLoading && clusters.length === 0 && (
+              <EmptyState variant="no-results" />
+            )}
+            {!clustersLoading && clusters.map((group) => (
+              <TopicClusterCard key={group.clusterId} group={group} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <ArticleList
+          tab={tab}
+          filteredArticles={articles}
+          isLoading={isLoading}
+          hasMore={hasMore}
+          error={error}
+          focusedIndex={focusedIndex}
+          scrollPositions={scrollPositions}
+          clearError={clearError}
+          loadMore={loadMore}
+          saveScrollPosition={saveScrollPosition}
+        />
+      )}
 
       {/* Article Reader slide-over */}
       <AnimatePresence>

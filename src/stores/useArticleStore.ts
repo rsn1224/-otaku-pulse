@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { logger } from '../lib/logger';
 import {
   getUnreadCounts as fetchUnreadCountsCmd,
+  getClusteredFeed,
   getDailyHighlights,
   getDiscoverFeed,
   markAllReadCategory as markAllReadCategoryCmd,
@@ -9,7 +10,13 @@ import {
   recordInteraction as recordInteractionCmd,
   toggleBookmark as toggleBookmarkCmd,
 } from '../lib/tauri-commands';
-import type { DiscoverArticleDto, DiscoverFeedResult, DiscoverTab, HighlightEntry } from '../types';
+import type {
+  ClusterGroup,
+  DiscoverArticleDto,
+  DiscoverFeedResult,
+  DiscoverTab,
+  HighlightEntry,
+} from '../types';
 
 const PAGE_SIZE = 30;
 
@@ -30,6 +37,10 @@ interface ArticleState {
   unreadCounts: Record<string, number>;
   scrollPositions: Record<string, number>;
 
+  displayMode: 'flat' | 'cluster';
+  clusters: ClusterGroup[];
+  clustersLoading: boolean;
+
   setTab: (tab: DiscoverTab) => void;
   fetchFeed: (reset?: boolean) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -42,6 +53,8 @@ interface ArticleState {
   fetchUnreadCounts: () => Promise<void>;
   markAllReadCategory: (category: string) => Promise<void>;
   saveScrollPosition: (tab: string, pos: number) => void;
+  setDisplayMode: (mode: 'flat' | 'cluster') => void;
+  fetchClusters: (category?: string) => Promise<void>;
 }
 
 export const useArticleStore = create<ArticleState>((set, get) => ({
@@ -60,6 +73,10 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   unreadCounts: {},
   scrollPositions: {},
+
+  displayMode: 'flat',
+  clusters: [],
+  clustersLoading: false,
 
   setTab: (tab: DiscoverTab) => {
     set({
@@ -173,5 +190,23 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
   saveScrollPosition: (tab: string, pos: number) => {
     set({ scrollPositions: { ...get().scrollPositions, [tab]: pos } });
+  },
+
+  setDisplayMode: (mode: 'flat' | 'cluster') => {
+    set({ displayMode: mode });
+    if (mode === 'cluster') {
+      get().fetchClusters();
+    }
+  },
+
+  fetchClusters: async (category?: string) => {
+    set({ clustersLoading: true });
+    try {
+      const clusters = await getClusteredFeed(category, 20);
+      set({ clusters, clustersLoading: false });
+    } catch (e) {
+      logger.error({ error: e }, 'fetchClusters failed');
+      set({ clustersLoading: false });
+    }
   },
 }));

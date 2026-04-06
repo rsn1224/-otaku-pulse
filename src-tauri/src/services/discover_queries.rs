@@ -7,7 +7,8 @@ const MAX_LIMIT: i64 = 200;
 
 const DISCOVER_COLS: &str = "a.id, a.feed_id, a.title, a.url, a.summary, a.author, \
      a.published_at, a.is_read, a.is_bookmarked, a.language, \
-     a.thumbnail_url, a.ai_summary, f.name AS feed_name, f.category AS category";
+     a.thumbnail_url, a.ai_summary, f.name AS feed_name, f.category AS category, \
+     a.impact_level";
 
 pub async fn get_discover_feed(
     db: &SqlitePool,
