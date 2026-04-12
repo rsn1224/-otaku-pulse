@@ -16,14 +16,60 @@
       "Bash(git push -f*)",
       "Bash(rm -rf*)",
       "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git clean -fd*)",
       "Bash(curl * | bash*)",
+      "Bash(curl * | sh*)",
+      "Bash(curl * | pwsh*)",
       "Bash(wget * | bash*)",
+      "Bash(wget * | sh*)",
       "Read(**/.env*)",
       "Read(**/*.pem)",
       "Read(**/*.key)",
       "Write(**/.env*)",
       "Write(**/*.pem)",
-      "Write(**/*.key)"
+      "Write(**/*.key)",
+      "Write(**/.claude/settings.local.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-bash.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-edit.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/stop-quality-gate.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -Command \"[System.Console]::Beep(800,150); Start-Sleep -Milliseconds 80; [System.Console]::Beep(1000,200)\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
