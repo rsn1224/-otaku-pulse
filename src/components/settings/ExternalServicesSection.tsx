@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
 import {
   getAniListSyncStatus,
-  getSteamSyncStatus,
   getSettings,
+  getSteamSyncStatus,
   syncAniListNow,
   syncSteamNow,
   updateSetting,
@@ -27,9 +27,9 @@ export function ExternalServicesSection(): React.JSX.Element {
         getAniListSyncStatus(),
         getSteamSyncStatus(),
       ]);
-      setAnilistUsername(settings['anilist_username'] ?? '');
-      setSteamApiKey(settings['steam_api_key'] ?? '');
-      setSteamId(settings['steam_id'] ?? '');
+      setAnilistUsername(settings.anilist_username ?? '');
+      setSteamApiKey(settings.steam_api_key ?? '');
+      setSteamId(settings.steam_id ?? '');
       setAnilistLastSync(aniSync);
       setSteamLastSync(steamSync);
     } catch (e) {
@@ -111,9 +111,7 @@ export function ExternalServicesSection(): React.JSX.Element {
       <div className="space-y-3 p-4 rounded-lg bg-(--surface-variant)">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">AniList</span>
-          <span className="text-xs text-(--on-surface-variant)">
-            視聴リストと記事スコアを連動
-          </span>
+          <span className="text-xs text-(--on-surface-variant)">視聴リストと記事スコアを連動</span>
         </div>
         <div className="flex gap-2">
           <input
@@ -148,9 +146,7 @@ export function ExternalServicesSection(): React.JSX.Element {
       <div className="space-y-3 p-4 rounded-lg bg-(--surface-variant)">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Steam</span>
-          <span className="text-xs text-(--on-surface-variant)">
-            プレイ時間と記事スコアを連動
-          </span>
+          <span className="text-xs text-(--on-surface-variant)">プレイ時間と記事スコアを連動</span>
         </div>
         <div className="space-y-2">
           <input
@@ -185,9 +181,7 @@ export function ExternalServicesSection(): React.JSX.Element {
             </button>
           </div>
         </div>
-        <p className="text-xs text-(--on-surface-variant)">
-          最終同期: {formatSync(steamLastSync)}
-        </p>
+        <p className="text-xs text-(--on-surface-variant)">最終同期: {formatSync(steamLastSync)}</p>
       </div>
     </div>
   );

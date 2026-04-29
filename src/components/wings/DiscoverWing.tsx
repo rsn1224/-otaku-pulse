@@ -145,12 +145,9 @@ export function DiscoverWing(): React.JSX.Element {
                 <Spinner />
               </div>
             )}
-            {!clustersLoading && clusters.length === 0 && (
-              <EmptyState variant="no-results" />
-            )}
-            {!clustersLoading && clusters.map((group) => (
-              <TopicClusterCard key={group.clusterId} group={group} />
-            ))}
+            {!clustersLoading && clusters.length === 0 && <EmptyState variant="no-results" />}
+            {!clustersLoading &&
+              clusters.map((group) => <TopicClusterCard key={group.clusterId} group={group} />)}
           </div>
         </div>
       ) : (

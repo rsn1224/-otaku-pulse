@@ -386,9 +386,7 @@ export function getDigests(category?: string): Promise<import('../types').Digest
   return invoke('get_digests', { category });
 }
 
-export function getLatestDigest(
-  category: string,
-): Promise<import('../types').DigestDto | null> {
+export function getLatestDigest(category: string): Promise<import('../types').DigestDto | null> {
   return invoke('get_latest_digest', { category });
 }
 
