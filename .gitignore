@@ -45,3 +45,6 @@ docs/stitch/
 # Coverage reports (generated locally, not committed)
 coverage/
 coverage-rust/
+
+# Claude Code personal settings
+.claude/settings.local.json
