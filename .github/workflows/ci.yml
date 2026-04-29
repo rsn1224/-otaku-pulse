@@ -12,26 +12,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Biome check
-        run: npx biome check src/
+        run: pnpm exec biome check src/
 
       - name: TypeScript check
-        run: npm run typecheck
+        run: pnpm typecheck
 
       - name: Vitest with coverage
-        run: npm run test:coverage
-
-      - name: npm audit
-        run: npm audit --audit-level=high
-        # high/critical のみブロック。moderate 以下は警告扱い
-        continue-on-error: true
+        run: pnpm test:coverage
 
       - name: Upload coverage report
         if: always()
@@ -87,18 +85,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+        run: pnpm exec playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: npm run e2e
+        run: pnpm e2e
 
       - name: Upload E2E report
         if: always()
