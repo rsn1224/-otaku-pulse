@@ -21,9 +21,9 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     let app_data_dir = app.path().app_data_dir().map_err(|e| {
         tracing::error!(error = %e, "致命的: app_data_dir 取得失敗");
-        Box::<dyn std::error::Error>::from(
-            format!("アプリのデータフォルダが取得できませんでした: {e}")
-        )
+        Box::<dyn std::error::Error>::from(format!(
+            "アプリのデータフォルダが取得できませんでした: {e}"
+        ))
     })?;
 
     if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
@@ -32,15 +32,14 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let db_path = app_data_dir.join("otaku_pulse.db");
 
     // Use block_on for async DB init inside sync setup closure
-    let db_pool = tauri::async_runtime::block_on(async {
-        infra::database::init_pool(&db_path).await
-    })
-    .map_err(|e| {
-        tracing::error!(error = %e, "致命的: データベース初期化失敗");
-        Box::<dyn std::error::Error>::from(
-            format!("データベースの初期化に失敗しました: {e}")
-        )
-    })?;
+    let db_pool =
+        tauri::async_runtime::block_on(async { infra::database::init_pool(&db_path).await })
+            .map_err(|e| {
+                tracing::error!(error = %e, "致命的: データベース初期化失敗");
+                Box::<dyn std::error::Error>::from(format!(
+                    "データベースの初期化に失敗しました: {e}"
+                ))
+            })?;
 
     let db_arc = std::sync::Arc::new(db_pool);
     app.manage((*db_arc).clone());
@@ -59,13 +58,15 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         match settings {
             Ok(map) => {
                 let mut llm = app_state.llm.write().map_err(|e| {
-                    Box::<dyn std::error::Error>::from(
-                        format!("LLM 設定の書き込みロックが汚染されています: {e}")
-                    )
+                    Box::<dyn std::error::Error>::from(format!(
+                        "LLM 設定の書き込みロックが汚染されています: {e}"
+                    ))
                 })?;
                 if let Some(val) = map.get("llm_provider") {
                     let val = strip_json_quotes(val);
-                    match serde_json::from_str::<infra::llm_client::LlmProvider>(&format!("\"{val}\"")) {
+                    match serde_json::from_str::<infra::llm_client::LlmProvider>(&format!(
+                        "\"{val}\""
+                    )) {
                         Ok(provider) => {
                             llm.provider = provider;
                             tracing::info!(provider = %val, "LLM provider restored from DB");
@@ -97,15 +98,13 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Load persisted API key from OS credential store
-    match infra::credential_store::load_credential(
-        infra::credential_store::PERPLEXITY_ACCOUNT,
-    ) {
+    match infra::credential_store::load_credential(infra::credential_store::PERPLEXITY_ACCOUNT) {
         Ok(Some(key)) => {
             // D-11: lock poisoning は map_err でハンドリングし、panic しない
             let mut llm = app_state.llm.write().map_err(|e| {
-                Box::<dyn std::error::Error>::from(
-                    format!("LLM 設定の書き込みロックが汚染されています: {e}")
-                )
+                Box::<dyn std::error::Error>::from(format!(
+                    "LLM 設定の書き込みロックが汚染されています: {e}"
+                ))
             })?;
             llm.perplexity_api_key = Some(key);
             tracing::info!("Perplexity API key loaded from credential store");
@@ -124,7 +123,9 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // 起動時にキャッシュクリーンアップ
     let db_for_cleanup = app_state_for_scheduler.db.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = crate::services::deepdive_service::cleanup_expired_cache(&db_for_cleanup).await {
+        if let Err(e) =
+            crate::services::deepdive_service::cleanup_expired_cache(&db_for_cleanup).await
+        {
             tracing::warn!(error = %e, "Failed to clean up deepdive cache");
         }
     });

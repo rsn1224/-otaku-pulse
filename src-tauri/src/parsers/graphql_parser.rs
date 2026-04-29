@@ -103,7 +103,8 @@ pub(crate) fn convert_html_to_text(html: &str) -> String {
     use regex::Regex;
     use std::sync::LazyLock;
 
-    static RE_HTML: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<[^>]*>").expect("valid regex"));
+    static RE_HTML: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"<[^>]*>").expect("valid regex"));
     static RE_WS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").expect("valid regex"));
 
     // Remove HTML tags

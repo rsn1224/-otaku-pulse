@@ -113,9 +113,7 @@ pub async fn adjust_feed_preference(
     Ok(())
 }
 
-pub async fn get_interaction_stats(
-    db: &SqlitePool,
-) -> Result<Vec<(String, i64)>, AppError> {
+pub async fn get_interaction_stats(db: &SqlitePool) -> Result<Vec<(String, i64)>, AppError> {
     let stats = sqlx::query_as(
         "SELECT f.category, COUNT(*) as cnt
          FROM article_interactions ai
@@ -231,7 +229,12 @@ mod tests {
         let creators = "x".repeat(MAX_CREATORS_LEN + 1);
         let result = validate_profile_sizes(&titles, &genres, &creators);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("favorite_creators"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("favorite_creators")
+        );
     }
 
     #[tokio::test]

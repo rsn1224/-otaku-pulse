@@ -32,11 +32,9 @@ pub fn store_credential(account: &str, key: &str) -> Result<(), AppError> {
     let entry = keyring::Entry::new(SERVICE_NAME, account)
         .map_err(|e| AppError::Keyring(format!("Failed to create keyring entry: {e}")))?;
 
-    entry.set_password(key).map_err(|e| {
-        AppError::Keyring(format!(
-            "Failed to store credential in store: {e}"
-        ))
-    })
+    entry
+        .set_password(key)
+        .map_err(|e| AppError::Keyring(format!("Failed to store credential in store: {e}")))
 }
 
 /// Delete a credential from the OS credential store.

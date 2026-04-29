@@ -76,7 +76,11 @@ fn jaccard(a: &HashSet<String>, b: &HashSet<String>) -> f64 {
     }
     let intersection = a.intersection(b).count() as f64;
     let union = a.union(b).count() as f64;
-    if union == 0.0 { 0.0 } else { intersection / union }
+    if union == 0.0 {
+        0.0
+    } else {
+        intersection / union
+    }
 }
 
 /// 時間近接性スコア (0..=1.0)
@@ -93,7 +97,10 @@ fn time_proximity(published_a: &Option<String>, published_b: &Option<String>) ->
             })
     };
 
-    match (published_a.as_deref().and_then(parse), published_b.as_deref().and_then(parse)) {
+    match (
+        published_a.as_deref().and_then(parse),
+        published_b.as_deref().and_then(parse),
+    ) {
         (Some(ta), Some(tb)) => {
             let diff_hours = (ta - tb).unsigned_abs() as f64 / 3600.0;
             // 0h → 1.0, 24h → 0.5, 48h → 0.25, 168h(7日) → ~0
@@ -134,7 +141,13 @@ pub async fn cluster_articles(db: &SqlitePool) -> Result<usize, AppError> {
         .into_iter()
         .map(|(id, feed_id, title, published_at)| {
             let keywords = extract_keywords(&title);
-            ArticleNode { id, feed_id, title, published_at, keywords }
+            ArticleNode {
+                id,
+                feed_id,
+                title,
+                published_at,
+                keywords,
+            }
         })
         .collect();
 
@@ -159,7 +172,11 @@ pub async fn cluster_articles(db: &SqlitePool) -> Result<usize, AppError> {
             let jac = jaccard(&nodes[i].keywords, &nodes[j].keywords);
             let time = time_proximity(&nodes[i].published_at, &nodes[j].published_at);
             // フィード多様性ボーナス: 異なるフィードの組み合わせは +0.2
-            let diversity = if nodes[i].feed_id != nodes[j].feed_id { 0.2 } else { 0.0 };
+            let diversity = if nodes[i].feed_id != nodes[j].feed_id {
+                0.2
+            } else {
+                0.0
+            };
             let sim = jac * 0.5 + time * 0.3 + diversity;
 
             if sim >= CLUSTER_THRESHOLD {
@@ -172,8 +189,12 @@ pub async fn cluster_articles(db: &SqlitePool) -> Result<usize, AppError> {
     }
 
     // 既存クラスタを削除して再生成
-    sqlx::query("DELETE FROM cluster_articles").execute(db).await?;
-    sqlx::query("DELETE FROM topic_clusters").execute(db).await?;
+    sqlx::query("DELETE FROM cluster_articles")
+        .execute(db)
+        .await?;
+    sqlx::query("DELETE FROM topic_clusters")
+        .execute(db)
+        .await?;
 
     let mut saved_clusters = 0;
     let expires_at = (chrono::Utc::now() + chrono::Duration::days(CLUSTER_EXPIRES_DAYS))
@@ -187,11 +208,7 @@ pub async fn cluster_articles(db: &SqlitePool) -> Result<usize, AppError> {
 
         let representative_id = nodes[cluster_nodes[0]].id;
         // クラスタラベル = 代表記事のタイトル先頭20文字
-        let label: String = nodes[cluster_nodes[0]]
-            .title
-            .chars()
-            .take(20)
-            .collect();
+        let label: String = nodes[cluster_nodes[0]].title.chars().take(20).collect();
 
         // category は代表記事のフィードカテゴリを取得
         let category: Option<String> = sqlx::query_scalar(

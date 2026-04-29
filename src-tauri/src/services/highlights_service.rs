@@ -3,10 +3,8 @@ use crate::infra::llm_client::{LlmClient, LlmRequest};
 use crate::models::DiscoverArticleDto;
 use sqlx::SqlitePool;
 
-pub use super::highlights_helpers::{
-    get_trending_keywords, HighlightEntry, TrendKeyword,
-};
 use super::highlights_helpers::parse_numbered_lines;
+pub use super::highlights_helpers::{HighlightEntry, TrendKeyword, get_trending_keywords};
 
 pub async fn get_daily_highlights(
     db: &SqlitePool,

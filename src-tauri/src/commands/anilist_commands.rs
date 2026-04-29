@@ -10,13 +10,10 @@ pub async fn sync_anilist_now(state: State<'_, AppState>) -> Result<String, Stri
         .await
         .map_err(|e| e.to_string())?;
 
-    let result = anilist_watch_service::sync_anilist_watchlist(
-        &state.db,
-        state.http.clone(),
-        &username,
-    )
-    .await
-    .map_err(|e| e.to_string())?;
+    let result =
+        anilist_watch_service::sync_anilist_watchlist(&state.db, state.http.clone(), &username)
+            .await
+            .map_err(|e| e.to_string())?;
 
     Ok(format!(
         "{}件同期 ({})",
@@ -26,9 +23,7 @@ pub async fn sync_anilist_now(state: State<'_, AppState>) -> Result<String, Stri
 
 /// AniList 最終同期日時を取得する
 #[tauri::command]
-pub async fn get_anilist_sync_status(
-    state: State<'_, AppState>,
-) -> Result<Option<String>, String> {
+pub async fn get_anilist_sync_status(state: State<'_, AppState>) -> Result<Option<String>, String> {
     anilist_watch_service::get_anilist_last_synced_at(&state.db)
         .await
         .map_err(|e| e.to_string())
@@ -41,14 +36,10 @@ pub async fn sync_steam_now(state: State<'_, AppState>) -> Result<String, String
         .await
         .map_err(|e| e.to_string())?;
 
-    let result = steam_sync_service::sync_steam_games(
-        &state.db,
-        state.http.clone(),
-        &api_key,
-        &steam_id,
-    )
-    .await
-    .map_err(|e| e.to_string())?;
+    let result =
+        steam_sync_service::sync_steam_games(&state.db, state.http.clone(), &api_key, &steam_id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     Ok(format!(
         "{}件同期 ({})",

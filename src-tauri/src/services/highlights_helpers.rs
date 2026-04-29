@@ -140,6 +140,10 @@ mod tests {
 
         let keywords = get_trending_keywords(&db).await.unwrap();
         let has_pokemon = keywords.iter().any(|k| k.keyword == "pokemon");
-        assert!(has_pokemon, "Expected 'pokemon' in trending: {:?}", keywords);
+        assert!(
+            has_pokemon,
+            "Expected 'pokemon' in trending: {:?}",
+            keywords
+        );
     }
 }

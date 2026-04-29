@@ -32,7 +32,8 @@ pub async fn generate_weekly_report(
     let llm_client = match llm {
         Some(c) if matches!(c.provider(), LlmProvider::PerplexitySonar) => c,
         Some(_) => {
-            let reason = "週次レポートには Perplexity API Key が必要です（現在 Ollama が選択中）".to_string();
+            let reason = "週次レポートには Perplexity API Key が必要です（現在 Ollama が選択中）"
+                .to_string();
             warn!("{}", reason);
             return Ok(WeeklyReportResult {
                 reports_generated: 0,
@@ -63,12 +64,7 @@ pub async fn generate_weekly_report(
     let mut reports_generated = 0;
 
     for (article_id, title, interaction_count) in &top_topics {
-        info!(
-            article_id,
-            title,
-            interaction_count,
-            "週次レポート生成中"
-        );
+        info!(article_id, title, interaction_count, "週次レポート生成中");
 
         match generate_single_report(db, llm_client, *article_id, title).await {
             Ok(digest_id) => {
@@ -185,7 +181,9 @@ mod tests {
     async fn fetch_top_topics_empty_db() {
         use crate::infra::database;
         use std::path::PathBuf;
-        let db = database::init_pool(&PathBuf::from(":memory:")).await.unwrap();
+        let db = database::init_pool(&PathBuf::from(":memory:"))
+            .await
+            .unwrap();
         let topics = fetch_top_topics(&db).await.unwrap();
         assert!(topics.is_empty());
     }
@@ -194,7 +192,9 @@ mod tests {
     async fn generate_weekly_report_skips_without_llm() {
         use crate::infra::database;
         use std::path::PathBuf;
-        let db = database::init_pool(&PathBuf::from(":memory:")).await.unwrap();
+        let db = database::init_pool(&PathBuf::from(":memory:"))
+            .await
+            .unwrap();
         let result = generate_weekly_report(&db, None).await.unwrap();
         assert_eq!(result.reports_generated, 0);
         assert!(result.skipped_reason.is_some());

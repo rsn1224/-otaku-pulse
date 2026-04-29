@@ -6,19 +6,15 @@ use tauri::State;
 /// 記事のコンテキスト AI メモを取得する（キャッシュがなければ生成する）。
 /// LLM が未設定の場合はフォールバックメモを返す。
 #[tauri::command]
-pub async fn get_context_memo(
-    state: State<'_, AppState>,
-    article_id: i64,
-) -> CmdResult<String> {
+pub async fn get_context_memo(state: State<'_, AppState>, article_id: i64) -> CmdResult<String> {
     let llm_box;
-    let llm: Option<&dyn crate::infra::llm_client::LlmClient> =
-        match build_llm_client(&state) {
-            Ok(client) => {
-                llm_box = client;
-                Some(&*llm_box)
-            }
-            Err(_) => None,
-        };
+    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = match build_llm_client(&state) {
+        Ok(client) => {
+            llm_box = client;
+            Some(&*llm_box)
+        }
+        Err(_) => None,
+    };
 
     match llm {
         Some(client) => {
@@ -52,12 +48,12 @@ fn build_llm_client(
                 ),
             ))
         }
-        crate::infra::llm_client::LlmProvider::Ollama => Ok(Box::new(
-            crate::infra::ollama_client::OllamaClient::new(
+        crate::infra::llm_client::LlmProvider::Ollama => {
+            Ok(Box::new(crate::infra::ollama_client::OllamaClient::new(
                 settings.ollama_base_url.clone(),
                 settings.ollama_model.clone(),
                 (*state.http).clone(),
-            ),
-        )),
+            )))
+        }
     }
 }

@@ -173,9 +173,7 @@ mod tests {
     async fn test_api_key_not_leaked_in_error() {
         let mock_server = wiremock::MockServer::start().await;
         wiremock::Mock::given(wiremock::matchers::any())
-            .respond_with(
-                wiremock::ResponseTemplate::new(401).set_body_string("Unauthorized"),
-            )
+            .respond_with(wiremock::ResponseTemplate::new(401).set_body_string("Unauthorized"))
             .mount(&mock_server)
             .await;
 
@@ -186,11 +184,7 @@ mod tests {
             mock_server.uri(),
         );
 
-        let req = LlmRequest::simple(
-            "system".to_string(),
-            "user prompt".to_string(),
-            100,
-        );
+        let req = LlmRequest::simple("system".to_string(), "user prompt".to_string(), 100);
 
         let result = client.complete(req).await;
         assert!(result.is_err());
@@ -216,11 +210,7 @@ mod tests {
             "http://127.0.0.1:1".to_string(), // connection refused
         );
 
-        let req = LlmRequest::simple(
-            "system".to_string(),
-            "user prompt".to_string(),
-            100,
-        );
+        let req = LlmRequest::simple("system".to_string(), "user prompt".to_string(), 100);
 
         let result = client.complete(req).await;
         assert!(result.is_err());

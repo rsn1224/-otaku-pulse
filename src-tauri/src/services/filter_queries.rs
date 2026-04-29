@@ -122,9 +122,14 @@ mod tests {
     async fn test_add_filter_with_category() {
         let db = setup_test_db().await;
 
-        let filter = insert_filter(&db, "isekai".into(), "highlight".into(), Some("anime".into()))
-            .await
-            .unwrap();
+        let filter = insert_filter(
+            &db,
+            "isekai".into(),
+            "highlight".into(),
+            Some("anime".into()),
+        )
+        .await
+        .unwrap();
         assert_eq!(filter.filter_type, "highlight");
         assert_eq!(filter.category.as_deref(), Some("anime"));
     }

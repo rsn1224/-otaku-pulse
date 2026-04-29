@@ -1,6 +1,6 @@
 use crate::error::CmdResult;
-use crate::models::TodayViewItem;
 use crate::models::DigestDto;
+use crate::models::TodayViewItem;
 use crate::services::{digest_queries, today_view_service, weekly_report_service};
 use crate::state::AppState;
 use sqlx::SqlitePool;
@@ -31,14 +31,13 @@ pub async fn delete_digest(db: State<'_, SqlitePool>, digest_id: i64) -> CmdResu
 pub async fn get_today_view(state: State<'_, AppState>) -> CmdResult<Vec<TodayViewItem>> {
     // LLM クライアントを構築（失敗してもフォールバックで動作する）
     let llm_box;
-    let llm: Option<&dyn crate::infra::llm_client::LlmClient> =
-        match build_llm_client(&state) {
-            Ok(client) => {
-                llm_box = client;
-                Some(&*llm_box)
-            }
-            Err(_) => None,
-        };
+    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = match build_llm_client(&state) {
+        Ok(client) => {
+            llm_box = client;
+            Some(&*llm_box)
+        }
+        Err(_) => None,
+    };
 
     today_view_service::get_today_view(&state.db, llm).await
 }
@@ -48,21 +47,23 @@ pub async fn get_today_view(state: State<'_, AppState>) -> CmdResult<Vec<TodayVi
 #[tauri::command]
 pub async fn run_weekly_report_now(state: State<'_, AppState>) -> CmdResult<String> {
     let llm_box;
-    let llm: Option<&dyn crate::infra::llm_client::LlmClient> =
-        match build_llm_client(&state) {
-            Ok(client) => {
-                llm_box = client;
-                Some(&*llm_box)
-            }
-            Err(_) => None,
-        };
+    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = match build_llm_client(&state) {
+        Ok(client) => {
+            llm_box = client;
+            Some(&*llm_box)
+        }
+        Err(_) => None,
+    };
 
     let result = weekly_report_service::generate_weekly_report(&state.db, llm).await?;
 
     if let Some(reason) = result.skipped_reason {
         Ok(format!("スキップ: {reason}"))
     } else {
-        Ok(format!("{}件のレポートを生成しました", result.reports_generated))
+        Ok(format!(
+            "{}件のレポートを生成しました",
+            result.reports_generated
+        ))
     }
 }
 
@@ -80,10 +81,12 @@ fn build_llm_client(
                 .perplexity_api_key
                 .clone()
                 .ok_or_else(|| crate::error::AppError::Llm("Perplexity API キー未設定".into()))?;
-            Ok(Box::new(crate::infra::perplexity_client::PerplexitySonarClient::new(
-                api_key,
-                (*state.http).clone(),
-            )))
+            Ok(Box::new(
+                crate::infra::perplexity_client::PerplexitySonarClient::new(
+                    api_key,
+                    (*state.http).clone(),
+                ),
+            ))
         }
         crate::infra::llm_client::LlmProvider::Ollama => {
             Ok(Box::new(crate::infra::ollama_client::OllamaClient::new(

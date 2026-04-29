@@ -58,7 +58,14 @@ pub fn start(
     let http_client_external = http_client.clone();
     let token_external = token.clone();
     tauri::async_runtime::spawn(async move {
-        collect_loop(app_handle_clone, db_pool, http_client, token_clone, config_rx_clone).await;
+        collect_loop(
+            app_handle_clone,
+            db_pool,
+            http_client,
+            token_clone,
+            config_rx_clone,
+        )
+        .await;
     });
 
     // v1.1: AniList / Steam 外部同期ループ
@@ -90,10 +97,8 @@ async fn collect_loop(
 ) {
     let initial_config = config_rx.borrow_and_update().clone();
     let interval_dur = Duration::from_secs(initial_config.collect_interval_minutes * 60);
-    let mut timer = tokio::time::interval_at(
-        tokio::time::Instant::now() + interval_dur,
-        interval_dur,
-    );
+    let mut timer =
+        tokio::time::interval_at(tokio::time::Instant::now() + interval_dur, interval_dur);
 
     loop {
         tokio::select! {
@@ -241,16 +246,37 @@ async fn digest_loop(
         const DIGEST_TIMEOUT_SECS: u64 = 120;
         let timeout_dur = Duration::from_secs(DIGEST_TIMEOUT_SECS);
         let (r_anime, r_manga, r_game, r_pc) = tokio::join!(
-            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "anime")),
-            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "manga")),
-            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "game")),
-            tokio::time::timeout(timeout_dur, generate_and_save_digest(&state.db, &*llm_client, &app_handle, "pc")),
+            tokio::time::timeout(
+                timeout_dur,
+                generate_and_save_digest(&state.db, &*llm_client, &app_handle, "anime")
+            ),
+            tokio::time::timeout(
+                timeout_dur,
+                generate_and_save_digest(&state.db, &*llm_client, &app_handle, "manga")
+            ),
+            tokio::time::timeout(
+                timeout_dur,
+                generate_and_save_digest(&state.db, &*llm_client, &app_handle, "game")
+            ),
+            tokio::time::timeout(
+                timeout_dur,
+                generate_and_save_digest(&state.db, &*llm_client, &app_handle, "pc")
+            ),
         );
-        for (category, result) in [("anime", r_anime), ("manga", r_manga), ("game", r_game), ("pc", r_pc)] {
+        for (category, result) in [
+            ("anime", r_anime),
+            ("manga", r_manga),
+            ("game", r_game),
+            ("pc", r_pc),
+        ] {
             match result {
                 Ok(Ok(())) => {}
                 Ok(Err(e)) => warn!(error = %e, category, "ダイジェスト生成失敗"),
-                Err(_elapsed) => warn!(category, timeout_secs = DIGEST_TIMEOUT_SECS, "ダイジェスト生成タイムアウト"),
+                Err(_elapsed) => warn!(
+                    category,
+                    timeout_secs = DIGEST_TIMEOUT_SECS,
+                    "ダイジェスト生成タイムアウト"
+                ),
             }
         }
 
@@ -281,7 +307,11 @@ async fn generate_and_save_digest(
     category: &str,
 ) -> Result<(), crate::error::AppError> {
     let result = super::digest_generator::generate(db, llm, category, 24).await?;
-    tracing::info!(category, article_count = result.article_count, "ダイジェスト生成完了");
+    tracing::info!(
+        category,
+        article_count = result.article_count,
+        "ダイジェスト生成完了"
+    );
     let digest = crate::models::Digest {
         id: 0,
         category: result.category.clone(),
@@ -311,14 +341,15 @@ fn build_scheduler_llm_client(
 
     match settings.provider {
         crate::infra::llm_client::LlmProvider::PerplexitySonar => {
-            let api_key = settings
-                .perplexity_api_key
-                .clone()
-                .ok_or_else(|| crate::error::AppError::Llm("Perplexity API キーが未設定です".into()))?;
-            Ok(Arc::new(crate::infra::perplexity_client::PerplexitySonarClient::new(
-                api_key,
-                (*state.http).clone(),
-            )))
+            let api_key = settings.perplexity_api_key.clone().ok_or_else(|| {
+                crate::error::AppError::Llm("Perplexity API キーが未設定です".into())
+            })?;
+            Ok(Arc::new(
+                crate::infra::perplexity_client::PerplexitySonarClient::new(
+                    api_key,
+                    (*state.http).clone(),
+                ),
+            ))
         }
         crate::infra::llm_client::LlmProvider::Ollama => {
             Ok(Arc::new(crate::infra::ollama_client::OllamaClient::new(
@@ -361,14 +392,11 @@ async fn weekly_report_loop(
         info!("週次レポート生成開始 (日曜日トリガー)");
 
         let llm_arc = build_scheduler_llm_client(&state).ok();
-        let llm_ref: Option<&dyn crate::infra::llm_client::LlmClient> =
-            llm_arc.as_deref().map(|c| c as &dyn crate::infra::llm_client::LlmClient);
+        let llm_ref: Option<&dyn crate::infra::llm_client::LlmClient> = llm_arc
+            .as_deref()
+            .map(|c| c as &dyn crate::infra::llm_client::LlmClient);
 
-        let result = super::weekly_report_service::generate_weekly_report(
-            &db_pool,
-            llm_ref,
-        )
-        .await;
+        let result = super::weekly_report_service::generate_weekly_report(&db_pool, llm_ref).await;
 
         match result {
             Ok(r) if r.reports_generated > 0 => {
@@ -530,7 +558,10 @@ mod tests {
             .unwrap();
 
         let result = tokio::time::timeout(Duration::from_secs(1), handle).await;
-        assert!(result.is_ok(), "設定変更後 1 秒以内にタスクが応答しなかった");
+        assert!(
+            result.is_ok(),
+            "設定変更後 1 秒以内にタスクが応答しなかった"
+        );
         assert_eq!(result.unwrap().unwrap(), "config_changed");
     }
 }

@@ -14,11 +14,7 @@ pub async fn load_settings(db: &SqlitePool) -> Result<HashMap<String, String>, A
     Ok(rows.into_iter().collect())
 }
 
-pub async fn upsert_setting(
-    db: &SqlitePool,
-    key: String,
-    value: String,
-) -> Result<(), AppError> {
+pub async fn upsert_setting(db: &SqlitePool, key: String, value: String) -> Result<(), AppError> {
     let key = key.trim().to_string();
     if key.is_empty() || key.len() > MAX_KEY_LENGTH {
         return Err(AppError::InvalidInput(format!(
@@ -112,9 +108,7 @@ mod tests {
         let db = setup_test_db().await;
 
         let long_key = "k".repeat(MAX_KEY_LENGTH + 1);
-        let err = upsert_setting(&db, long_key, "v".into())
-            .await
-            .unwrap_err();
+        let err = upsert_setting(&db, long_key, "v".into()).await.unwrap_err();
         assert!(matches!(err, AppError::InvalidInput(_)));
     }
 

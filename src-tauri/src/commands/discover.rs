@@ -113,12 +113,8 @@ pub async fn get_clustered_feed(
     category: Option<String>,
     limit: Option<i64>,
 ) -> CmdResult<Vec<ClusterGroup>> {
-    clustering_service::get_clustered_feed(
-        &state.db,
-        category.as_deref(),
-        limit.unwrap_or(20),
-    )
-    .await
+    clustering_service::get_clustered_feed(&state.db, category.as_deref(), limit.unwrap_or(20))
+        .await
 }
 
 #[tauri::command]

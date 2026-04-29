@@ -187,10 +187,7 @@ fn parse_watchlist_response(json_str: &str) -> Result<Vec<WatchlistEntry>, AppEr
             let media_id = media["id"]
                 .as_i64()
                 .ok_or_else(|| AppError::Parse("AniList: missing media.id".to_string()))?;
-            let title_romaji = media["title"]["romaji"]
-                .as_str()
-                .unwrap_or("")
-                .to_string();
+            let title_romaji = media["title"]["romaji"].as_str().unwrap_or("").to_string();
             let title_native = media["title"]["native"].as_str().map(|s| s.to_string());
             let media_type = media["type"].as_str().unwrap_or("ANIME").to_string();
             let cover_image_url = media["coverImage"]["medium"]

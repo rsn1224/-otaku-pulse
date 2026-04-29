@@ -242,10 +242,7 @@ async fn test_token_depletion_and_refill() {
 fn test_non_429_response_does_not_block() {
     let limiter = TokenBucket::new(10, 1.0, 0);
 
-    let response = http::Response::builder()
-        .status(200)
-        .body(())
-        .unwrap();
+    let response = http::Response::builder().status(200).body(()).unwrap();
     limiter.update_from_response(&response);
 
     // retry_after must remain None

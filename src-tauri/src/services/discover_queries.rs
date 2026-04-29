@@ -241,10 +241,7 @@ pub async fn get_unread_counts(
     Ok(row)
 }
 
-pub async fn mark_all_read_category(
-    db: &SqlitePool,
-    category: &str,
-) -> Result<i64, AppError> {
+pub async fn mark_all_read_category(db: &SqlitePool, category: &str) -> Result<i64, AppError> {
     let result = if category == "for_you" || category == "all" {
         sqlx::query("UPDATE articles SET is_read = 1 WHERE is_read = 0")
             .execute(db)

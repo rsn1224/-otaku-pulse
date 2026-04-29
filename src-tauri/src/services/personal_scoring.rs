@@ -113,9 +113,7 @@ async fn batch_interaction_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>,
 /// - impression_ctr: open数 / impression数 × 2.0（過去30日）
 /// - dwell_bonus: カテゴリ平均より長い滞在 → +1.0
 /// - skip_penalty: フィード全体の skip率 > 80% → -0.5
-async fn batch_implicit_feedback_scores(
-    db: &SqlitePool,
-) -> Result<HashMap<i64, f64>, AppError> {
+async fn batch_implicit_feedback_scores(db: &SqlitePool) -> Result<HashMap<i64, f64>, AppError> {
     let rows: Vec<(i64, f64)> = sqlx::query_as(
         "WITH
            impressions AS (
@@ -237,15 +235,17 @@ async fn batch_external_bonuses(db: &SqlitePool) -> Result<HashMap<i64, f64>, Ap
     let anilist_map: HashMap<i64, f64> = anilist_rows.into_iter().collect();
     let steam_map: HashMap<i64, f64> = steam_rows.into_iter().collect();
 
-    let all_ids: std::collections::HashSet<i64> =
-        anilist_map.keys().chain(steam_map.keys()).copied().collect();
+    let all_ids: std::collections::HashSet<i64> = anilist_map
+        .keys()
+        .chain(steam_map.keys())
+        .copied()
+        .collect();
 
     let merged: HashMap<i64, f64> = all_ids
         .into_iter()
         .map(|id| {
-            let bonus =
-                anilist_map.get(&id).copied().unwrap_or(0.0)
-                    + steam_map.get(&id).copied().unwrap_or(0.0);
+            let bonus = anilist_map.get(&id).copied().unwrap_or(0.0)
+                + steam_map.get(&id).copied().unwrap_or(0.0);
             (id, bonus)
         })
         .collect();
@@ -280,11 +280,10 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
     let external_bonuses = batch_external_bonuses(db).await?;
 
     // キーワードフィルター読み込み
-    let filters: Vec<(String, String)> = sqlx::query_as(
-        "SELECT keyword, filter_type FROM keyword_filters",
-    )
-    .fetch_all(db)
-    .await?;
+    let filters: Vec<(String, String)> =
+        sqlx::query_as("SELECT keyword, filter_type FROM keyword_filters")
+            .fetch_all(db)
+            .await?;
 
     let mute_keywords: Vec<String> = filters
         .iter()
@@ -318,8 +317,7 @@ pub async fn rescore_all(db: &SqlitePool) -> Result<u64, AppError> {
         let external = external_bonuses.get(id).copied().unwrap_or(0.0);
         // v1.1 scoring formula (ADR-101/REQUIREMENTS §4)
         let mut total =
-            base * 0.20 + personal * 0.25 + interaction * 0.20
-            + implicit * 0.15 + external * 0.20;
+            base * 0.20 + personal * 0.25 + interaction * 0.20 + implicit * 0.15 + external * 0.20;
 
         // キーワードフィルター適用（total 計算後に適用し mute が確実に抑制されるように）
         let title_lower = title.to_lowercase();
@@ -436,7 +434,10 @@ mod tests {
     #[test]
     fn test_calc_personal_score_empty_favorites() {
         let score = calc_personal_score("Some Anime Title", &[], &[], &[]);
-        assert_eq!(score, 0.0, "空のお気に入りは personal score = 0.0 になるべき");
+        assert_eq!(
+            score, 0.0,
+            "空のお気に入りは personal score = 0.0 になるべき"
+        );
     }
 
     /// published_at が None のとき fallback score 0.3 を返す
@@ -452,8 +453,7 @@ mod tests {
     /// 73 時間前の記事は 0〜1 時間前の記事より低いスコアになる
     #[test]
     fn test_calc_base_score_73h_old_article() {
-        let old_date =
-            (Utc::now() - chrono::Duration::hours(73)).to_rfc3339();
+        let old_date = (Utc::now() - chrono::Duration::hours(73)).to_rfc3339();
         let old_score = calc_base_score(&Some(old_date));
         let recent_score = calc_base_score(&Some(Utc::now().to_rfc3339()));
         assert!(

@@ -113,7 +113,10 @@ pub async fn collect_feed(
             .par_iter()
             .map(|a| {
                 let url_norm = a.url.as_deref().map(dedup_service::normalize_url);
-                let hash = a.content.as_deref().map(dedup_service::generate_content_hash);
+                let hash = a
+                    .content
+                    .as_deref()
+                    .map(dedup_service::generate_content_hash);
                 (url_norm, hash)
             })
             .collect();

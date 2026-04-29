@@ -12,8 +12,8 @@ fn validate_feed_url(raw: &str) -> Result<String, AppError> {
             "URL is too long (max 2048 characters)".to_string(),
         ));
     }
-    let parsed = Url::parse(raw)
-        .map_err(|e| AppError::InvalidInput(format!("Invalid URL: {e}")))?;
+    let parsed =
+        Url::parse(raw).map_err(|e| AppError::InvalidInput(format!("Invalid URL: {e}")))?;
     match parsed.scheme() {
         "http" | "https" => Ok(parsed.to_string()),
         other => Err(AppError::InvalidInput(format!(
@@ -167,21 +167,36 @@ mod tests {
     fn test_validate_feed_url_rejects_javascript() {
         let result = validate_feed_url("javascript:alert(1)");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unsupported URL scheme"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Unsupported URL scheme")
+        );
     }
 
     #[test]
     fn test_validate_feed_url_rejects_file() {
         let result = validate_feed_url("file:///etc/passwd");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unsupported URL scheme"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Unsupported URL scheme")
+        );
     }
 
     #[test]
     fn test_validate_feed_url_rejects_data() {
         let result = validate_feed_url("data:text/html,<h1>hi</h1>");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unsupported URL scheme"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Unsupported URL scheme")
+        );
     }
 
     #[test]

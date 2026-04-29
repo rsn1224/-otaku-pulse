@@ -298,4 +298,3 @@ pub async fn fix_feed_category(
 
     Ok(updated.rows_affected())
 }
-

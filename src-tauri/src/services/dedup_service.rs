@@ -241,8 +241,7 @@ mod tests {
         let hash1 = generate_content_hash("\u{FF76}\u{FF9E}\u{FF9D}\u{FF80}\u{FF9E}\u{FF91}");
         let hash2 = generate_content_hash("ガンダム");
         assert_eq!(
-            hash1,
-            hash2,
+            hash1, hash2,
             "NFKC normalization must propagate through generate_content_hash"
         );
     }
@@ -256,7 +255,10 @@ mod tests {
         // The test verifies the function does not panic and produces a non-empty result.
         let with_zwsp = "Hello\u{200B}World";
         let result = normalize_title(with_zwsp);
-        assert!(!result.is_empty(), "normalize_title must not return empty for ZWS input");
+        assert!(
+            !result.is_empty(),
+            "normalize_title must not return empty for ZWS input"
+        );
         // Lowercase must be applied
         assert_eq!(result, result.to_lowercase(), "result must be lowercase");
     }
@@ -371,7 +373,10 @@ mod tests {
         let url = "HTTP://Example.COM/Article";
         let result = normalize_url(url);
         // Host portion must be lowercased regardless of scheme casing
-        assert!(!result.contains("Example.COM"), "Host must be lowercased, got: {result}");
+        assert!(
+            !result.contains("Example.COM"),
+            "Host must be lowercased, got: {result}"
+        );
     }
 
     #[test]

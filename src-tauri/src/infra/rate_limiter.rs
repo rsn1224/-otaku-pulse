@@ -132,7 +132,6 @@ impl TokenBucket {
             info!("Updated remaining tokens to {}", remaining);
         }
     }
-
 }
 
 /// Rate limiter configurations for different sources
@@ -147,7 +146,6 @@ pub mod configs {
             2100, // min_interval_ms (2,100ms between requests)
         )
     }
-
 }
 
 #[cfg(test)]

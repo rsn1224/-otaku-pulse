@@ -20,15 +20,18 @@ pub async fn get_or_generate_context_memo(
     }
 
     // 記事タイトルを取得
-    let title: Option<String> =
-        sqlx::query_scalar("SELECT title FROM articles WHERE id = ?")
-            .bind(article_id)
-            .fetch_optional(db)
-            .await?;
+    let title: Option<String> = sqlx::query_scalar("SELECT title FROM articles WHERE id = ?")
+        .bind(article_id)
+        .fetch_optional(db)
+        .await?;
 
     let title = match title {
         Some(t) => t,
-        None => return Err(AppError::InvalidInput(format!("article {article_id} not found"))),
+        None => {
+            return Err(AppError::InvalidInput(format!(
+                "article {article_id} not found"
+            )));
+        }
     };
 
     // 過去5件の閲覧履歴（同カテゴリ or 全体）を取得

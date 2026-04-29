@@ -2,9 +2,9 @@
 // Business logic is FORBIDDEN here. Delegate to services/.
 
 pub mod anilist_commands;
-pub mod context_memo_commands;
 pub mod articles;
 pub mod collect;
+pub mod context_memo_commands;
 mod default_feeds;
 pub mod digest;
 pub mod discover;

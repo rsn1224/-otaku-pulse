@@ -4,7 +4,7 @@
 
 ## 層の責務
 
-```
+```text
 src-tauri/src/
 ├── commands/   — 入口層。薄いラッパーのみ。ロジック禁止
 ├── services/   — ビジネスロジック。純粋関数中心。テスト対象
@@ -19,7 +19,7 @@ src-tauri/src/
 - **`unwrap()` / `expect()` 禁止** — `?` 演算子 + `AppError` を必ず使う
 - **層間跨ぎ禁止** — `commands → services → infra` の一方向依存のみ
 - **非同期パターン** — CPUバウンド処理は `spawn_blocking`、Mutex保持中の `.await` 禁止
-- **パフォーマンス** — `Vec::with_capacity`、`AHashMap`、`DashMap` 優先。詳細は `rust-perf.md`
+- **パフォーマンス** — `Vec::with_capacity`、`AHashMap`、`DashMap` 優先（ホットパスで計測してから適用）
 - **ビルドプロファイル** — `cargo build --release` (`lto=fat`, `codegen-units=1`)、プロファイリングは `--profile profiling`
 
 ## コマンド
@@ -35,7 +35,7 @@ cargo clippy -- -W clippy::perf  # パフォーマンス警告
 
 ## 現在の依存関係メモ
 
-- AniList: GraphQLクエリ (`graphql_client`) — Rate Limit 規則は `anilist_rate_limit.md` 参照
-- Reddit: RSS優先、APIは後回し (`reddit_rss_first.md` 参照)
+- AniList: GraphQLクエリ (`graphql_client`) — Rate Limit 規則は `api-data-sources.md` 参照
+- Reddit: RSS優先、APIは後回し (`api-data-sources.md` 参照)
 - SQLite: `sqlx` で管理。マイグレーションは `migrations/` 配下
 - スケジューラー: `tokio-cron-scheduler` — `services/scheduler.rs` で管理

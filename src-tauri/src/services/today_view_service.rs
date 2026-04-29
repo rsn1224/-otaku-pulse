@@ -73,10 +73,12 @@ async fn generate_today_view(
     }
 
     let items = if let Some(llm_client) = llm {
-        generate_with_llm(llm_client, &articles).await.unwrap_or_else(|e| {
-            warn!(error = %e, "Today View LLM generation failed, using fallback");
-            fallback_items(&articles)
-        })
+        generate_with_llm(llm_client, &articles)
+            .await
+            .unwrap_or_else(|e| {
+                warn!(error = %e, "Today View LLM generation failed, using fallback");
+                fallback_items(&articles)
+            })
     } else {
         fallback_items(&articles)
     };
@@ -111,8 +113,7 @@ async fn generate_with_llm(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let system_prompt =
-        "あなたはアニメ・マンガ・ゲームニュースのキュレーターです。".to_string();
+    let system_prompt = "あなたはアニメ・マンガ・ゲームニュースのキュレーターです。".to_string();
     let user_prompt = format!(
         "以下の記事タイトルから、今日最も重要な3件を選び、\
         それぞれ「タイトルが要点」の形式で20文字以内の見出しを作ってください。\

@@ -81,14 +81,20 @@ mod tests {
 
     #[test]
     fn sanitize_removes_special_chars() {
-        assert_eq!(sanitize_fts_query("hello\"world"), Some("helloworld*".into()));
+        assert_eq!(
+            sanitize_fts_query("hello\"world"),
+            Some("helloworld*".into())
+        );
         assert_eq!(sanitize_fts_query("(test)"), Some("test*".into()));
         assert_eq!(sanitize_fts_query("foo*bar^baz"), Some("foobarbaz*".into()));
     }
 
     #[test]
     fn sanitize_removes_fts_operators() {
-        assert_eq!(sanitize_fts_query("cats AND dogs"), Some("cats dogs*".into()));
+        assert_eq!(
+            sanitize_fts_query("cats AND dogs"),
+            Some("cats dogs*".into())
+        );
         assert_eq!(sanitize_fts_query("NOT bad"), Some("bad*".into()));
         assert_eq!(sanitize_fts_query("foo OR bar"), Some("foo bar*".into()));
         assert_eq!(sanitize_fts_query("NEAR word"), Some("word*".into()));

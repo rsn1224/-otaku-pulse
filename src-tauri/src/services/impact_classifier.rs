@@ -101,16 +101,12 @@ const RUMOR_KEYWORDS: &[&str] = &[
 /// sense that a shorter corpus still yields a clear signal.
 pub fn classify_impact(title: &str, content: Option<&str>) -> ImpactLevel {
     let title_lower = title.to_lowercase();
-    let content_lower = content
-        .map(|c| c.to_lowercase())
-        .unwrap_or_default();
+    let content_lower = content.map(|c| c.to_lowercase()).unwrap_or_default();
 
     // Check confirmed keywords first (higher priority)
     for kw in CONFIRMED_KEYWORDS {
         let kw_lower = kw.to_lowercase();
-        if title_lower.contains(kw_lower.as_str())
-            || content_lower.contains(kw_lower.as_str())
-        {
+        if title_lower.contains(kw_lower.as_str()) || content_lower.contains(kw_lower.as_str()) {
             return ImpactLevel::Confirmed;
         }
     }
@@ -118,9 +114,7 @@ pub fn classify_impact(title: &str, content: Option<&str>) -> ImpactLevel {
     // Check rumor keywords
     for kw in RUMOR_KEYWORDS {
         let kw_lower = kw.to_lowercase();
-        if title_lower.contains(kw_lower.as_str())
-            || content_lower.contains(kw_lower.as_str())
-        {
+        if title_lower.contains(kw_lower.as_str()) || content_lower.contains(kw_lower.as_str()) {
             return ImpactLevel::Rumor;
         }
     }

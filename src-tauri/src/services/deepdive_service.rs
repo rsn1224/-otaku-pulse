@@ -117,13 +117,12 @@ pub async fn answer_question(
         }
 
         // Cache invalidated -- delete stale entry
-        if let Err(e) = sqlx::query(
-            "DELETE FROM deepdive_cache WHERE article_id = ?1 AND question = ?2",
-        )
-        .bind(article_id)
-        .bind(question)
-        .execute(db)
-        .await
+        if let Err(e) =
+            sqlx::query("DELETE FROM deepdive_cache WHERE article_id = ?1 AND question = ?2")
+                .bind(article_id)
+                .bind(question)
+                .execute(db)
+                .await
         {
             tracing::warn!(article_id, error = %e, "Failed to delete stale deepdive cache entry");
         }
@@ -378,8 +377,7 @@ mod tests {
         // Verify: new hash differs from original
         let new_hash = hash_summary("Updated summary");
         assert_ne!(
-            original_hash,
-            new_hash,
+            original_hash, new_hash,
             "Different summaries must produce different hashes"
         );
 

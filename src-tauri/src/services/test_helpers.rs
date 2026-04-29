@@ -144,19 +144,15 @@ pub async fn setup_test_db() -> SqlitePool {
     .unwrap();
 
     // v1.1 tables (migration 010)
-    sqlx::query(
-        "ALTER TABLE articles ADD COLUMN impact_level TEXT DEFAULT 'general'",
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
+    sqlx::query("ALTER TABLE articles ADD COLUMN impact_level TEXT DEFAULT 'general'")
+        .execute(&pool)
+        .await
+        .unwrap();
 
-    sqlx::query(
-        "ALTER TABLE articles ADD COLUMN cluster_id TEXT",
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
+    sqlx::query("ALTER TABLE articles ADD COLUMN cluster_id TEXT")
+        .execute(&pool)
+        .await
+        .unwrap();
 
     sqlx::query(
         "CREATE TABLE anilist_watchlist (
