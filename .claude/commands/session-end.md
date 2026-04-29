@@ -1,3 +1,7 @@
+---
+description: otaku-pulse セッション終了時の6ステップ振り返り (ADR / LEARNED / SESSION CONTINUITY 更新)
+---
+
 # /session-end — セッション終了時の構造化振り返り
 
 以下の 6 ステップを順番に実行してください。

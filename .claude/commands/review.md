@@ -1,3 +1,7 @@
+---
+description: otaku-pulse のフルスタックコードレビュー (rust-reviewer + ts-reviewer 並列実行)
+---
+
 # /review — フルスタックコードレビュー（Agent Teams 対応）
 
 以下のステップでフロントエンドとバックエンドのコードレビューを **並列実行** してください。

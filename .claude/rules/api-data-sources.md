@@ -1,5 +1,6 @@
 ---
 description: 外部データソース戦略 — AniList / Reddit / フィードライブラリの設計方針
+globs: "src/**/*.{ts,tsx,rs}"
 ---
 
 # 外部データソース戦略

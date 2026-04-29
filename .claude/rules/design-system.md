@@ -1,3 +1,8 @@
+---
+description: otaku-pulse デザインシステム（Material Design 3 命名、CSS 変数ダークテーマ）
+globs: "src/**/*.{ts,tsx,css}"
+---
+
 # デザインシステム規約
 
 ## CSS 変数命名パターン

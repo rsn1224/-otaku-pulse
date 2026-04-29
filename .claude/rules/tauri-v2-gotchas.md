@@ -1,6 +1,11 @@
+---
+description: otaku-pulse 固有の Tauri v2 補足（Mutex 禁止・個別 manage パターン）
+globs: "src-tauri/**/*.rs"
+---
+
 # Tauri v2 注意点（otaku-pulse 固有）
 
-共通の Tauri v2 落とし穴は `nexus/.claude/rules/tauri-v2-gotchas.md` を参照。
+共通の Tauri v2 落とし穴はグローバル `.claude/rules/tauri-v2-gotchas.md` を参照。
 以下は otaku-pulse 固有のルール。
 
 ## Mutex\<AppState\> パターンは禁止

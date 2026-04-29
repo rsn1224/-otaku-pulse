@@ -1,3 +1,7 @@
+---
+description: otaku-pulse の reflector エージェントでセッション振り返り・rules 追記
+---
+
 # /reflect — セッション振り返り
 
 **reflector エージェント**を起動して、以下を実行してください。

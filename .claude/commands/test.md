@@ -1,3 +1,7 @@
+---
+description: otaku-pulse の test-writer エージェントでテスト生成 (正常系/異常系/境界値)
+---
+
 # /test — テスト生成
 
 **test-writer エージェント**を起動して、以下を実行してください。

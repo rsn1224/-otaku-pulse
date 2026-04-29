@@ -1,3 +1,7 @@
+---
+description: otaku-pulse の Rust コードにパフォーマンス調査を実行 (clippy perf + ホットパス grep)
+---
+
 # /perf — パフォーマンス調査
 
 `.claude/rules/rust-perf.md` のルールを展開して、以下を実行してください。

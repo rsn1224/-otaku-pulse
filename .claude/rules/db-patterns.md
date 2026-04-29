@@ -1,5 +1,6 @@
 ---
 description: DB 設計パターン — content_hash / dedup / scoring のルール
+globs: "src/**/*.{ts,tsx,rs}"
 ---
 
 # DB 設計パターン

@@ -10,26 +10,6 @@
       "Bash(cargo test *)",
       "Bash(cargo fmt *)",
       "Bash(wc -c *)"
-    ],
-    "deny": [
-      "Bash(git push --force*)",
-      "Bash(git push -f*)",
-      "Bash(rm -rf*)",
-      "Bash(git reset --hard*)",
-      "Bash(git clean -f*)",
-      "Bash(git clean -fd*)",
-      "Bash(curl * | bash*)",
-      "Bash(curl * | sh*)",
-      "Bash(curl * | pwsh*)",
-      "Bash(wget * | bash*)",
-      "Bash(wget * | sh*)",
-      "Read(**/.env*)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)",
-      "Write(**/.env*)",
-      "Write(**/*.pem)",
-      "Write(**/*.key)",
-      "Write(**/.claude/settings.local.json)"
     ]
   },
   "hooks": {
@@ -39,18 +19,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-bash.sh"
+            "command": "bash c:/dev/.claude/hooks/pre-bash.sh"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "bash .claude/hooks/post-edit.sh"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /c/dev/otaku-pulse && pnpm exec biome check src/ 2>/dev/null && echo '[quality] biome OK' || echo '[quality] biome FAILED' >&2; pnpm exec tsc --noEmit 2>/dev/null && echo '[quality] typecheck OK' || echo '[quality] typecheck FAILED' >&2; true"
           }
         ]
       }
@@ -60,12 +50,24 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/stop-quality-gate.sh",
+            "command": "bash c:/dev/.claude/hooks/stop-quality-gate.sh",
             "timeout": 5
           },
           {
             "type": "command",
             "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -Command \"[System.Console]::Beep(800,150); Start-Sleep -Milliseconds 80; [System.Console]::Beep(1000,200)\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -Command \"[System.Console]::Beep(600,300)\"",
             "timeout": 5
           }
         ]

@@ -1,3 +1,8 @@
+---
+description: Figma → コード変換ルール（otaku-pulse/ 固有、Material Design 3 命名準拠）
+globs: "src/**/*.{ts,tsx,css}"
+---
+
 # Figma → コード変換ルール（otaku-pulse/ プロジェクト固有）
 
 > `figma-implement-design` スキルを使う際は、このファイルのルールを**全て適用**すること。

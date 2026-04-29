@@ -1,3 +1,7 @@
+---
+description: otaku-pulse CLAUDE.md の定期最適化 (LEARNED RULES / ADR / ルールファイル整理)
+---
+
 # /self-improve — CLAUDE.md 定期最適化
 
 CLAUDE.md の包括的な自己最適化を実行してください。
