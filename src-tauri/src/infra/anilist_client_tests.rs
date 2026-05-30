@@ -9,9 +9,10 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 async fn test_fetch_seasonal_anime() {
     let mock_server = MockServer::start().await;
 
+    // AniList nests results under `data.Page` (capital P, the root query field name).
     let mock_response = json!({
         "data": {
-            "page": {
+            "Page": {
                 "pageInfo": {
                     "total": 1,
                     "perPage": 50,
@@ -38,27 +39,19 @@ async fn test_fetch_seasonal_anime() {
                     },
                     "endDate": null,
                     "episodes": 12,
-                    "chapters": null,
                     "coverImage": {
-                        "large": "https://example.com/image.jpg"
+                        "large": "https://example.com/image.jpg",
+                        "medium": null,
+                        "color": "#ffffff"
                     },
-                    "externalLinks": [],
-                    "medium": null,
-                    "color": "#ffffff",
                     "bannerImage": null,
                     "genres": ["Action", "Adventure"],
                     "synonyms": ["Test"],
                     "averageScore": 80,
                     "popularity": 1000,
-                    "trending": 100
+                    "trending": 100,
+                    "externalLinks": []
                 }]
-            },
-            "pageInfo": {
-                "total": 1,
-                "perPage": 1,
-                "currentPage": 1,
-                "lastPage": 1,
-                "hasNextPage": false
             }
         }
     });

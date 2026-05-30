@@ -12,6 +12,7 @@ const TABS: { id: DiscoverTab; label: string; countKey: string }[] = [
   { id: 'game', label: 'ゲーム', countKey: 'game' },
   { id: 'manga', label: '漫画', countKey: 'manga' },
   { id: 'hardware', label: 'ハード', countKey: 'hardware' },
+  { id: 'tech', label: 'テック', countKey: 'tech' },
 ];
 
 export const UniversalTabs: React.FC = () => {

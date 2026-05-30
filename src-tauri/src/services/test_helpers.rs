@@ -11,6 +11,7 @@ pub async fn setup_test_db() -> SqlitePool {
             enabled BOOLEAN NOT NULL DEFAULT 1, fetch_interval_minutes INTEGER NOT NULL DEFAULT 60,
             last_fetched_at TEXT, consecutive_errors INTEGER NOT NULL DEFAULT 0,
             last_error TEXT, disabled_reason TEXT, etag TEXT, last_modified TEXT,
+            config TEXT,
             created_at TEXT NOT NULL, updated_at TEXT NOT NULL
         )",
     )
@@ -143,6 +144,17 @@ pub async fn setup_test_db() -> SqlitePool {
     .await
     .unwrap();
 
+    // AI summary columns (migration 004)
+    sqlx::query("ALTER TABLE articles ADD COLUMN ai_summary TEXT")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    sqlx::query("ALTER TABLE articles ADD COLUMN ai_summary_generated_at TEXT")
+        .execute(&pool)
+        .await
+        .unwrap();
+
     // v1.1 tables (migration 010)
     sqlx::query("ALTER TABLE articles ADD COLUMN impact_level TEXT DEFAULT 'general'")
         .execute(&pool)
@@ -216,6 +228,20 @@ pub async fn setup_test_db() -> SqlitePool {
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
             article_id      INTEGER NOT NULL,
             headline        TEXT NOT NULL,
+            rank            INTEGER NOT NULL,
+            generated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // daily_highlights cache (migration 014)
+    sqlx::query(
+        "CREATE TABLE daily_highlights (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            article_id      INTEGER NOT NULL,
+            reason          TEXT NOT NULL,
             rank            INTEGER NOT NULL,
             generated_at    TEXT NOT NULL DEFAULT (datetime('now'))
         )",

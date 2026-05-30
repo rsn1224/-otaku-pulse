@@ -1,5 +1,6 @@
 pub mod anilist_client;
 pub mod credential_store;
+pub mod dashboard_reader;
 pub mod database;
 pub mod http_client;
 pub mod llm_client;
@@ -12,6 +13,7 @@ pub mod reddit_fetcher;
 #[cfg(test)]
 pub(crate) mod reddit_json;
 pub mod rss_fetcher;
+pub mod scraper_fetcher;
 pub mod steam_client;
 
 // infra/ — External I/O layer.

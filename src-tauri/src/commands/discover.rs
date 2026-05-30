@@ -72,6 +72,7 @@ pub struct UnreadCounts {
     pub game: i64,
     pub manga: i64,
     pub hardware: i64,
+    pub tech: i64,
 }
 
 #[tauri::command]
@@ -84,6 +85,7 @@ pub async fn get_unread_counts(state: tauri::State<'_, AppState>) -> CmdResult<U
         game: row.3,
         manga: row.4,
         hardware: row.5,
+        tech: row.6,
     })
 }
 

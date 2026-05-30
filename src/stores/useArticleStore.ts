@@ -95,7 +95,16 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
     try {
       const result: DiscoverFeedResult = await getDiscoverFeed(tab, PAGE_SIZE, newOffset);
-      const newArticles = reset ? result.articles : [...get().articles, ...result.articles];
+      const merged = reset ? result.articles : [...get().articles, ...result.articles];
+      // ページング中に背景の rescore / AI 事前生成で total_score が変わると、offset ベースの
+      // ページングでは同一記事が複数ページに出現しうる。id で dedup して React の重複キー描画
+      // (記事の重複表示/欠落) を防ぐ。offset は DB カーソルとして生の取得件数で進める。
+      const seen = new Set<number>();
+      const newArticles = merged.filter((a) => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return true;
+      });
       set({
         articles: newArticles,
         total: result.total,

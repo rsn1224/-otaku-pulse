@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useState } from 'react';
 import { useToast } from '../components/common/Toast';
+import { extractErrorMessage } from '../lib/errors';
 import { logger } from '../lib/logger';
 
 interface TauriCommandResult<T> {
@@ -26,7 +27,7 @@ export function useTauriCommand<T>(command: string): TauriCommandResult<T> {
         setData(result);
         return result;
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = extractErrorMessage(e);
         logger.error({ command, error: msg }, 'Tauri command failed');
         setError(msg);
         showToast('error', msg);

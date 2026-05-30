@@ -2,12 +2,11 @@ import { listen } from '@tauri-apps/api/event';
 import type { LucideIcon } from 'lucide-react';
 import { Bookmark, BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { logger } from '../../lib/logger';
 import {
-  batchGenerateSummaries,
   getUserProfile,
   initDefaultFeeds,
   rescoreArticles,
@@ -77,13 +76,21 @@ export function AppShell(): React.JSX.Element {
       .catch((e) => logger.debug({ error: e }, 'getUserProfile failed'));
   }, []);
 
+  // 起動時収集は一度だけ。React StrictMode (dev) は effect を二重実行するため、
+  // ref ガードで二重の runCollectNow / rescore / batchSummaries 起動を防ぐ。
+  const didInit = useRef(false);
   useEffect(() => {
+    if (didInit.current) {
+      return;
+    }
+    didInit.current = true;
     const init = async (): Promise<void> => {
       try {
         await initDefaultFeeds();
+        // runCollectNow は収集後に AI サーフェシング (要約等) をバックグラウンド事前生成する。
+        // フロントからの per-card / batch 要約生成は廃止し、生成は backend に一本化した。
         await runCollectNow();
         await rescoreArticles();
-        await batchGenerateSummaries(10);
       } catch (e) {
         logger.debug({ error: e }, 'initCollect failed, scheduler will retry');
       }

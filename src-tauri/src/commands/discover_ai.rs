@@ -84,10 +84,12 @@ pub async fn ask_deepdive_followup(
 pub async fn get_daily_highlights(
     state: tauri::State<'_, AppState>,
 ) -> CmdResult<Vec<highlights_service::HighlightEntry>> {
+    // LLM はキャッシュ未ヒット時の理由生成にのみ必要。未設定でもキャッシュ/フォールバックで動く。
     let settings = clone_llm_settings(&state)?;
-    let client = build_llm_client(&settings, &state.http)?;
+    let client = build_llm_client(&settings, &state.http).ok();
+    let llm = client.as_ref().map(as_llm_client);
 
-    highlights_service::get_daily_highlights(&state.db, as_llm_client(&client)).await
+    highlights_service::get_daily_highlights(&state.db, llm).await
 }
 
 #[tauri::command]
@@ -149,6 +151,7 @@ pub async fn ai_search(
                 max_tokens: 400,
                 web_search: true,
                 conversation: None,
+                format: None,
             };
 
             let response = as_llm_client(&client).complete(req).await;

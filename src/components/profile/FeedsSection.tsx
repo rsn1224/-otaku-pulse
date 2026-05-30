@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { extractErrorMessage } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import {
   deleteFeed,
@@ -82,7 +83,7 @@ export const FeedsSection: React.FC = () => {
         window.alert(`${count}件のフィードをインポートしました`);
         refresh();
       } catch (err) {
-        window.alert(`インポート失敗: ${err instanceof Error ? err.message : '不明なエラー'}`);
+        window.alert(`インポート失敗: ${extractErrorMessage(err)}`);
       }
     };
     input.click();

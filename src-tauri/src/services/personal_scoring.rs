@@ -467,7 +467,7 @@ mod tests {
     fn test_calc_base_score_unparseable_date() {
         let score = calc_base_score(&Some("not-a-date".to_string()));
         assert!(
-            score >= 0.0 && score <= 1.0,
+            (0.0..=1.0).contains(&score),
             "パース不能な日付は有効な fallback スコアを返すべき、実際: {score}"
         );
     }

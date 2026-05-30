@@ -43,6 +43,24 @@ pub enum AppError {
     Internal(String),
 }
 
+impl AppError {
+    /// SQLite の BUSY(5) / LOCKED(6) かどうかを型ベースで判定する (拡張コード対応)。
+    ///
+    /// 並列 WAL 書き込み競合 (`SQLITE_BUSY` / `SQLITE_BUSY_SNAPSHOT` 等) のリトライ判定に使う。
+    /// `e.to_string().contains("database is locked")` の文字列マッチは sqlx の
+    /// メッセージ変更で静かに無効化されうるため、`DatabaseError::code()` で判定する。
+    /// sqlx は拡張結果コードを返すので `& 0xFF` で primary code に落として比較する。
+    pub fn is_sqlite_busy(&self) -> bool {
+        let Self::Database(sqlx::Error::Database(db_err)) = self else {
+            return false;
+        };
+        match db_err.code().and_then(|c| c.parse::<i32>().ok()) {
+            Some(code) => matches!(code & 0xFF, 5 | 6),
+            None => false,
+        }
+    }
+}
+
 /// Serialize into `{ "kind": "...", "message": "..." }` so the FE
 /// can always read `error.message` after `JSON.stringify()`.
 impl Serialize for AppError {
@@ -74,3 +92,20 @@ impl Serialize for AppError {
 
 /// Shorthand for Tauri command return types.
 pub type CmdResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_sqlite_busy_false_for_non_database_variants() {
+        assert!(!AppError::Internal("x".into()).is_sqlite_busy());
+        assert!(!AppError::InvalidInput("x".into()).is_sqlite_busy());
+    }
+
+    #[test]
+    fn is_sqlite_busy_false_for_non_busy_sqlx_errors() {
+        // RowNotFound は sqlx::Error::Database ではないので busy 判定に該当しない。
+        assert!(!AppError::Database(sqlx::Error::RowNotFound).is_sqlite_busy());
+    }
+}

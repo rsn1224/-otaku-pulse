@@ -22,6 +22,7 @@ pub struct RedditFetcher {
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 impl RedditFetcher {
     pub fn new(client: Arc<Client>, user_agent: Option<String>) -> Self {
         Self {

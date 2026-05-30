@@ -74,3 +74,31 @@ OtakuPulse では Reddit OAuth を一切使用しない。
 
 - **feed-rs** — RSS/Atom フィードのパース
 - **scraper** — HTML スクレイピング（OGP 取得等）
+
+---
+
+## scraper / custom-api（機能B）— 任意ソース収集の方針
+
+ユーザーが任意 URL を登録できる `feed_type = 'scraper' | 'custom-api'` は、収集対象が
+未知のため以下を**必須方針**とする（実装は `infra/scraper_fetcher.rs` / `services/collectors.rs`）。
+
+| 観点 | 方針 |
+|------|------|
+| per-request timeout | 個別タイムアウトを必ず設定（既定 20s。共有 client 任せにしない） |
+| 取得サイズ上限 | 本文は上限 5 MiB（`MAX_BODY_BYTES`）。`Content-Length` 超過は即拒否、無い場合もチャンク累積で監視し OOM を防ぐ |
+| robots.txt | クロール対象サイトの robots.txt を尊重する（現状は方針記載のみ。User-Agent は明示する） |
+| クロール間隔 | `fetch_interval_minutes` の下限を 5 分にクランプ（`add_custom_feed`）。短間隔の連続アクセスを禁止 |
+| config 検証 | `feeds.config` JSON は **追加時**（`FeedType::validate_config`）と **収集時**（`parse_source_config`）で同一 serde 型を使い、追加時に即 `InvalidInput` を返す |
+
+> AniList / Reddit が規約を明文化しているのと同様、汎用 scraper も無制限取得を避ける。
+> feed_type の追加・変更は `services/collectors.rs` の `FeedType`（SSOT）と migration の CHECK 制約のみを
+> 触り、両者の一致は `feed_type_matches_db_check` テストで保証する。
+
+---
+
+## PC/システム状態（機能A）— 記事化しない
+
+`C:\Dashboard` のフレームワーク状態は **otaku news ではない**ため、article 収集パイプライン
+（dedup / scoring / digest / LLM 要約）に載せない。`infra/dashboard_reader.rs` →
+`services/pc_status_service.rs` → `get_pc_status` コマンドで read-only に取得し、Settings の
+`SystemStatusSection` で表示する。`feed_type = 'pc-state'` は廃止。

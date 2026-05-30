@@ -30,9 +30,10 @@ describe('useTauriCommand', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('handles Tauri plain object error (not Error instance)', async () => {
+  it('extracts message from Tauri plain object error (not Error instance)', async () => {
     // Tauri invoke errors are plain objects: { kind: 'Http', message: 'timeout' }
-    // NOT Error instances — error instanceof Error is always false (tauri-v2-gotchas.md)
+    // NOT Error instances — error instanceof Error is always false (tauri-v2-gotchas.md).
+    // extractErrorMessage reads the `message` field instead of String(e) → '[object Object]'.
     mockedInvoke.mockRejectedValueOnce({ kind: 'Http', message: 'timeout' });
     const { result } = renderHook(() => useTauriCommand('test_cmd'), { wrapper });
 
@@ -40,11 +41,8 @@ describe('useTauriCommand', () => {
       await result.current.execute();
     });
 
-    expect(result.current.error).not.toBeNull();
     expect(result.current.data).toBeNull();
-    // String(plainObject) produces "[object Object]" — documents that Tauri plain-object
-    // errors are not Error instances and require explicit message extraction
-    expect(typeof result.current.error).toBe('string');
+    expect(result.current.error).toBe('timeout');
   });
 
   it('handles standard Error instance', async () => {

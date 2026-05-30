@@ -1,6 +1,7 @@
 // services/ — Business logic layer.
 // Orchestration, summarization, scoring, dedup.
 
+pub mod ai_pregenerate;
 pub mod anilist_watch_service;
 pub mod article_queries;
 pub mod clustering_service;
@@ -11,6 +12,7 @@ pub mod dedup_service;
 pub(crate) mod deepdive_helpers;
 pub mod deepdive_service;
 pub mod digest_generator;
+pub mod digest_markdown_exporter;
 pub mod digest_queries;
 pub mod discover_queries;
 pub mod feed_queries;
@@ -25,8 +27,10 @@ pub(crate) mod highlights_helpers;
 pub mod highlights_service;
 pub mod library_queries;
 pub mod opml_service;
+pub mod pc_status_service;
 pub mod personal_scoring;
 pub mod profile_service;
+pub mod research_report_service;
 pub mod scheduler;
 mod scoring_keywords;
 pub mod scoring_service;
@@ -34,3 +38,4 @@ pub mod settings_queries;
 pub mod summary_service;
 #[cfg(test)]
 pub mod test_helpers;
+pub mod web_report_service;

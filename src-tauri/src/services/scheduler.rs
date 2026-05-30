@@ -1,7 +1,7 @@
 use chrono::{Datelike, Local, Timelike};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
@@ -39,6 +39,7 @@ pub struct CollectResult {
 
 /// アプリ起動時に呼び出す。tokio::spawn でバックグラウンド実行。
 /// CancellationToken でグレースフルシャットダウン、watch::Receiver で設定ホットリロードを実現。
+#[allow(clippy::too_many_arguments)] // 起動時に全依存 (db/http/state/token/config/collect_lock) を注入するため
 pub fn start(
     app_handle: AppHandle,
     _config: SchedulerConfig,
@@ -47,6 +48,7 @@ pub fn start(
     app_state: AppState,
     token: CancellationToken,
     config_rx: watch::Receiver<SchedulerConfig>,
+    collect_lock: Arc<tokio::sync::Mutex<()>>,
 ) {
     let app_handle_clone = app_handle.clone();
     let token_clone = token.clone();
@@ -57,6 +59,7 @@ pub fn start(
     let db_pool_weekly = db_pool.clone();
     let http_client_external = http_client.clone();
     let token_external = token.clone();
+    let app_state_collect = app_state.clone();
     tauri::async_runtime::spawn(async move {
         collect_loop(
             app_handle_clone,
@@ -64,6 +67,8 @@ pub fn start(
             http_client,
             token_clone,
             config_rx_clone,
+            collect_lock,
+            app_state_collect,
         )
         .await;
     });
@@ -88,12 +93,15 @@ pub fn start(
 }
 
 /// 収集ループ — tokio::select! で CancellationToken / config 変更 / タイマーを多重待ちする
+#[allow(clippy::too_many_arguments)] // 起動時に全依存を注入するため
 async fn collect_loop(
     app_handle: AppHandle,
     db_pool: Arc<sqlx::SqlitePool>,
     http_client: Arc<reqwest::Client>,
     token: CancellationToken,
     mut config_rx: watch::Receiver<SchedulerConfig>,
+    collect_lock: Arc<tokio::sync::Mutex<()>>,
+    app_state: AppState,
 ) {
     let initial_config = config_rx.borrow_and_update().clone();
     let interval_dur = Duration::from_secs(initial_config.collect_interval_minutes * 60);
@@ -126,9 +134,20 @@ async fn collect_loop(
                     continue;
                 }
 
+                // 別の収集 (手動 / 起動時) が進行中ならこの tick はスキップする
+                let _collect_guard = match collect_lock.try_lock() {
+                    Ok(guard) => guard,
+                    Err(_) => {
+                        info!("スケジューラ: 別の収集が進行中のため tick をスキップ");
+                        continue;
+                    }
+                };
+
                 info!("スケジューラ: フィード収集開始");
 
-                let result = match super::collector::refresh_all(&db_pool, &http_client).await {
+                // 定期 tick は per-feed interval を尊重して due なフィードのみ収集する。
+                let result = match super::collector::refresh_all(&db_pool, &http_client, true).await
+                {
                     Ok((saved, _processed, errors)) => {
                         info!(saved, error_count = errors.len(), "スケジューラ: フィード収集完了");
 
@@ -185,8 +204,39 @@ async fn collect_loop(
                         &format!("{}件の新着記事", result.saved),
                     );
                 }
+
+                // P1-1: 収集後にハイライト/Today View/AI 要約を事前計算してキャッシュを温める。
+                // 次回ロードの LLM 同期待ちを解消。バックグラウンド実行で次 tick を遅らせない。
+                let state_pc = app_state.clone();
+                tauri::async_runtime::spawn(async move {
+                    precompute_surfacing(&state_pc).await;
+                });
             }
         }
+    }
+}
+
+/// 収集後にハイライト / Today View / 上位記事の summary・context_memo を事前計算してキャッシュへ保存する。
+/// LLM 未設定/失敗時は各サービスの fallback が保存される。scheduler tick と起動時/手動収集
+/// (run_collect_now) の両方から detached タスクとして呼ばれる。
+pub(crate) async fn precompute_surfacing(app_state: &AppState) {
+    let db = app_state.db.as_ref();
+    let llm_arc = build_scheduler_llm_client(app_state).ok();
+    let llm_ref: Option<&dyn crate::infra::llm_client::LlmClient> = llm_arc
+        .as_deref()
+        .map(|c| c as &dyn crate::infra::llm_client::LlmClient);
+
+    if let Err(e) = super::highlights_service::refresh_highlights(db, llm_ref).await {
+        warn!(error = %e, "ハイライト事前計算に失敗");
+    }
+    if let Err(e) = super::today_view_service::get_today_view(db, llm_ref).await {
+        warn!(error = %e, "Today View 事前計算に失敗");
+    }
+
+    // 上位記事の summary / context_memo を事前生成してキャッシュを温める。
+    // LLM が無い (未設定/未起動) 場合はスキップ。Ollama gate で律速され UI を阻害しない。
+    if let Some(llm) = llm_ref {
+        super::ai_pregenerate::pregenerate_recent(db, llm, 20, 8).await;
     }
 }
 
@@ -242,10 +292,14 @@ async fn digest_loop(
             }
         };
 
-        // 4カテゴリーを並列生成 (PERF-02: tokio::join! で ~4x 高速化)
+        // カテゴリーを並列生成 (PERF-02: tokio::join! で高速化)。
+        // digest 生成は anime/manga/game/tech のみ。category='pc' (ハードウェアニュース) は
+        // Discover の hardware タブで閲覧する browse-only カテゴリで、digest 生成のみ対象外
+        // (記事自体は収集・閲覧される)。廃止したのは feed_type='pc-state' のシステム状態
+        // 擬似記事 (機能A は get_pc_status 経由) であって、category='pc' のニュースではない。
         const DIGEST_TIMEOUT_SECS: u64 = 120;
         let timeout_dur = Duration::from_secs(DIGEST_TIMEOUT_SECS);
-        let (r_anime, r_manga, r_game, r_pc) = tokio::join!(
+        let (r_anime, r_manga, r_game, r_tech) = tokio::join!(
             tokio::time::timeout(
                 timeout_dur,
                 generate_and_save_digest(&state.db, &*llm_client, &app_handle, "anime")
@@ -260,14 +314,14 @@ async fn digest_loop(
             ),
             tokio::time::timeout(
                 timeout_dur,
-                generate_and_save_digest(&state.db, &*llm_client, &app_handle, "pc")
+                generate_and_save_digest(&state.db, &*llm_client, &app_handle, "tech")
             ),
         );
         for (category, result) in [
             ("anime", r_anime),
             ("manga", r_manga),
             ("game", r_game),
-            ("pc", r_pc),
+            ("tech", r_tech),
         ] {
             match result {
                 Ok(Ok(())) => {}
@@ -312,22 +366,69 @@ async fn generate_and_save_digest(
         article_count = result.article_count,
         "ダイジェスト生成完了"
     );
-    let digest = crate::models::Digest {
-        id: 0,
-        category: result.category.clone(),
-        title: format!("{}ダイジェスト", category),
-        content_markdown: result.summary,
-        content_html: None,
-        article_ids: String::new(),
-        model_used: result.model,
-        token_count: None,
-        generated_at: result.generated_at,
-    };
-    if let Err(e) = super::digest_queries::insert_digest(db, &digest).await {
-        tracing::warn!(error = %e, category, "ダイジェスト DB 保存失敗");
-    }
+    persist_and_export_digest(
+        db,
+        app_handle,
+        category,
+        result.summary,
+        result.model,
+        result.generated_at,
+    )
+    .await;
     crate::infra::notification::notify_digest_ready(app_handle, category, result.article_count);
     Ok(())
+}
+
+/// digest_generator の生成結果を `digests` 行として永続化し、有効なら Markdown export する (機能E)。
+/// 失敗はログのみで呼び出し元を止めない。スケジューラ/手動の両経路で共有する。
+pub async fn persist_and_export_digest(
+    db: &sqlx::SqlitePool,
+    app_handle: &AppHandle,
+    category: &str,
+    content_markdown: String,
+    model_used: Option<String>,
+    generated_at: String,
+) {
+    let mut digest = crate::models::Digest {
+        id: 0,
+        category: category.to_string(),
+        title: format!("{category}ダイジェスト"),
+        content_markdown,
+        content_html: None,
+        article_ids: String::new(),
+        model_used,
+        token_count: None,
+        generated_at,
+    };
+    match super::digest_queries::insert_digest(db, &digest).await {
+        Ok(id) => {
+            digest.id = id;
+            export_digest_if_enabled(db, app_handle, &digest).await;
+        }
+        Err(e) => tracing::warn!(error = %e, category, "ダイジェスト DB 保存失敗"),
+    }
+}
+
+/// ダイジェストを Markdown として書き出す (機能E)。
+/// app_data_dir を基準ディレクトリに解決し、設定が有効なら export する。
+/// 失敗しても呼び出し元を止めない。
+pub async fn export_digest_if_enabled(
+    db: &sqlx::SqlitePool,
+    app_handle: &AppHandle,
+    digest: &crate::models::Digest,
+) {
+    let base = match app_handle.path().app_data_dir() {
+        Ok(d) => d,
+        Err(e) => {
+            tracing::warn!(error = %e, "Markdown export: app_data_dir 取得失敗");
+            return;
+        }
+    };
+    match crate::services::digest_markdown_exporter::export_if_enabled(db, &base, digest).await {
+        Ok(Some(path)) => tracing::info!(path = %path.display(), "ダイジェストを Markdown 出力"),
+        Ok(None) => {}
+        Err(e) => tracing::warn!(error = %e, "ダイジェスト Markdown 出力失敗"),
+    }
 }
 
 /// スケジューラー用 LLM クライアント構築
@@ -468,14 +569,40 @@ async fn external_sync_loop(
     }
 }
 
+/// 次の hour:minute まで何秒待つか計算（日本時間 JST 基準）
+fn seconds_until(hour: u32, minute: u32) -> u64 {
+    let now = Local::now();
+
+    let target = match now
+        .with_hour(hour)
+        .and_then(|dt| dt.with_minute(minute))
+        .and_then(|dt| dt.with_second(0))
+        .and_then(|dt| dt.with_nanosecond(0))
+    {
+        Some(t) => t,
+        None => return 86400, // フォールバック: 24時間後
+    };
+
+    let target = if target <= now {
+        target + chrono::Duration::days(1)
+    } else {
+        target
+    };
+
+    (target - now)
+        .to_std()
+        .unwrap_or(Duration::from_secs(86400))
+        .as_secs()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::time::Duration;
     use tokio_util::sync::CancellationToken;
 
-    /// collect_loop / digest_loop の中核パターン (tokio::select! + CancellationToken) を
-    /// 独立して検証する。AppHandle / AppState の構築を避け、キャンセレーションの動作のみを確認。
+    // collect_loop / digest_loop の中核パターン (tokio::select! + CancellationToken) を
+    // 独立して検証する。AppHandle / AppState の構築を避け、キャンセレーションの動作のみを確認。
 
     /// CancellationToken を即時キャンセルすると 1 秒以内にループが終了することを証明する。
     #[tokio::test]
@@ -564,30 +691,4 @@ mod tests {
         );
         assert_eq!(result.unwrap().unwrap(), "config_changed");
     }
-}
-
-/// 次の hour:minute まで何秒待つか計算（日本時間 JST 基準）
-fn seconds_until(hour: u32, minute: u32) -> u64 {
-    let now = Local::now();
-
-    let target = match now
-        .with_hour(hour)
-        .and_then(|dt| dt.with_minute(minute))
-        .and_then(|dt| dt.with_second(0))
-        .and_then(|dt| dt.with_nanosecond(0))
-    {
-        Some(t) => t,
-        None => return 86400, // フォールバック: 24時間後
-    };
-
-    let target = if target <= now {
-        target + chrono::Duration::days(1)
-    } else {
-        target
-    };
-
-    (target - now)
-        .to_std()
-        .unwrap_or(Duration::from_secs(86400))
-        .as_secs()
 }

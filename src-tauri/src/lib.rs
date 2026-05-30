@@ -139,6 +139,10 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let (config_tx, config_rx) = watch::channel(initial_scheduler_config.clone());
     app.manage(std::sync::Arc::new(config_tx));
 
+    // 収集の同時実行ガード (scheduler tick / 起動時収集 / 手動収集を直列化)
+    let collect_lock = state::CollectLock::default();
+    app.manage(collect_lock.clone());
+
     // スケジューラーを起動
     crate::services::scheduler::start(
         app.handle().clone(),
@@ -148,6 +152,7 @@ fn run_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         app_state_for_scheduler,
         token,
         config_rx,
+        collect_lock.0,
     );
 
     Ok(())
@@ -220,6 +225,7 @@ pub fn run() {
             commands::feed::import_opml,
             commands::feed::get_article_detail,
             commands::feed::delete_feed,
+            commands::feed::add_custom_feed,
             commands::feed::cleanup_old_articles,
             commands::feed::get_bookmarked_articles,
             // LLM
@@ -236,6 +242,8 @@ pub fn run() {
             // Settings
             commands::settings::get_settings,
             commands::settings::update_setting,
+            // System (PC 状態 — 機能A)
+            commands::system::get_pc_status,
             // Scheduler
             commands::scheduler::get_scheduler_config,
             commands::scheduler::set_scheduler_config,
@@ -284,6 +292,7 @@ pub fn run() {
             // v1.1 P2 features
             commands::context_memo_commands::get_context_memo,
             commands::digest::run_weekly_report_now,
+            commands::digest::run_research_report,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

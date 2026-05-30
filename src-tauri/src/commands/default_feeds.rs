@@ -38,12 +38,6 @@ pub const DEFAULT_FEEDS: &[(&str, &str, &str, &str)] = &[
         "manga",
         "rss",
     ),
-    (
-        "Otaku USA",
-        "https://otakuusamagazine.com/anime/feed",
-        "manga",
-        "rss",
-    ),
     // Game
     (
         "4Gamer",
@@ -63,12 +57,6 @@ pub const DEFAULT_FEEDS: &[(&str, &str, &str, &str)] = &[
     (
         "Tom's Hardware",
         "https://www.tomshardware.com/feeds/all",
-        "pc",
-        "rss",
-    ),
-    (
-        "ITmedia",
-        "https://rss.itmedia.co.jp/rss/2.0/topstory.xml",
         "pc",
         "rss",
     ),

@@ -142,6 +142,7 @@ mod tests {
             last_error: None,
             etag: None,
             last_modified: None,
+            config: None,
             created_at: "2023-01-01".to_string(),
             updated_at: "2023-01-01".to_string(),
         }];

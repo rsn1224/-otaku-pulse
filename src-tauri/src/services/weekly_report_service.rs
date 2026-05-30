@@ -1,14 +1,14 @@
-/// 週次 Deep Research レポートサービス (v1.1 Phase H)
-///
-/// 過去7日間のインタラクション（open / bookmark / deepdive）が多いトピック TOP3 を選定し、
-/// Perplexity web_search を使って深掘り調査を行い、`digests` テーブルに
-/// category='weekly_report' として保存する。
-///
-/// Perplexity API Key が未設定の場合はスキップ（エラーにしない）。
+//! 週次 Deep Research レポートサービス (v1.1 Phase H)
+//!
+//! 過去7日間のインタラクション（open / bookmark / deepdive）が多いトピック TOP3 を選定し、
+//! web 検索を使って深掘り調査を行い、`digests` テーブルに category='weekly_report' として保存する。
+//! 生成・保存・capability 判定は [`web_report_service`] に委譲し、ここでは対象トピック選定と
+//! 週次固有のプロンプト組み立てに専念する。
+//!
+//! web 検索非対応 LLM / 未設定の場合はスキップ（エラーにしない）。
 use crate::error::AppError;
-use crate::infra::llm_client::{LlmClient, LlmProvider, LlmRequest};
-use crate::models::Digest;
-use crate::services::digest_queries;
+use crate::infra::llm_client::LlmClient;
+use crate::services::web_report_service::{self, ReportOutcome, WebReportSpec};
 use sqlx::SqlitePool;
 use tracing::{info, warn};
 
@@ -23,32 +23,19 @@ pub struct WeeklyReportResult {
 
 /// 週次レポートを生成して `digests` テーブルに保存する。
 ///
-/// `llm` が None または Ollama プロバイダーの場合は Perplexity web_search が使えないためスキップ。
+/// web 検索非対応 LLM / 未設定の場合は早期にスキップする (トピック取得の無駄を省く)。
 pub async fn generate_weekly_report(
     db: &SqlitePool,
     llm: Option<&dyn LlmClient>,
 ) -> Result<WeeklyReportResult, AppError> {
-    // Perplexity のみサポート（web_search が必要なため）
-    let llm_client = match llm {
-        Some(c) if matches!(c.provider(), LlmProvider::PerplexitySonar) => c,
-        Some(_) => {
-            let reason = "週次レポートには Perplexity API Key が必要です（現在 Ollama が選択中）"
-                .to_string();
-            warn!("{}", reason);
-            return Ok(WeeklyReportResult {
-                reports_generated: 0,
-                skipped_reason: Some(reason),
-            });
-        }
-        None => {
-            let reason = "LLM が未設定のため週次レポートをスキップします".to_string();
-            warn!("{}", reason);
-            return Ok(WeeklyReportResult {
-                reports_generated: 0,
-                skipped_reason: Some(reason),
-            });
-        }
-    };
+    // capability チェック (重い topic 取得の前に判定)
+    if let Some(reason) = web_report_service::skip_reason(llm) {
+        warn!("{reason}");
+        return Ok(WeeklyReportResult {
+            reports_generated: 0,
+            skipped_reason: Some(reason),
+        });
+    }
 
     // 過去7日間のインタラクションが多いトピック TOP3 を取得
     let top_topics = fetch_top_topics(db).await?;
@@ -66,10 +53,28 @@ pub async fn generate_weekly_report(
     for (article_id, title, interaction_count) in &top_topics {
         info!(article_id, title, interaction_count, "週次レポート生成中");
 
-        match generate_single_report(db, llm_client, *article_id, title).await {
-            Ok(digest_id) => {
-                info!(digest_id, title, "週次レポート保存完了");
+        let spec = WebReportSpec {
+            category: "weekly_report",
+            title: format!("週刊レポート: {}", web_report_service::truncate(title, 40)),
+            system_prompt: "あなたはアニメ・マンガ・ゲーム業界の調査アナリストです。\
+                ユーザーが関心を持つトピックについて、最新情報を網羅した詳細レポートを日本語で作成してください。\
+                レポートは「## 概要」「## 最新動向」「## 今後の展望」の3セクション構成にしてください。"
+                .to_string(),
+            user_prompt: format!(
+                "以下のトピックについて、最新の動向と詳細情報を調査してください。\n\nトピック: {title}"
+            ),
+            article_ids: article_id.to_string(),
+            max_tokens: 1500,
+            include_citations: false,
+        };
+
+        match web_report_service::generate_web_report(db, llm, spec).await {
+            Ok(ReportOutcome::Saved(digest)) => {
+                info!(digest_id = digest.id, title, "週次レポート保存完了");
                 reports_generated += 1;
+            }
+            Ok(ReportOutcome::Skipped(reason)) => {
+                warn!(title, reason, "週次レポートスキップ");
             }
             Err(e) => {
                 warn!(title, error = %e, "週次レポート生成失敗、スキップして続行");
@@ -104,78 +109,9 @@ async fn fetch_top_topics(db: &SqlitePool) -> Result<Vec<(i64, String, i64)>, Ap
     Ok(rows)
 }
 
-/// 1件のトピックについて Deep Research レポートを生成し、DB に保存する。
-async fn generate_single_report(
-    db: &SqlitePool,
-    llm: &dyn LlmClient,
-    article_id: i64,
-    title: &str,
-) -> Result<i64, AppError> {
-    let system_prompt =
-        "あなたはアニメ・マンガ・ゲーム業界の調査アナリストです。\
-        ユーザーが関心を持つトピックについて、最新情報を網羅した詳細レポートを日本語で作成してください。\
-        レポートは「## 概要」「## 最新動向」「## 今後の展望」の3セクション構成にしてください。"
-            .to_string();
-
-    let user_prompt = format!(
-        "以下のトピックについて、最新の動向と詳細情報を調査してください。\n\nトピック: {title}"
-    );
-
-    let request = LlmRequest {
-        system_prompt,
-        user_prompt,
-        max_tokens: 1500,
-        web_search: true,
-        conversation: None,
-    };
-
-    let response = llm.complete(request).await?;
-
-    let report_title = format!("週刊レポート: {}", truncate(title, 40));
-    let now = chrono::Utc::now().to_rfc3339();
-
-    let digest = Digest {
-        id: 0, // DB が自動採番
-        category: "weekly_report".to_string(),
-        title: report_title,
-        content_markdown: response.content.clone(),
-        content_html: None,
-        article_ids: article_id.to_string(),
-        model_used: Some(response.model),
-        token_count: None,
-        generated_at: now,
-    };
-
-    let digest_id = digest_queries::insert_digest(db, &digest).await?;
-    Ok(digest_id)
-}
-
-/// 文字列を最大 `max_chars` 文字に切り詰める。
-fn truncate(s: &str, max_chars: usize) -> String {
-    let mut chars = s.chars();
-    let truncated: String = chars.by_ref().take(max_chars).collect();
-    if chars.next().is_some() {
-        format!("{truncated}…")
-    } else {
-        truncated
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn truncate_short_string() {
-        assert_eq!(truncate("hello", 10), "hello");
-    }
-
-    #[test]
-    fn truncate_long_string() {
-        let result = truncate("あいうえおかきくけこさしすせそたちつてと", 10);
-        assert!(result.ends_with('…'));
-        assert!(result.chars().count() <= 11); // 10文字 + "…"
-    }
 
     #[tokio::test]
     async fn fetch_top_topics_empty_db() {

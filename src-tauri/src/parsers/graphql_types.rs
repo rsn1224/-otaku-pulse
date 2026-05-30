@@ -8,6 +8,8 @@ pub struct AniListResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct AniListData {
+    // GraphQL returns the root field name verbatim (no alias) → "Page", not "page"
+    #[serde(rename = "Page")]
     pub page: AniListPage,
 }
 
@@ -56,6 +58,7 @@ pub struct Media {
     pub banner_image: Option<String>,
     pub genres: Vec<String>,
     pub synonyms: Vec<String>,
+    #[serde(rename = "averageScore")]
     pub average_score: Option<i32>,
     pub popularity: Option<i32>,
     pub trending: Option<i32>,
@@ -69,6 +72,7 @@ pub struct MediaTitle {
     pub romaji: Option<String>,
     pub english: Option<String>,
     pub native: Option<String>,
+    #[serde(rename = "userPreferred")]
     pub user_preferred: Option<String>,
 }
 

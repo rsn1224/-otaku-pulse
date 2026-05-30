@@ -1,24 +1,30 @@
-use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
+use sqlx::sqlite::{
+    SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions, SqliteSynchronous,
+};
 use std::path::Path;
+use std::str::FromStr;
+use std::time::Duration;
 
 const MAX_CONNECTIONS: u32 = 5;
+/// 並列書き込み (P1-4 の並列収集) で SQLITE_BUSY を即時エラーにせず待機させる。
+const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Initialize the SQLite connection pool.
 /// Runs migrations on first connect.
 pub async fn init_pool(db_path: &Path) -> Result<SqlitePool, sqlx::Error> {
     let url = format!("sqlite:{}?mode=rwc", db_path.display());
+
+    // D-10: WAL + synchronous=NORMAL + busy_timeout を **全接続** に適用する。
+    // 旧実装は接続後 PRAGMA を 1 接続にしか流せていなかった。connect_with で
+    // プール内の全コネクションに設定が行き渡り、並列収集時の書き込み競合に耐える。
+    let opts = SqliteConnectOptions::from_str(&url)?
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .busy_timeout(BUSY_TIMEOUT);
+
     let pool = SqlitePoolOptions::new()
         .max_connections(MAX_CONNECTIONS)
-        .connect(&url)
-        .await?;
-
-    // D-10: WAL モードを有効化（マイグレーション実行前に設定する）
-    // WAL モードにより並列読み取り性能が向上し、クラッシュ耐性も改善する
-    sqlx::query("PRAGMA journal_mode=WAL")
-        .execute(&pool)
-        .await?;
-    sqlx::query("PRAGMA synchronous=NORMAL")
-        .execute(&pool)
+        .connect_with(opts)
         .await?;
 
     sqlx::migrate!("./migrations").run(&pool).await?;

@@ -4,7 +4,13 @@ use chrono::Utc;
 pub use super::graphql_types::*;
 
 /// Convert AniList response to Vec<Article>
-pub fn anilist_to_articles(response: &str, _category: &str) -> Result<Vec<Article>, String> {
+pub fn anilist_to_articles(response: &str, category: &str) -> Result<Vec<Article>, String> {
+    // AniList permalinks differ by media type: /anime/{id} vs /manga/{id}
+    let url_segment = if category.eq_ignore_ascii_case("manga") {
+        "manga"
+    } else {
+        "anime"
+    };
     // Debug: log first 500 chars of response
     tracing::debug!(
         "AniList response preview: {}",
@@ -27,7 +33,7 @@ pub fn anilist_to_articles(response: &str, _category: &str) -> Result<Vec<Articl
         let external_id = format!("anilist:{}", media.id);
 
         // Build URL
-        let url = format!("https://anilist.co/anime/{}", media.id);
+        let url = format!("https://anilist.co/{}/{}", url_segment, media.id);
 
         // Build published date
         let published_at = media

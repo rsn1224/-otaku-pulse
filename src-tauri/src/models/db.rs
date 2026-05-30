@@ -18,6 +18,7 @@ pub struct Feed {
     pub last_error: Option<String>,
     pub etag: Option<String>,
     pub last_modified: Option<String>,
+    pub config: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

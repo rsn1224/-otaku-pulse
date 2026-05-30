@@ -162,6 +162,10 @@ impl LlmClient for PerplexitySonarClient {
     fn provider(&self) -> LlmProvider {
         LlmProvider::PerplexitySonar
     }
+
+    fn supports_web_search(&self) -> bool {
+        true
+    }
 }
 
 #[cfg(test)]

@@ -16,8 +16,8 @@ impl Default for LlmSettings {
         Self {
             provider: LlmProvider::Ollama,
             perplexity_api_key: None,
-            ollama_base_url: "http://localhost:11434".to_string(),
-            ollama_model: "llama3.2".to_string(),
+            ollama_base_url: "http://127.0.0.1:11434".to_string(),
+            ollama_model: "qwen3:14b".to_string(),
         }
     }
 }
@@ -28,6 +28,14 @@ pub struct AppState {
     pub http: Arc<Client>,
     pub llm: Arc<RwLock<LlmSettings>>,
 }
+
+/// Serializes feed collection so a scheduler tick, the boot-time collect, and a
+/// manual collect never run concurrently. Holders use `try_lock`: if a collection
+/// is already in flight the new request is skipped rather than queued, which avoids
+/// the transient "database is locked (code 5)" seen when two `refresh_all` cycles
+/// overlap at startup (React StrictMode double-invokes the boot effect in dev).
+#[derive(Clone, Default)]
+pub struct CollectLock(pub Arc<tokio::sync::Mutex<()>>);
 
 impl AppState {
     pub fn new(db: Arc<SqlitePool>, http: Arc<Client>) -> Self {

@@ -62,6 +62,34 @@ pub async fn delete_feed(db: State<'_, SqlitePool>, feed_id: i64) -> CmdResult<(
     feed_queries::delete_feed(&db, feed_id).await
 }
 
+/// カスタムソース (機能B: scraper / custom-api、汎用 rss / reddit 等も可) を追加する。
+/// feed_type の妥当性と config JSON のスキーマ検証は `FeedType` (services) に委譲する。
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn add_custom_feed(
+    db: State<'_, SqlitePool>,
+    name: String,
+    url: String,
+    feed_type: String,
+    category: String,
+    config: Option<String>,
+    fetch_interval_minutes: Option<i64>,
+) -> CmdResult<i64> {
+    crate::services::collectors::FeedType::parse(&feed_type)?.validate_config(config.as_deref())?;
+
+    let interval = fetch_interval_minutes.unwrap_or(60).clamp(5, 10_080);
+    feed_queries::insert_custom_feed(
+        &db,
+        &name,
+        &url,
+        &feed_type,
+        &category,
+        config.as_deref(),
+        interval,
+    )
+    .await
+}
+
 #[tauri::command]
 pub async fn cleanup_old_articles(db: State<'_, SqlitePool>, days_old: i64) -> CmdResult<u32> {
     let cutoff_date = chrono::Utc::now()

@@ -1,7 +1,7 @@
 use crate::commands::llm;
 use crate::error::AppError;
 use crate::services::digest_generator;
-use crate::services::scheduler::SchedulerConfig;
+use crate::services::scheduler::{self, SchedulerConfig};
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -98,9 +98,11 @@ pub async fn set_scheduler_config(
 /// 手動で今すぐダイジェスト生成（スケジュールを待たずに実行）
 #[tauri::command]
 pub async fn run_digest_now(
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<Vec<llm::DigestResult>, AppError> {
-    let categories = ["anime", "manga", "game", "pc"];
+    // 'pc' は記事化を廃止 (機能A は get_pc_status 経由) のため digest 対象外。
+    let categories = ["anime", "manga", "game", "tech"];
 
     // LLM クライアントを構築
     let settings = llm::clone_llm_settings(&state)?;
@@ -112,6 +114,17 @@ pub async fn run_digest_now(
         tracing::info!(category, "Generating digest");
 
         let digest = digest_generator::generate(&state.db, client, category, 24).await?;
+
+        // 永続化 + Markdown export (機能E) は services 層に委譲。失敗してもプレビュー結果は返す。
+        scheduler::persist_and_export_digest(
+            &state.db,
+            &app,
+            category,
+            digest.summary.clone(),
+            digest.model.clone(),
+            digest.generated_at.clone(),
+        )
+        .await;
 
         results.push(llm::DigestResult {
             category: digest.category,

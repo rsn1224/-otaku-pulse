@@ -28,24 +28,20 @@ describe('useTauriQuery', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('handles Tauri plain object error on fetch', async () => {
+  it('extracts message from Tauri plain object error on fetch', async () => {
     // Tauri invoke errors are plain objects: { kind: 'Database', message: 'connection failed' }
-    // NOT Error instances (tauri-v2-gotchas.md)
-    // The hook uses `String(e)` since `e instanceof Error` is false
-    // This produces '[object Object]' — documents the plain-object error behavior
+    // NOT Error instances (tauri-v2-gotchas.md). extractErrorMessage reads the `message`
+    // field instead of String(e) → '[object Object]'.
     mockedInvoke.mockRejectedValue({ kind: 'Database', message: 'connection failed' });
     const { result } = renderHook(() => useTauriQuery('list_items'), { wrapper });
 
     await vi.waitFor(
       () => {
-        // After the rejected fetch settles, error should be set
-        expect(result.current.error).not.toBeNull();
+        expect(result.current.error).toBe('connection failed');
       },
       { timeout: 2000 },
     );
     expect(result.current.data).toBeNull();
-    // Documents the string type — String(plainObj) = '[object Object]'
-    expect(typeof result.current.error).toBe('string');
   });
 
   it('refetch triggers new invoke call', async () => {

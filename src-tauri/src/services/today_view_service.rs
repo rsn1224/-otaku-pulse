@@ -115,14 +115,33 @@ async fn generate_with_llm(
 
     let system_prompt = "あなたはアニメ・マンガ・ゲームニュースのキュレーターです。".to_string();
     let user_prompt = format!(
-        "以下の記事タイトルから、今日最も重要な3件を選び、\
-        それぞれ「タイトルが要点」の形式で20文字以内の見出しを作ってください。\
-        出力は以下のJSON形式で返してください（配列の先頭から重要度順）:\
-        [{{\"rank\": 1, \"article_index\": <元のリスト番号>, \"headline\": \"見出し\"}}, ...]\n\n\
+        "以下の記事タイトルから、今日最も重要な3件を選び、それぞれ20文字以内の見出しを作ってください。\
+        次の JSON で重要度順に返してください: \
+        {{\"items\": [{{\"rank\": 1, \"article_index\": <元のリスト番号>, \"headline\": \"見出し\"}}]}}\n\n\
         記事一覧:\n{titles_list}"
     );
 
-    let request = LlmRequest::simple(system_prompt, user_prompt, 300);
+    // 構造化出力 (Ollama format) で出力を JSON schema に拘束し、脆い文字列抽出を排除する。
+    let schema = serde_json::json!({
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "rank": {"type": "integer"},
+                        "article_index": {"type": "integer"},
+                        "headline": {"type": "string"}
+                    },
+                    "required": ["rank", "article_index", "headline"]
+                }
+            }
+        },
+        "required": ["items"]
+    });
+
+    let request = LlmRequest::structured(system_prompt, user_prompt, 300, schema);
     let response = llm.complete(request).await?;
 
     parse_llm_response(&response.content, articles)
@@ -132,25 +151,25 @@ fn parse_llm_response(
     content: &str,
     articles: &[(i64, String)],
 ) -> Result<Vec<TodayViewItem>, AppError> {
-    // JSON 配列を抽出（```json ... ``` ブロックにも対応）
-    let json_str = if let Some(start) = content.find('[') {
-        let end = content.rfind(']').unwrap_or(content.len() - 1);
-        &content[start..=end]
-    } else {
-        return Ok(fallback_items(articles));
-    };
-
     #[derive(serde::Deserialize)]
     struct LlmItem {
         rank: i64,
         article_index: usize,
         headline: String,
     }
+    #[derive(serde::Deserialize)]
+    struct Resp {
+        items: Vec<LlmItem>,
+    }
 
-    let parsed: Vec<LlmItem> = serde_json::from_str(json_str)
-        .map_err(|e| AppError::Parse(format!("Today View LLM response parse error: {e}")))?;
+    // 構造化出力なら厳密な JSON。パース失敗時 (非対応 provider 等) はタイトル fallback。
+    let Ok(resp) = serde_json::from_str::<Resp>(content.trim()) else {
+        tracing::warn!("Today View: 構造化出力のパースに失敗、フォールバック");
+        return Ok(fallback_items(articles));
+    };
 
-    let items: Vec<TodayViewItem> = parsed
+    let items: Vec<TodayViewItem> = resp
+        .items
         .into_iter()
         .take(3)
         .filter_map(|item| {

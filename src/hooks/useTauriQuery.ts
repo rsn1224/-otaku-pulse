@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useEffect, useState } from 'react';
 import { useToast } from '../components/common/Toast';
+import { extractErrorMessage } from '../lib/errors';
 import { logger } from '../lib/logger';
 
 interface TauriQueryResult<T> {
@@ -33,7 +34,7 @@ export function useTauriQuery<T>(
       const result = await invoke<T>(command, args);
       setData(result);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = extractErrorMessage(e);
       logger.error({ command, error: msg }, 'Tauri query failed');
       setError(msg);
       showToast('error', msg);

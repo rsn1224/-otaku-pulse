@@ -3,58 +3,30 @@ use crate::infra::rate_limiter::TokenBucket;
 use crate::parsers::graphql_parser;
 use reqwest::Client;
 use serde_json::{Value, json};
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, LazyLock};
 
 const ANILIST_API_URL: &str = "https://graphql.anilist.co";
-const MIN_REQUEST_INTERVAL_MS: u64 = 2100; // 30 req/min = 1 req per 2 seconds
+
+/// AniList のレート制限は **プロセス全体で共有** する (30 req/min, ≥2.1s 間隔)。
+/// per-instance だと並列収集中の anime/manga feed やページングが各自の上限で動き、
+/// 合算で 30 req/min を超えて 429 を招く。単一の静的 TokenBucket で全 AniList 要求を律速する。
+/// (TokenBucket は min_interval=2100ms を内包し、2.1s 間隔も保証する)
+static ANILIST_LIMITER: LazyLock<TokenBucket> =
+    LazyLock::new(crate::infra::rate_limiter::configs::anilist);
 
 pub struct AniListClient {
     client: Arc<Client>,
-    rate_limiter: TokenBucket,
-    last_request_time: std::sync::Mutex<std::time::Instant>,
 }
 
 impl AniListClient {
     pub fn new(client: Arc<Client>) -> Self {
-        Self {
-            client,
-            rate_limiter: crate::infra::rate_limiter::configs::anilist(),
-            last_request_time: std::sync::Mutex::new(std::time::Instant::now()),
-        }
+        Self { client }
     }
 
     /// Execute GraphQL query with rate limiting
     async fn execute_query(&self, query: &str, variables: Value) -> Result<String, AppError> {
-        // Rate limiting: calculate wait time while holding lock, then drop lock before await
-        let wait_duration = {
-            let last_time = self
-                .last_request_time
-                .lock()
-                .map_err(|e| AppError::Internal(format!("AniList mutex poisoned: {e}")))?;
-            let elapsed = last_time.elapsed();
-            if elapsed < Duration::from_millis(MIN_REQUEST_INTERVAL_MS) {
-                Some(Duration::from_millis(MIN_REQUEST_INTERVAL_MS) - elapsed)
-            } else {
-                None
-            }
-        }; // MutexGuard dropped here
-
-        if let Some(wait) = wait_duration {
-            tokio::time::sleep(wait).await;
-        }
-
-        // Update last request time
-        {
-            let mut last_time = self
-                .last_request_time
-                .lock()
-                .map_err(|e| AppError::Internal(format!("AniList mutex poisoned: {e}")))?;
-            *last_time = std::time::Instant::now();
-        }
-
-        // Acquire token from rate limiter
-        self.rate_limiter.acquire().await?;
+        // グローバル限界器で 2.1s 間隔 + 30 req/min を強制する (全 AniList 要求で共有)。
+        ANILIST_LIMITER.acquire().await?;
 
         let request_body = json!({
             "query": query,

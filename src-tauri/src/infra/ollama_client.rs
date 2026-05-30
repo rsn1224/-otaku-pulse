@@ -3,6 +3,19 @@ use crate::infra::llm_client::{LlmClient, LlmProvider, LlmRequest, LlmResponse};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
+use std::time::Duration;
+use tokio::sync::Semaphore;
+
+/// ローカル Ollama は単一モデルプロセスのため、アプリ側で同時呼び出し数を制限する。
+/// 制限が無いと記事カードや背景生成のバーストが Ollama を飽和させ、全リクエストが
+/// timeout して「読み込みが完了しない」状態を招く。permits=2 とし、背景生成 (逐次・1 permit)
+/// と並行してもユーザー操作 (deepdive 等) 用に 1 permit 残るようにする。
+static OLLAMA_GATE: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(2));
+
+/// モデルをメモリに常駐させる時間。未指定だと既定 5 分でアンロードされ、次回 +30-60s の
+/// 再ロードが発生する。
+const KEEP_ALIVE: &str = "15m";
 
 // ── Chat API 用の構造体 ──
 
@@ -11,6 +24,11 @@ struct OllamaChatRequest {
     model: String,
     messages: Vec<OllamaChatMessage>,
     stream: bool,
+    /// Ollama API の top-level パラメータ (options 内ではない)。
+    keep_alive: &'static str,
+    /// 構造化出力スキーマ。指定時は出力が JSON schema に拘束される。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    format: Option<serde_json::Value>,
     options: OllamaOptions,
 }
 
@@ -69,6 +87,19 @@ impl OllamaClient {
 #[async_trait]
 impl LlmClient for OllamaClient {
     async fn complete(&self, req: LlmRequest) -> Result<LlmResponse, AppError> {
+        // 同時呼び出しをアプリ側で制限 (バースト飽和防止)。permit は complete 終了で解放。
+        let _permit = OLLAMA_GATE
+            .acquire()
+            .await
+            .map_err(|_| AppError::Internal("LLM ゲートが閉じています".to_string()))?;
+
+        // 生成量に応じた段階 timeout (小さい要約はすぐ諦め、長文生成のみ長く待つ)。
+        let timeout = match req.max_tokens {
+            0..=300 => Duration::from_secs(30),
+            301..=600 => Duration::from_secs(60),
+            _ => Duration::from_secs(120),
+        };
+
         let mut messages = vec![OllamaChatMessage {
             role: "system".to_string(),
             content: req.system_prompt,
@@ -89,13 +120,18 @@ impl LlmClient for OllamaClient {
             content: req.user_prompt,
         });
 
+        // 構造化出力時は決定性を上げるため温度を 0 にする (schema 遵守を最大化)。
+        let temperature = if req.format.is_some() { 0.0 } else { 0.2 };
+
         let request_body = OllamaChatRequest {
             model: self.model.clone(),
             messages,
             stream: false,
+            keep_alive: KEEP_ALIVE,
+            format: req.format,
             options: OllamaOptions {
                 num_predict: req.max_tokens,
-                temperature: 0.2,
+                temperature,
             },
         };
 
@@ -105,7 +141,7 @@ impl LlmClient for OllamaClient {
             .http
             .post(&url)
             .header("Content-Type", "application/json")
-            .timeout(std::time::Duration::from_secs(120))
+            .timeout(timeout)
             .json(&request_body)
             .send()
             .await

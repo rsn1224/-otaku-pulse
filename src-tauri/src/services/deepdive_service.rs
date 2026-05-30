@@ -58,20 +58,36 @@ pub async fn generate_questions(
     let (title, summary) = row;
     let context = summary.as_deref().unwrap_or("");
 
-    let req = LlmRequest::simple(
+    // 構造化出力 (Ollama format): questions 配列を JSON schema で拘束する。
+    let schema = serde_json::json!({
+        "type": "object",
+        "properties": {"questions": {"type": "array", "items": {"type": "string"}}},
+        "required": ["questions"]
+    });
+    let req = LlmRequest::structured(
         "あなたはオタク向けニュースの質問生成AIです。\
-            記事について、ユーザーが気になりそうな質問を3つ生成してください。\
-            各質問は25文字以内で、具体的にしてください。\
-            JSON配列で返してください: [\"質問1\", \"質問2\", \"質問3\"]"
+            記事について、ユーザーが気になりそうな具体的な質問を3つ (各25文字以内) 生成し、\
+            JSON {\"questions\": [\"質問1\", \"質問2\", \"質問3\"]} で返してください。"
             .to_string(),
         format!("タイトル: {}\nサマリー: {}", title, context),
         200,
+        schema,
     );
 
     let response = llm.complete(req).await?;
-    let questions = parse_question_array(&response.content);
+    Ok(parse_questions(&response.content))
+}
 
-    Ok(questions)
+/// 構造化出力 `{"questions": [...]}` をパース。非対応 provider 向けに配列直書きへフォールバック。
+fn parse_questions(content: &str) -> Vec<String> {
+    #[derive(serde::Deserialize)]
+    struct Questions {
+        questions: Vec<String>,
+    }
+    if let Ok(parsed) = serde_json::from_str::<Questions>(content.trim()) {
+        return parsed.questions;
+    }
+    parse_question_array(content)
 }
 
 pub async fn answer_question(
@@ -154,6 +170,7 @@ pub async fn answer_question(
         max_tokens: 400,
         web_search: true,
         conversation: None,
+        format: None,
     };
 
     let response = llm.complete(req).await?;
@@ -223,6 +240,7 @@ pub async fn answer_followup(
         max_tokens: 400,
         web_search: true,
         conversation: Some(history),
+        format: None,
     };
 
     let response = llm.complete(req).await?;

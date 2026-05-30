@@ -11,6 +11,7 @@ import { useToast } from '../common/Toast';
 import { ExternalServicesSection } from './ExternalServicesSection';
 import { PerplexitySettings } from './PerplexitySettings';
 import { RawgSettings } from './RawgSettings';
+import { SystemStatusSection } from './SystemStatusSection';
 
 export const ApiKeysSection: React.FC = () => {
   const [rawgApiKey, setRawgApiKey] = useState('');
@@ -124,6 +125,7 @@ export const ApiKeysSection: React.FC = () => {
         onClear={handleRawgClear}
       />
       <ExternalServicesSection />
+      <SystemStatusSection />
     </div>
   );
 };

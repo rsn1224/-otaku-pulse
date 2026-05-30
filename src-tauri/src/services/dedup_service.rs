@@ -297,7 +297,7 @@ mod tests {
         let b = "abcdefgi";
         let sim = jaccard_bigram_similarity(a, b);
         assert!(
-            sim >= 0.0 && sim <= 1.0,
+            (0.0..=1.0).contains(&sim),
             "Expected similarity in [0,1], got {sim}"
         );
     }
@@ -307,7 +307,7 @@ mod tests {
         // Single character = no bigrams = empty set => should not divide by zero
         let sim = jaccard_bigram_similarity("a", "a");
         assert!(
-            sim >= 0.0 && sim <= 1.0,
+            (0.0..=1.0).contains(&sim),
             "Expected similarity in [0,1] for single-char strings, got {sim}"
         );
     }

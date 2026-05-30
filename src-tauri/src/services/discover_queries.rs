@@ -10,6 +10,30 @@ const DISCOVER_COLS: &str = "a.id, a.feed_id, a.title, a.url, a.summary, a.autho
      a.thumbnail_url, a.ai_summary, f.name AS feed_name, f.category AS category, \
      a.impact_level";
 
+/// interaction 集計の対象ウィンドウ。古い interaction を全集計しないことで
+/// `idx_interactions_article_created` を活かし popular/trending/most_viewed を軽量化する。
+const INTERACTION_WINDOW: &str = "datetime('now', '-30 days')";
+
+/// mute フィルタ句を条件付きで生成する (PERF: P1-2)。
+/// mute フィルタが 0 件のときは相関 LIKE サブクエリを一切発行しない (全タブの全走査を回避)。
+/// 1 件以上のときのみ従来の `NOT EXISTS` 句を返す。`a` エイリアスのクエリに連結する前提。
+async fn mute_clause(db: &SqlitePool) -> Result<&'static str, AppError> {
+    let n: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM keyword_filters WHERE filter_type = 'mute'")
+            .fetch_one(db)
+            .await?;
+    if n.0 == 0 {
+        Ok("")
+    } else {
+        Ok(" AND NOT EXISTS (\
+               SELECT 1 FROM keyword_filters kf \
+               WHERE kf.filter_type = 'mute' \
+                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%' \
+                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%' \
+                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'))")
+    }
+}
+
 pub async fn get_discover_feed(
     db: &SqlitePool,
     tab: &str,
@@ -23,7 +47,7 @@ pub async fn get_discover_feed(
         "trending" => get_trending(db, limit, offset).await?,
         "popular" => get_popular(db, limit, offset).await?,
         "most_viewed" => get_most_viewed(db, limit, offset).await?,
-        "anime" | "manga" | "game" | "pc" | "hardware" => {
+        "anime" | "manga" | "game" | "pc" | "hardware" | "tech" => {
             let cat = if tab == "hardware" { "pc" } else { tab };
             get_by_category(db, cat, limit, offset).await?
         }
@@ -44,18 +68,12 @@ async fn get_for_you(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<DiscoverArticleDto>, i64), AppError> {
+    let mute = mute_clause(db).await?;
     let sql = format!(
         "SELECT {DISCOVER_COLS}, COALESCE(s.total_score, a.importance_score) AS total_score
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN article_scores s ON a.id = s.article_id
-         WHERE a.is_duplicate = 0
-           AND NOT EXISTS (
-               SELECT 1 FROM keyword_filters kf
-               WHERE kf.filter_type = 'mute'
-                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
-           )
+         WHERE a.is_duplicate = 0{mute}
          ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -72,6 +90,7 @@ async fn get_trending(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<DiscoverArticleDto>, i64), AppError> {
+    let mute = mute_clause(db).await?;
     let sql = format!(
         "SELECT {DISCOVER_COLS},
                 (COALESCE(s.total_score, a.importance_score)
@@ -81,15 +100,9 @@ async fn get_trending(
                 ) AS total_score
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN article_scores s ON a.id = s.article_id
-         LEFT JOIN article_interactions ai ON a.id = ai.article_id
-         WHERE a.is_duplicate = 0 AND a.published_at >= datetime('now', '-12 hours')
-           AND NOT EXISTS (
-               SELECT 1 FROM keyword_filters kf
-               WHERE kf.filter_type = 'mute'
-                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
-           )
+         LEFT JOIN article_interactions ai
+                ON a.id = ai.article_id AND ai.created_at >= {INTERACTION_WINDOW}
+         WHERE a.is_duplicate = 0 AND a.published_at >= datetime('now', '-12 hours'){mute}
          GROUP BY a.id ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -115,18 +128,12 @@ async fn get_by_category(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<DiscoverArticleDto>, i64), AppError> {
+    let mute = mute_clause(db).await?;
     let sql = format!(
         "SELECT {DISCOVER_COLS}, COALESCE(s.total_score, a.importance_score) AS total_score
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN article_scores s ON a.id = s.article_id
-         WHERE a.is_duplicate = 0 AND f.category = ?1
-           AND NOT EXISTS (
-               SELECT 1 FROM keyword_filters kf
-               WHERE kf.filter_type = 'mute'
-                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
-           )
+         WHERE a.is_duplicate = 0 AND f.category = ?1{mute}
          ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?2 OFFSET ?3"
     );
@@ -161,6 +168,7 @@ async fn get_popular(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<DiscoverArticleDto>, i64), AppError> {
+    let mute = mute_clause(db).await?;
     let sql = format!(
         "SELECT {DISCOVER_COLS},
                 (COALESCE(s.total_score, a.importance_score) + COALESCE(ai.eng, 0)) AS total_score
@@ -168,15 +176,9 @@ async fn get_popular(
          LEFT JOIN article_scores s ON a.id = s.article_id
          LEFT JOIN (SELECT article_id, SUM(CASE WHEN action='bookmark' THEN 3.0
              WHEN action='deepdive' THEN 2.5 WHEN action='open' THEN 1.0 ELSE 0 END) AS eng
-             FROM article_interactions GROUP BY article_id) ai ON ai.article_id = a.id
-         WHERE a.is_duplicate = 0
-           AND NOT EXISTS (
-               SELECT 1 FROM keyword_filters kf
-               WHERE kf.filter_type = 'mute'
-                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
-           )
+             FROM article_interactions WHERE created_at >= {INTERACTION_WINDOW}
+             GROUP BY article_id) ai ON ai.article_id = a.id
+         WHERE a.is_duplicate = 0{mute}
          ORDER BY total_score DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -193,19 +195,14 @@ async fn get_most_viewed(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<DiscoverArticleDto>, i64), AppError> {
+    let mute = mute_clause(db).await?;
     let sql = format!(
         "SELECT {DISCOVER_COLS}, CAST(COALESCE(ai.vc, 0) AS REAL) AS total_score
          FROM articles a JOIN feeds f ON a.feed_id = f.id
          LEFT JOIN (SELECT article_id, COUNT(*) AS vc FROM article_interactions
-             WHERE action = 'open' GROUP BY article_id) ai ON ai.article_id = a.id
-         WHERE a.is_duplicate = 0
-           AND NOT EXISTS (
-               SELECT 1 FROM keyword_filters kf
-               WHERE kf.filter_type = 'mute'
-                 AND (LOWER(a.title) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.summary, '')) LIKE '%' || LOWER(kf.keyword) || '%'
-                      OR LOWER(COALESCE(a.ai_summary, '')) LIKE '%' || LOWER(kf.keyword) || '%')
-           )
+             WHERE action = 'open' AND created_at >= {INTERACTION_WINDOW}
+             GROUP BY article_id) ai ON ai.article_id = a.id
+         WHERE a.is_duplicate = 0{mute}
          ORDER BY COALESCE(ai.vc, 0) DESC, a.published_at DESC
          LIMIT ?1 OFFSET ?2"
     );
@@ -223,15 +220,16 @@ async fn get_most_viewed(
 
 pub async fn get_unread_counts(
     db: &SqlitePool,
-) -> Result<(i64, i64, i64, i64, i64, i64), AppError> {
-    let row: (i64, i64, i64, i64, i64, i64) = sqlx::query_as(
+) -> Result<(i64, i64, i64, i64, i64, i64, i64), AppError> {
+    let row: (i64, i64, i64, i64, i64, i64, i64) = sqlx::query_as(
         "SELECT
            COUNT(*) AS total,
            SUM(CASE WHEN a.published_at >= datetime('now', '-12 hours') THEN 1 ELSE 0 END),
            SUM(CASE WHEN f.category = 'anime' THEN 1 ELSE 0 END),
            SUM(CASE WHEN f.category = 'game' THEN 1 ELSE 0 END),
            SUM(CASE WHEN f.category = 'manga' THEN 1 ELSE 0 END),
-           SUM(CASE WHEN f.category = 'pc' THEN 1 ELSE 0 END)
+           SUM(CASE WHEN f.category = 'pc' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN f.category = 'tech' THEN 1 ELSE 0 END)
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
          WHERE a.is_duplicate = 0 AND a.is_read = 0",
@@ -278,7 +276,7 @@ pub async fn get_related_articles(
     let articles = sqlx::query_as::<_, DiscoverArticleDto>(
         "SELECT a.id, a.feed_id, a.title, a.url, a.summary, a.author,
                 a.published_at, a.is_read, a.is_bookmarked, a.language,
-                a.thumbnail_url, a.ai_summary,
+                a.thumbnail_url, a.ai_summary, a.impact_level,
                 f.name AS feed_name, f.category AS category,
                 a.importance_score AS total_score
          FROM articles a

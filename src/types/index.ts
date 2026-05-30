@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Category
 // ---------------------------------------------------------------------------
-export type Category = 'anime' | 'manga' | 'game' | 'pc' | 'all';
+export type Category = 'anime' | 'manga' | 'game' | 'pc' | 'tech' | 'all';
 
 // ---------------------------------------------------------------------------
 // LLM Provider
@@ -24,6 +24,27 @@ export interface FeedDto {
   consecutiveErrors: number;
   disabledReason: string | null;
   lastError: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// PC/System status (機能A) — mirrors Rust pc_status_service (camelCase)
+// 記事ではないため article パイプラインを経由せず、get_pc_status で直接取得する。
+// ---------------------------------------------------------------------------
+
+export interface FrameworkStatusDto {
+  name: string;
+  kind: string;
+  priority: string;
+  note: string | null;
+  applied: boolean;
+  lastApply: string | null;
+}
+
+export interface PcStatusView {
+  frameworks: FrameworkStatusDto[];
+  pendingPlans: number;
+  appliedCount: number;
+  totalCount: number;
 }
 
 export interface ArticleDto {
@@ -84,7 +105,8 @@ export type DiscoverTab =
   | 'anime'
   | 'game'
   | 'manga'
-  | 'hardware';
+  | 'hardware'
+  | 'tech';
 
 export type WingIdV2 = 'discover' | 'digest' | 'library' | 'profile' | 'saved' | 'schedule';
 

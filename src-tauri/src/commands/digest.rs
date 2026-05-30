@@ -1,10 +1,12 @@
 use crate::error::CmdResult;
 use crate::models::DigestDto;
 use crate::models::TodayViewItem;
-use crate::services::{digest_queries, today_view_service, weekly_report_service};
+use crate::services::{
+    digest_queries, research_report_service, today_view_service, weekly_report_service,
+};
 use crate::state::AppState;
 use sqlx::SqlitePool;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 pub async fn get_digests(
@@ -30,14 +32,10 @@ pub async fn delete_digest(db: State<'_, SqlitePool>, digest_id: i64) -> CmdResu
 #[tauri::command]
 pub async fn get_today_view(state: State<'_, AppState>) -> CmdResult<Vec<TodayViewItem>> {
     // LLM クライアントを構築（失敗してもフォールバックで動作する）
-    let llm_box;
-    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = match build_llm_client(&state) {
-        Ok(client) => {
-            llm_box = client;
-            Some(&*llm_box)
-        }
-        Err(_) => None,
-    };
+    let llm_box = build_llm_client_opt(&state);
+    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = llm_box
+        .as_deref()
+        .map(|c| c as &dyn crate::infra::llm_client::LlmClient);
 
     today_view_service::get_today_view(&state.db, llm).await
 }
@@ -46,14 +44,10 @@ pub async fn get_today_view(state: State<'_, AppState>) -> CmdResult<Vec<TodayVi
 /// Perplexity API Key が未設定の場合はスキップ理由を返す。
 #[tauri::command]
 pub async fn run_weekly_report_now(state: State<'_, AppState>) -> CmdResult<String> {
-    let llm_box;
-    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = match build_llm_client(&state) {
-        Ok(client) => {
-            llm_box = client;
-            Some(&*llm_box)
-        }
-        Err(_) => None,
-    };
+    let llm_box = build_llm_client_opt(&state);
+    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = llm_box
+        .as_deref()
+        .map(|c| c as &dyn crate::infra::llm_client::LlmClient);
 
     let result = weekly_report_service::generate_weekly_report(&state.db, llm).await?;
 
@@ -64,6 +58,48 @@ pub async fn run_weekly_report_now(state: State<'_, AppState>) -> CmdResult<Stri
             "{}件のレポートを生成しました",
             result.reports_generated
         ))
+    }
+}
+
+/// 任意クエリの調査レポート (機能C) を生成する。Perplexity 未設定時は skip 理由を返す。
+/// 生成したレポートは設定が有効なら Markdown としても書き出す (機能E)。
+#[tauri::command]
+pub async fn run_research_report(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    query: String,
+) -> CmdResult<String> {
+    let llm_box = build_llm_client_opt(&state);
+    let llm: Option<&dyn crate::infra::llm_client::LlmClient> = llm_box
+        .as_deref()
+        .map(|c| c as &dyn crate::infra::llm_client::LlmClient);
+
+    let result = research_report_service::generate_research_report(&state.db, llm, &query).await?;
+
+    if let Some(reason) = result.skipped_reason {
+        return Ok(format!("スキップ: {reason}"));
+    }
+
+    if let Some(digest) = result.digest {
+        crate::services::scheduler::export_digest_if_enabled(&state.db, &app, &digest).await;
+        Ok(format!("調査レポートを生成しました: {}", digest.title))
+    } else {
+        Ok("調査レポートは生成されませんでした".to_string())
+    }
+}
+
+/// `build_llm_client` のエラーをログしてから Option 化する。
+/// 「LLM 未設定」と内部エラー (lock poison / 設定不整合) を silent に同一視せず、
+/// warn を残してから None フォールバックする (silent failure 防止)。
+fn build_llm_client_opt(
+    state: &AppState,
+) -> Option<Box<dyn crate::infra::llm_client::LlmClient + Send + Sync>> {
+    match build_llm_client(state) {
+        Ok(client) => Some(client),
+        Err(e) => {
+            tracing::warn!(error = %e, "LLM クライアント構築失敗、フォールバック動作で継続");
+            None
+        }
     }
 }
 

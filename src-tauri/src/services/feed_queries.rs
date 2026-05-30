@@ -12,7 +12,7 @@ pub async fn list_feeds(db: &SqlitePool) -> Result<Vec<FeedDto>, AppError> {
     let rows = sqlx::query_as::<_, Feed>(
         "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
          last_fetched_at, consecutive_errors, disabled_reason, last_error,
-         etag, last_modified, created_at, updated_at
+         etag, last_modified, config, created_at, updated_at
          FROM feeds ORDER BY category, name",
     )
     .fetch_all(db)
@@ -139,7 +139,7 @@ pub async fn get_all_feeds_for_export(db: &SqlitePool) -> Result<Vec<Feed>, AppE
     let feeds = sqlx::query_as::<_, Feed>(
         "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
          last_fetched_at, consecutive_errors, disabled_reason, last_error,
-         etag, last_modified, created_at, updated_at
+         etag, last_modified, config, created_at, updated_at
          FROM feeds ORDER BY category, name",
     )
     .fetch_all(db)
@@ -244,8 +244,28 @@ pub async fn get_enabled_feeds(db: &SqlitePool) -> Result<Vec<Feed>, AppError> {
     let feeds = sqlx::query_as::<_, Feed>(
         "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
          last_fetched_at, consecutive_errors, disabled_reason, last_error,
-         etag, last_modified, created_at, updated_at
+         etag, last_modified, config, created_at, updated_at
          FROM feeds WHERE enabled = 1",
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(feeds)
+}
+
+/// 収集が「期限到来」した有効フィードのみを返す (Phase 2: per-feed interval 尊重)。
+/// 未収集 (last_fetched_at IS NULL) か、最終収集から fetch_interval_minutes 以上経過したもの。
+/// スケジューラの定期 tick で使い、低頻度フィード (例 1440 分) を毎 tick 叩かないようにする。
+/// 手動/起動時の収集は `get_enabled_feeds` (全件強制) を使う。
+pub async fn get_due_feeds(db: &SqlitePool) -> Result<Vec<Feed>, AppError> {
+    let feeds = sqlx::query_as::<_, Feed>(
+        "SELECT id, name, url, feed_type, category, enabled, fetch_interval_minutes,
+         last_fetched_at, consecutive_errors, disabled_reason, last_error,
+         etag, last_modified, config, created_at, updated_at
+         FROM feeds
+         WHERE enabled = 1
+           AND (last_fetched_at IS NULL
+                OR last_fetched_at <= datetime('now', '-' || fetch_interval_minutes || ' minutes'))",
     )
     .fetch_all(db)
     .await?;
@@ -284,6 +304,34 @@ pub async fn insert_default_feed(
     }
 }
 
+/// カスタムソース (scraper / custom-api / rss) を追加する。
+/// feed_type / category の妥当性は DB の CHECK 制約で担保される
+/// (不正値は `AppError::Database` で返る)。`config` は scraper/custom-api の設定 JSON。
+pub async fn insert_custom_feed(
+    db: &SqlitePool,
+    name: &str,
+    url: &str,
+    feed_type: &str,
+    category: &str,
+    config: Option<&str>,
+    fetch_interval_minutes: i64,
+) -> Result<i64, AppError> {
+    let result = sqlx::query(
+        "INSERT INTO feeds (name, url, feed_type, category, enabled, fetch_interval_minutes, config)
+         VALUES (?, ?, ?, ?, 1, ?, ?)",
+    )
+    .bind(name)
+    .bind(url)
+    .bind(feed_type)
+    .bind(category)
+    .bind(fetch_interval_minutes)
+    .bind(config)
+    .execute(db)
+    .await?;
+
+    Ok(result.last_insert_rowid())
+}
+
 pub async fn fix_feed_category(
     db: &SqlitePool,
     domain: &str,
@@ -297,4 +345,55 @@ pub async fn fix_feed_category(
             .await?;
 
     Ok(updated.rows_affected())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::test_helpers::setup_test_db;
+
+    /// get_due_feeds が per-feed interval を尊重し、未収集/期限切れのみ返すことを検証する。
+    /// SQLite の datetime 修飾子文字列連結 (`'-' || fetch_interval_minutes || ' minutes'`) の
+    /// 動作確認も兼ねる。
+    #[tokio::test]
+    async fn get_due_feeds_respects_interval() {
+        let db = setup_test_db().await;
+
+        // 期限到来: 未収集 (last_fetched_at NULL)
+        sqlx::query(
+            "INSERT INTO feeds (id, name, url, feed_type, category, fetch_interval_minutes,
+                                last_fetched_at, created_at, updated_at)
+             VALUES (1, 'never', 'http://a', 'rss', 'tech', 60, NULL, datetime('now'), datetime('now'))",
+        )
+        .execute(&db)
+        .await
+        .unwrap();
+
+        // 期限到来: 2 時間前に収集、interval 60 分
+        sqlx::query(
+            "INSERT INTO feeds (id, name, url, feed_type, category, fetch_interval_minutes,
+                                last_fetched_at, created_at, updated_at)
+             VALUES (2, 'stale', 'http://b', 'rss', 'tech', 60,
+                     datetime('now', '-2 hours'), datetime('now'), datetime('now'))",
+        )
+        .execute(&db)
+        .await
+        .unwrap();
+
+        // 未到来: 5 分前に収集、interval 60 分
+        sqlx::query(
+            "INSERT INTO feeds (id, name, url, feed_type, category, fetch_interval_minutes,
+                                last_fetched_at, created_at, updated_at)
+             VALUES (3, 'fresh', 'http://c', 'rss', 'tech', 60,
+                     datetime('now', '-5 minutes'), datetime('now'), datetime('now'))",
+        )
+        .execute(&db)
+        .await
+        .unwrap();
+
+        let due = get_due_feeds(&db).await.unwrap();
+        let mut ids: Vec<i64> = due.iter().map(|f| f.id).collect();
+        ids.sort_unstable();
+        assert_eq!(ids, vec![1, 2], "未収集と期限切れのみが due になる");
+    }
 }

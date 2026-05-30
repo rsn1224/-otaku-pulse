@@ -1,4 +1,5 @@
 import type React from 'react';
+import { extractErrorMessage } from '../../lib/errors';
 import { cleanupOldArticles } from '../../lib/tauri-commands';
 import { AppearanceSection } from '../settings/AppearanceSection';
 import { KeywordFilterSection } from '../settings/KeywordFilterSection';
@@ -12,7 +13,7 @@ export const AdvancedSection: React.FC = () => {
         const deleted = await cleanupOldArticles(Number(days));
         window.alert(`${deleted}件削除しました`);
       } catch (err) {
-        window.alert(`失敗: ${err instanceof Error ? err.message : '不明なエラー'}`);
+        window.alert(`失敗: ${extractErrorMessage(err)}`);
       }
     }
   };

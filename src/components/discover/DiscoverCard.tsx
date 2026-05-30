@@ -61,28 +61,15 @@ const DiscoverCardInner = ({
     recordInteraction,
   );
 
+  // 可視判定は dwell 計測のみ。要約の生成はここでは行わない (受動スクロールでの
+  // LLM 大量発火 = Ollama 飽和 → 永久スケルトンを防ぐ)。キャッシュ済みなら展開表示する。
   useEffect(() => {
-    if (summary || summaryAttempted) setState('summary');
+    if (summary) setState('summary');
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
           if (dwellStart.current === 0) dwellStart.current = Date.now();
-          if (!summary && !summaryLoading && !summaryAttempted) {
-            setSummaryLoading(true);
-            setSummaryAttempted(true);
-            getOrGenerateSummary(article.id)
-              .then((s) => {
-                setSummary(s);
-                updateArticleSummary(article.id, s);
-                setState('summary');
-              })
-              .catch((e) => {
-                logger.warn({ error: e }, 'getOrGenerateSummary failed');
-                setState('summary');
-              })
-              .finally(() => setSummaryLoading(false));
-          }
         } else if (dwellStart.current > 0) {
           const seconds = Math.floor((Date.now() - dwellStart.current) / 1000);
           if (seconds >= 2) recordInteraction(article.id, 'view', seconds);
@@ -94,14 +81,7 @@ const DiscoverCardInner = ({
 
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [
-    article.id,
-    summary,
-    summaryLoading,
-    summaryAttempted,
-    updateArticleSummary,
-    recordInteraction,
-  ]);
+  }, [article.id, summary, recordInteraction]);
 
   useEffect(() => {
     if (isFocused && cardRef.current) {
@@ -109,15 +89,38 @@ const DiscoverCardInner = ({
     }
   }, [isFocused]);
 
-  // コンテキストメモ: カードが展開されたときに一度だけ取得
+  // 展開時 (DeepDive 等の明示操作) に summary / context_memo をオンデマンド補完する。
+  // 受動表示では LLM を呼ばず、展開時のみ gate 経由で 1 件ずつ生成する。
   useEffect(() => {
-    if (state !== 'collapsed' && !contextMemoAttempted) {
+    if (state === 'collapsed') return;
+
+    if (!summary && !summaryLoading && !summaryAttempted) {
+      setSummaryLoading(true);
+      setSummaryAttempted(true);
+      getOrGenerateSummary(article.id)
+        .then((s) => {
+          setSummary(s);
+          updateArticleSummary(article.id, s);
+        })
+        .catch((e) => logger.warn({ error: e }, 'getOrGenerateSummary failed'))
+        .finally(() => setSummaryLoading(false));
+    }
+
+    if (!contextMemoAttempted) {
       setContextMemoAttempted(true);
       getContextMemo(article.id)
         .then(setContextMemo)
         .catch((e) => logger.warn({ error: e }, 'getContextMemo failed'));
     }
-  }, [state, article.id, contextMemoAttempted]);
+  }, [
+    state,
+    article.id,
+    summary,
+    summaryLoading,
+    summaryAttempted,
+    contextMemoAttempted,
+    updateArticleSummary,
+  ]);
 
   // v1.1: implicit feedback tracking (impression + skip)
   useImplicitFeedback({ articleId: article.id, elementRef: cardRef, opened });

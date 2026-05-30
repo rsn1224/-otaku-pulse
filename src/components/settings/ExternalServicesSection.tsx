@@ -2,6 +2,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
 import {
+  addCustomFeed,
   getAniListSyncStatus,
   getSettings,
   getSteamSyncStatus,
@@ -10,6 +11,15 @@ import {
   updateSetting,
 } from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+
+type CustomFeedType = 'rss' | 'scraper' | 'custom-api';
+type CustomCategory = 'anime' | 'manga' | 'game' | 'tech';
+
+// native select / textarea を Input プリミティブと同じトークンで揃える。
+const FIELD_CLASS =
+  'w-full text-[0.8125rem] px-3 py-2 rounded-lg bg-(--surface-container) border border-(--outline-variant) text-(--on-surface) focus:outline-none focus:border-(--primary) transition-colors';
 
 export function ExternalServicesSection(): React.JSX.Element {
   const [anilistUsername, setAnilistUsername] = useState('');
@@ -18,6 +28,13 @@ export function ExternalServicesSection(): React.JSX.Element {
   const [anilistLastSync, setAnilistLastSync] = useState<string | null>(null);
   const [steamLastSync, setSteamLastSync] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<'anilist' | 'steam' | null>(null);
+  // カスタムソース (機能B)。既定は config 不要な rss にして、未入力 config での InvalidInput を避ける。
+  const [csName, setCsName] = useState('');
+  const [csUrl, setCsUrl] = useState('');
+  const [csFeedType, setCsFeedType] = useState<CustomFeedType>('rss');
+  const [csCategory, setCsCategory] = useState<CustomCategory>('tech');
+  const [csConfig, setCsConfig] = useState('');
+  const [csSaving, setCsSaving] = useState(false);
   const { showToast } = useToast();
 
   const loadSettings = useCallback(async () => {
@@ -94,6 +111,37 @@ export function ExternalServicesSection(): React.JSX.Element {
     }
   };
 
+  const handleAddCustomSource = async () => {
+    if (!csName.trim() || !csUrl.trim()) {
+      showToast('error', '名前と URL は必須です');
+      return;
+    }
+    setCsSaving(true);
+    try {
+      await addCustomFeed({
+        name: csName.trim(),
+        url: csUrl.trim(),
+        feedType: csFeedType,
+        category: csCategory,
+        config: csFeedType === 'rss' ? null : csConfig.trim() || null,
+      });
+      showToast('success', `カスタムソース「${csName.trim()}」を追加しました`);
+      setCsName('');
+      setCsUrl('');
+      setCsConfig('');
+    } catch (e) {
+      logger.error({ error: e }, 'addCustomFeed failed');
+      showToast('error', 'カスタムソースの追加に失敗しました。URL と設定を確認してください');
+    } finally {
+      setCsSaving(false);
+    }
+  };
+
+  const configPlaceholder =
+    csFeedType === 'scraper'
+      ? '{ "item": "article.post", "title": "h2 a", "link": "h2 a", "summary": "p.excerpt", "base_url": "https://example.com" }'
+      : '{ "items_path": "data.items", "title": "title", "link": "url", "summary": "summary", "id": "id" }';
+
   const formatSync = (iso: string | null): string => {
     if (!iso) return '未同期';
     try {
@@ -108,34 +156,40 @@ export function ExternalServicesSection(): React.JSX.Element {
       <h3 className="text-lg font-semibold">外部サービス連携</h3>
 
       {/* AniList */}
-      <div className="space-y-3 p-4 rounded-lg bg-(--surface-variant)">
+      <div className="space-y-3 p-4 rounded-lg bg-(--surface-container)">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">AniList</span>
           <span className="text-xs text-(--on-surface-variant)">視聴リストと記事スコアを連動</span>
         </div>
         <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="AniList ユーザー名"
-            value={anilistUsername}
-            onChange={(e) => setAnilistUsername(e.target.value)}
-            className="flex-1 text-sm px-3 py-1.5 rounded bg-(--surface) border border-(--surface-variant) text-(--on-surface) focus:outline-none focus:ring-1 focus:ring-(--primary)"
-          />
-          <button
-            type="button"
-            onClick={handleSaveAniList}
-            className="text-xs px-3 py-1.5 rounded bg-(--primary) text-white hover:opacity-90 transition-opacity"
+          <div className="flex-1">
+            <Input
+              type="text"
+              placeholder="AniList ユーザー名"
+              value={anilistUsername}
+              onChange={(e) => setAnilistUsername(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              void handleSaveAniList();
+            }}
           >
             保存
-          </button>
-          <button
-            type="button"
-            onClick={handleSyncAniList}
-            disabled={syncing === 'anilist' || !anilistUsername.trim()}
-            className="text-xs px-3 py-1.5 rounded bg-(--surface) border border-(--surface-variant) text-(--on-surface) hover:bg-(--surface-hover) transition-colors disabled:opacity-50"
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            isLoading={syncing === 'anilist'}
+            disabled={!anilistUsername.trim()}
+            onClick={() => {
+              void handleSyncAniList();
+            }}
           >
-            {syncing === 'anilist' ? '同期中...' : '今すぐ同期'}
-          </button>
+            今すぐ同期
+          </Button>
         </div>
         <p className="text-xs text-(--on-surface-variant)">
           最終同期: {formatSync(anilistLastSync)}
@@ -143,45 +197,117 @@ export function ExternalServicesSection(): React.JSX.Element {
       </div>
 
       {/* Steam */}
-      <div className="space-y-3 p-4 rounded-lg bg-(--surface-variant)">
+      <div className="space-y-3 p-4 rounded-lg bg-(--surface-container)">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Steam</span>
           <span className="text-xs text-(--on-surface-variant)">プレイ時間と記事スコアを連動</span>
         </div>
         <div className="space-y-2">
-          <input
+          <Input
             type="text"
             placeholder="Steam API Key"
             value={steamApiKey}
             onChange={(e) => setSteamApiKey(e.target.value)}
-            className="w-full text-sm px-3 py-1.5 rounded bg-(--surface) border border-(--surface-variant) text-(--on-surface) focus:outline-none focus:ring-1 focus:ring-(--primary)"
           />
-          <input
+          <Input
             type="text"
             placeholder="Steam ID (64bit)"
             value={steamId}
             onChange={(e) => setSteamId(e.target.value)}
-            className="w-full text-sm px-3 py-1.5 rounded bg-(--surface) border border-(--surface-variant) text-(--on-surface) focus:outline-none focus:ring-1 focus:ring-(--primary)"
           />
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleSaveSteam}
-              className="text-xs px-3 py-1.5 rounded bg-(--primary) text-white hover:opacity-90 transition-opacity"
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                void handleSaveSteam();
+              }}
             >
               保存
-            </button>
-            <button
-              type="button"
-              onClick={handleSyncSteam}
-              disabled={syncing === 'steam' || !steamApiKey.trim() || !steamId.trim()}
-              className="text-xs px-3 py-1.5 rounded bg-(--surface) border border-(--surface-variant) text-(--on-surface) hover:bg-(--surface-hover) transition-colors disabled:opacity-50"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              isLoading={syncing === 'steam'}
+              disabled={!steamApiKey.trim() || !steamId.trim()}
+              onClick={() => {
+                void handleSyncSteam();
+              }}
             >
-              {syncing === 'steam' ? '同期中...' : '今すぐ同期'}
-            </button>
+              今すぐ同期
+            </Button>
           </div>
         </div>
         <p className="text-xs text-(--on-surface-variant)">最終同期: {formatSync(steamLastSync)}</p>
+      </div>
+
+      {/* カスタムソース (機能B: 任意サイト/データ収集) */}
+      <div className="space-y-3 p-4 rounded-lg bg-(--surface-container)">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">カスタムソース</span>
+          <span className="text-xs text-(--on-surface-variant)">
+            任意サイト (CSS スクレイピング) / JSON API を収集対象に追加
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            type="text"
+            placeholder="ソース名"
+            value={csName}
+            onChange={(e) => setCsName(e.target.value)}
+          />
+          <Input
+            type="text"
+            placeholder="URL"
+            value={csUrl}
+            onChange={(e) => setCsUrl(e.target.value)}
+          />
+          <select
+            value={csFeedType}
+            onChange={(e) => setCsFeedType(e.target.value as CustomFeedType)}
+            className={FIELD_CLASS}
+          >
+            <option value="rss">rss</option>
+            <option value="scraper">scraper (HTML)</option>
+            <option value="custom-api">custom-api (JSON)</option>
+          </select>
+          <select
+            value={csCategory}
+            onChange={(e) => setCsCategory(e.target.value as CustomCategory)}
+            className={FIELD_CLASS}
+          >
+            <option value="tech">tech</option>
+            <option value="anime">anime</option>
+            <option value="manga">manga</option>
+            <option value="game">game</option>
+          </select>
+        </div>
+
+        {csFeedType !== 'rss' && (
+          <textarea
+            placeholder={configPlaceholder}
+            value={csConfig}
+            onChange={(e) => setCsConfig(e.target.value)}
+            rows={3}
+            className={`${FIELD_CLASS} font-mono text-xs`}
+          />
+        )}
+
+        <Button
+          variant="primary"
+          size="sm"
+          isLoading={csSaving}
+          disabled={!csName.trim() || !csUrl.trim()}
+          onClick={() => {
+            void handleAddCustomSource();
+          }}
+        >
+          ソースを追加
+        </Button>
+        <p className="text-xs text-(--on-surface-variant)">
+          config は scraper/custom-api のみ必要。追加後、次回の収集サイクルで取得されます。
+        </p>
       </div>
     </div>
   );

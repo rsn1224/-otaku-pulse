@@ -18,6 +18,7 @@ import type {
   FeedDto,
   GameReleaseEntry,
   HighlightEntry,
+  PcStatusView,
   TodayViewItem,
   UserProfileDto,
 } from '../types';
@@ -113,6 +114,27 @@ export function importOpml(xml: string): Promise<number> {
 
 export function initDefaultFeeds(): Promise<number> {
   return invoke<number>('init_default_feeds');
+}
+
+export interface AddCustomFeedParams {
+  name: string;
+  url: string;
+  feedType: string;
+  category: string;
+  config?: string | null;
+  fetchIntervalMinutes?: number;
+}
+
+export function addCustomFeed(params: AddCustomFeedParams): Promise<number> {
+  return invoke<number>('add_custom_feed', { ...params });
+}
+
+// ---------------------------------------------------------------------------
+// System status (機能A) — PC framework / pending plans の状態取得
+// ---------------------------------------------------------------------------
+
+export function getPcStatus(): Promise<PcStatusView> {
+  return invoke<PcStatusView>('get_pc_status');
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +398,10 @@ export function getContextMemo(articleId: number): Promise<string> {
 
 export function runWeeklyReportNow(): Promise<string> {
   return invoke<string>('run_weekly_report_now');
+}
+
+export function runResearchReport(query: string): Promise<string> {
+  return invoke<string>('run_research_report', { query });
 }
 
 // ---------------------------------------------------------------------------

@@ -16,3 +16,4 @@ pub mod llm;
 pub mod schedule;
 pub mod scheduler;
 pub mod settings;
+pub mod system;
