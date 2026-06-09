@@ -3,7 +3,15 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSearchStore } from '../../stores/useSearchStore';
 
 export const TopBarSearch: React.FC = () => {
-  const { searchQuery, setSearchQuery, executeSearch, clearSearch, searchMode } = useSearchStore();
+  const {
+    searchQuery,
+    setSearchQuery,
+    executeSearch,
+    clearSearch,
+    searchMode,
+    searchKind,
+    setSearchKind,
+  } = useSearchStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const isComposingRef = useRef(false);
 
@@ -61,6 +69,25 @@ export const TopBarSearch: React.FC = () => {
         onChange={(e) => setSearchQuery(e.target.value)}
         onKeyDown={handleKeyDown}
       />
+      {/* biome-ignore lint/a11y/useSemanticElements: toolbar toggle group, not a form fieldset */}
+      <div className="flex items-center gap-0.5 flex-shrink-0" role="group" aria-label="検索モード">
+        {(['keyword', 'semantic'] as const).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => setSearchKind(kind)}
+            aria-pressed={searchKind === kind}
+            title={kind === 'keyword' ? 'キーワード検索' : '意味（セマンティック）検索'}
+            className={`px-1.5 py-0.5 rounded text-[0.625rem] font-medium transition-colors ${
+              searchKind === kind
+                ? 'bg-(--primary-soft) text-(--primary)'
+                : 'text-(--on-surface-variant) hover:text-(--on-surface)'
+            }`}
+          >
+            {kind === 'keyword' ? 'キーワード' : '意味'}
+          </button>
+        ))}
+      </div>
       {searchMode && (
         <button
           type="button"
