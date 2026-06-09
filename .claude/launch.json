@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["server/src/server.ts"],
       "port": 5180
+    },
+    {
+      "name": "otakupulse-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "port": 1420
     }
   ]
 }

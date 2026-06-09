@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Bookmark, BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useMotionConfig } from '../../hooks/useMotionConfig';
@@ -21,28 +21,19 @@ import { KeyboardHelpModal } from '../common/KeyboardHelpModal';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
 import { PreferenceSuggestion } from '../onboarding/PreferenceSuggestion';
 import { Spinner } from '../ui/Spinner';
+// Wings are eager-imported (not React.lazy): the production rolldown build
+// breaks AnimatePresence wing-switching when wings load as lazy chunks
+// (works in dev, deadlocks in prod). This app is served from localhost so
+// there is no network cost to bundling all wings upfront.
+import { DigestWing } from '../wings/DigestWing';
+import { DiscoverWing } from '../wings/DiscoverWing';
+import { LibraryWing } from '../wings/LibraryWing';
+import { ProfileWing } from '../wings/ProfileWing';
+import { SavedWing } from '../wings/SavedWing';
+import { ScheduleWing } from '../wings/ScheduleWing';
 import { CollectButton } from './CollectButton';
 import { TopBarSearch } from './TopBarSearch';
 import { WindowControls } from './WindowControls';
-
-const DiscoverWing = React.lazy(() =>
-  import('../wings/DiscoverWing').then((m) => ({ default: m.DiscoverWing })),
-);
-const LibraryWing = React.lazy(() =>
-  import('../wings/LibraryWing').then((m) => ({ default: m.LibraryWing })),
-);
-const ProfileWing = React.lazy(() =>
-  import('../wings/ProfileWing').then((m) => ({ default: m.ProfileWing })),
-);
-const SavedWing = React.lazy(() =>
-  import('../wings/SavedWing').then((m) => ({ default: m.SavedWing })),
-);
-const ScheduleWing = React.lazy(() =>
-  import('../wings/ScheduleWing').then((m) => ({ default: m.ScheduleWing })),
-);
-const DigestWing = React.lazy(() =>
-  import('../wings/DigestWing').then((m) => ({ default: m.DigestWing })),
-);
 
 const NAV_ITEMS: { id: WingIdV2; label: string; Icon: LucideIcon }[] = [
   { id: 'discover', label: 'Discover', Icon: Search },
@@ -188,19 +179,20 @@ export function AppShell(): React.JSX.Element {
                 </div>
               }
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeWing}
-                  variants={variants.wingTransition}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  transition={spring}
-                  className="h-full"
-                >
-                  {renderWing()}
-                </motion.div>
-              </AnimatePresence>
+              {/* No AnimatePresence: mode="wait" deadlocks the wing switch in the
+                  production rolldown build (exit animation never completes → stuck).
+                  A keyed motion.div remounts on switch and plays only the enter
+                  animation, which is deadlock-proof. */}
+              <motion.div
+                key={activeWing}
+                variants={variants.wingTransition}
+                initial="hidden"
+                animate="visible"
+                transition={spring}
+                className="h-full"
+              >
+                {renderWing()}
+              </motion.div>
             </React.Suspense>
           </main>
         </div>
