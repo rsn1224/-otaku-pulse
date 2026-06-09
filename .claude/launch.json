@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "otakupulse",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/src/server.ts"],
+      "port": 5180
+    }
+  ]
+}

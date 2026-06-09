@@ -37,5 +37,10 @@ export default defineConfig({
     watch: {
       ignored: ['**/src-tauri/**'],
     },
+    // ローカル Node バックエンド（PORT=5180）へ proxy。/events は SSE。
+    proxy: {
+      '/api': { target: 'http://localhost:5180', changeOrigin: true },
+      '/events': { target: 'http://localhost:5180', changeOrigin: true },
+    },
   },
 });
