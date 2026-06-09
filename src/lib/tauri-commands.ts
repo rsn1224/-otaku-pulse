@@ -74,6 +74,8 @@ export interface KeywordFilterDto {
 export interface LlmSettingsResponse {
   provider: string;
   perplexity_api_key_set: boolean;
+  anthropic_api_key_set: boolean;
+  anthropic_model: string;
   ollama_base_url: string;
   ollama_model: string;
   available_ollama_models: string[];
@@ -417,6 +419,14 @@ export function setPerplexityApiKey(apiKey: string): Promise<void> {
 
 export function clearPerplexityApiKey(): Promise<void> {
   return invoke<void>('clear_perplexity_api_key');
+}
+
+export function setAnthropicApiKey(apiKey: string): Promise<void> {
+  return invoke<void>('set_anthropic_api_key', { apiKey });
+}
+
+export function clearAnthropicApiKey(): Promise<void> {
+  return invoke<void>('clear_anthropic_api_key');
 }
 
 export function setRawgApiKey(apiKey: string): Promise<void> {

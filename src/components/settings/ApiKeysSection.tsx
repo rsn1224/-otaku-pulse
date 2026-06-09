@@ -2,12 +2,15 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { logger } from '../../lib/logger';
 import {
+  clearAnthropicApiKey,
   clearPerplexityApiKey,
   clearRawgApiKey,
   getLlmSettings,
   isRawgApiKeySet,
+  setAnthropicApiKey,
 } from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
+import { AnthropicSettings } from './AnthropicSettings';
 import { ExternalServicesSection } from './ExternalServicesSection';
 import { PerplexitySettings } from './PerplexitySettings';
 import { RawgSettings } from './RawgSettings';
@@ -18,6 +21,8 @@ export const ApiKeysSection: React.FC = () => {
   const [rawgKeySet, setRawgKeySet] = useState(false);
   const [perplexityApiKey, setPerplexityApiKey] = useState('');
   const [perplexityKeySet, setPerplexityKeySet] = useState(false);
+  const [anthropicApiKey, setAnthropicApiKeyInput] = useState('');
+  const [anthropicKeySet, setAnthropicKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -39,10 +44,20 @@ export const ApiKeysSection: React.FC = () => {
     }
   };
 
+  const checkAnthropicKey = async () => {
+    try {
+      const settings = await getLlmSettings();
+      setAnthropicKeySet(settings.anthropic_api_key_set);
+    } catch (error) {
+      logger.error({ error }, 'Failed to check Anthropic API key status');
+    }
+  };
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: check functions are stable
   useEffect(() => {
     checkRawgKey();
     checkPerplexityKey();
+    checkAnthropicKey();
   }, []);
 
   const handleRawgSave = async () => {
@@ -105,6 +120,36 @@ export const ApiKeysSection: React.FC = () => {
     }
   };
 
+  const handleAnthropicSave = async () => {
+    if (!anthropicApiKey.trim()) return;
+    setIsLoading(true);
+    try {
+      await setAnthropicApiKey(anthropicApiKey);
+      await checkAnthropicKey();
+      setAnthropicApiKeyInput('');
+      showToast('success', 'Claude API キーを保存しました');
+    } catch (error) {
+      logger.error({ error }, 'Failed to save Anthropic API key');
+      showToast('error', 'Claude API キーの保存に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAnthropicClear = async () => {
+    setIsLoading(true);
+    try {
+      await clearAnthropicApiKey();
+      await checkAnthropicKey();
+      showToast('success', 'Claude API キーを削除しました');
+    } catch (error) {
+      logger.error({ error }, 'Failed to clear Anthropic API key');
+      showToast('error', 'Claude API キーの削除に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">API キー管理</h3>
@@ -115,6 +160,14 @@ export const ApiKeysSection: React.FC = () => {
         apiKeySet={perplexityKeySet}
         onSave={handlePerplexitySave}
         onClear={handlePerplexityClear}
+      />
+      <AnthropicSettings
+        apiKey={anthropicApiKey}
+        setApiKey={setAnthropicApiKeyInput}
+        isLoading={isLoading}
+        apiKeySet={anthropicKeySet}
+        onSave={handleAnthropicSave}
+        onClear={handleAnthropicClear}
       />
       <RawgSettings
         apiKey={rawgApiKey}
