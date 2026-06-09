@@ -8,6 +8,8 @@ import {
   getLlmSettings,
   isRawgApiKeySet,
   setAnthropicApiKey,
+  setPerplexityApiKey,
+  setRawgApiKey,
 } from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
 import { AnthropicSettings } from './AnthropicSettings';
@@ -17,9 +19,9 @@ import { RawgSettings } from './RawgSettings';
 import { SystemStatusSection } from './SystemStatusSection';
 
 export const ApiKeysSection: React.FC = () => {
-  const [rawgApiKey, setRawgApiKey] = useState('');
+  const [rawgApiKey, setRawgApiKeyInput] = useState('');
   const [rawgKeySet, setRawgKeySet] = useState(false);
-  const [perplexityApiKey, setPerplexityApiKey] = useState('');
+  const [perplexityApiKey, setPerplexityApiKeyInput] = useState('');
   const [perplexityKeySet, setPerplexityKeySet] = useState(false);
   const [anthropicApiKey, setAnthropicApiKeyInput] = useState('');
   const [anthropicKeySet, setAnthropicKeySet] = useState(false);
@@ -66,7 +68,7 @@ export const ApiKeysSection: React.FC = () => {
     try {
       await setRawgApiKey(rawgApiKey);
       await checkRawgKey();
-      setRawgApiKey('');
+      setRawgApiKeyInput('');
       showToast('success', 'RAWG API キーを保存しました');
     } catch (error) {
       logger.error({ error }, 'Failed to save RAWG API key');
@@ -96,7 +98,7 @@ export const ApiKeysSection: React.FC = () => {
     try {
       await setPerplexityApiKey(perplexityApiKey);
       await checkPerplexityKey();
-      setPerplexityApiKey('');
+      setPerplexityApiKeyInput('');
       showToast('success', 'Perplexity API キーを保存しました');
     } catch (error) {
       logger.error({ error }, 'Failed to save Perplexity API key');
@@ -155,7 +157,7 @@ export const ApiKeysSection: React.FC = () => {
       <h3 className="text-lg font-semibold">API キー管理</h3>
       <PerplexitySettings
         apiKey={perplexityApiKey}
-        setApiKey={setPerplexityApiKey}
+        setApiKey={setPerplexityApiKeyInput}
         isLoading={isLoading}
         apiKeySet={perplexityKeySet}
         onSave={handlePerplexitySave}
@@ -171,7 +173,7 @@ export const ApiKeysSection: React.FC = () => {
       />
       <RawgSettings
         apiKey={rawgApiKey}
-        setApiKey={setRawgApiKey}
+        setApiKey={setRawgApiKeyInput}
         isLoading={isLoading}
         apiKeySet={rawgKeySet}
         onSave={handleRawgSave}
