@@ -1,6 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import { useCallback, useState } from 'react';
 import { useToast } from '../components/common/Toast';
+import { invoke } from '../lib/api';
 import { extractErrorMessage } from '../lib/errors';
 import { logger } from '../lib/logger';
 

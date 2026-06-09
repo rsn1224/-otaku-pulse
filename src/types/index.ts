@@ -191,6 +191,12 @@ export interface DeepDiveResult {
   citations: Citation[];
 }
 
+/** Rust `infra::llm_client::ChatMessage` に対応（マルチターン DeepDive の会話履歴）。 */
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 export interface AiSearchResult {
   localArticles: ArticleDto[];
   aiAnswer: string | null;

@@ -34,7 +34,7 @@ function AppContent(): React.JSX.Element {
   useEffect(() => {
     // スケジューラーイベントリスナーを設定
     const setupSchedulerEvents = async () => {
-      const { listen } = await import('@tauri-apps/api/event');
+      const { listen } = await import('./lib/events');
 
       // 収集完了イベント
       const unlistenCollect = await listen<{ fetched: number; saved: number }>(
@@ -76,7 +76,7 @@ function AppContent(): React.JSX.Element {
     let unlistenFn: (() => void) | null = null;
 
     const setup = async (): Promise<void> => {
-      const { listen } = await import('@tauri-apps/api/event');
+      const { listen } = await import('./lib/events');
 
       unlistenFn = await listen('collect-completed', async () => {
         try {

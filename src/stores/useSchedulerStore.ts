@@ -1,5 +1,5 @@
-import { listen } from '@tauri-apps/api/event';
 import { create } from 'zustand';
+import { listen } from '../lib/events';
 import { logger } from '../lib/logger';
 import {
   type DigestResult,

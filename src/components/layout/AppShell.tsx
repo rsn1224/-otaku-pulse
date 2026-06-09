@@ -1,10 +1,10 @@
-import { listen } from '@tauri-apps/api/event';
 import type { LucideIcon } from 'lucide-react';
 import { Bookmark, BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useMotionConfig } from '../../hooks/useMotionConfig';
+import { listen } from '../../lib/events';
 import { logger } from '../../lib/logger';
 import {
   getUserProfile,

@@ -1,15 +1,17 @@
 /**
  * @module tauri-commands
  * @description Tauri invoke ラッパー。全コマンド呼び出しをここに集約する。
- * @dependencies @tauri-apps/api/core
+ * @dependencies ./api (fetch ベースの invoke。Tauri から移行)
  * @entrypoint ./tauri-commands.ts
  */
-import { invoke } from '@tauri-apps/api/core';
+
 import type {
   AiringEntry,
   AiSearchResult,
   ArticleDetailDto,
   ArticleDto,
+  ChatMessage,
+  Citation,
   ClusterGroup,
   DeepDiveResult,
   DiscoverArticleDto,
@@ -22,6 +24,7 @@ import type {
   TodayViewItem,
   UserProfileDto,
 } from '../types';
+import { invoke } from './api';
 
 // ---------------------------------------------------------------------------
 // Scheduler types (local — matches Rust DTOs)
@@ -231,6 +234,106 @@ export function getDeepDiveQuestions(articleId: number): Promise<string[]> {
 
 export function askDeepDive(articleId: number, question: string): Promise<DeepDiveResult> {
   return invoke<DeepDiveResult>('ask_deepdive', { articleId, question });
+}
+
+export function askDeepDiveFollowup(
+  articleId: number,
+  question: string,
+  history: ChatMessage[],
+): Promise<DeepDiveResult> {
+  return invoke<DeepDiveResult>('ask_deepdive_followup', { articleId, question, history });
+}
+
+/**
+ * ADR-5: deepdive 回答をストリーミング取得する。answer を逐次 onAnswer に渡し、最終結果を返す。
+ * バックエンドは生トークン（末尾に ---FOLLOWUP--- + followUps JSON）を chunked text で返す。
+ */
+export async function askDeepDiveStream(
+  articleId: number,
+  question: string,
+  history: ChatMessage[],
+  onAnswer: (answerSoFar: string) => void,
+): Promise<DeepDiveResult> {
+  const res = await fetch('/api/ask_deepdive_stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ articleId, question, history }),
+  });
+  if (!res.ok || res.body === null) {
+    let err: { kind: string; message: string };
+    try {
+      err = (await res.json()) as { kind: string; message: string };
+    } catch {
+      err = { kind: 'http', message: `HTTP ${res.status}` };
+    }
+    throw err;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  const FOLLOWUP = '---FOLLOWUP---';
+  let raw = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    raw += decoder.decode(value, { stream: true });
+    const idx = raw.indexOf(FOLLOWUP);
+    onAnswer((idx === -1 ? raw : raw.slice(0, idx)).trim());
+  }
+
+  return parseDeepDiveStreamRaw(raw, question);
+}
+
+/**
+ * streaming レスポンス本文（`answer ---FOLLOWUP--- [followups] ---CITATIONS--- [citations]`）を
+ * DeepDiveResult にパースする純関数。CITATIONS ブロックを先に切り離すことで、followup の
+ * 正規表現（貪欲マッチ）が citations 配列を飲み込むのを防ぐ。
+ */
+export function parseDeepDiveStreamRaw(raw: string, question: string): DeepDiveResult {
+  const FOLLOWUP = '---FOLLOWUP---';
+  const CITATIONS = '---CITATIONS---';
+
+  const citIdx = raw.indexOf(CITATIONS);
+  const beforeCitations = citIdx === -1 ? raw : raw.slice(0, citIdx);
+  let citations: Citation[] = [];
+  if (citIdx !== -1) {
+    const match = raw.slice(citIdx + CITATIONS.length).match(/\[[\s\S]*\]/);
+    if (match !== null) {
+      try {
+        const arr = JSON.parse(match[0]) as unknown;
+        if (Array.isArray(arr)) {
+          citations = arr
+            .filter(
+              (x): x is { url: string; title?: unknown } =>
+                typeof x === 'object' &&
+                x !== null &&
+                typeof (x as { url?: unknown }).url === 'string',
+            )
+            .map((x) => ({ url: x.url, title: typeof x.title === 'string' ? x.title : null }));
+        }
+      } catch {
+        // ignore malformed citations
+      }
+    }
+  }
+
+  const idx = beforeCitations.indexOf(FOLLOWUP);
+  const answer = (idx === -1 ? beforeCitations : beforeCitations.slice(0, idx)).trim();
+  let followUpQuestions: string[] = [];
+  if (idx !== -1) {
+    const match = beforeCitations.slice(idx + FOLLOWUP.length).match(/\[[\s\S]*\]/);
+    if (match !== null) {
+      try {
+        const arr = JSON.parse(match[0]) as unknown;
+        if (Array.isArray(arr)) {
+          followUpQuestions = arr.filter((x): x is string => typeof x === 'string');
+        }
+      } catch {
+        // ignore malformed followups
+      }
+    }
+  }
+  return { question, answer, followUpQuestions, provider: '', citations };
 }
 
 export function aiSearch(query: string): Promise<AiSearchResult> {
