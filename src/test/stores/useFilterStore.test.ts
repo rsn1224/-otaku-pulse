@@ -1,6 +1,8 @@
-import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { invoke } from '../../lib/api';
 import { useFilterStore } from '../../stores/useFilterStore';
+
+vi.mock('../../lib/api', () => ({ invoke: vi.fn() }));
 
 const mockedInvoke = vi.mocked(invoke);
 

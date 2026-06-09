@@ -1,7 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { invoke } from '../../lib/api';
 import { useArticleStore } from '../../stores/useArticleStore';
 import type { DiscoverFeedResult } from '../../types';
+
+vi.mock('../../lib/api', () => ({ invoke: vi.fn() }));
 
 const mockedInvoke = vi.mocked(invoke);
 
@@ -77,7 +79,11 @@ describe('useArticleStore', () => {
         articles: makeFeedResult(2).articles,
         offset: 2,
       });
-      mockedInvoke.mockResolvedValueOnce(makeFeedResult(1));
+      // fetchFeed は merge 後に id で dedup する（useArticleStore.ts）。append を検証するため
+      // 既存 id(1,2) と重複しない id を持つ次ページを返す。
+      const nextPage = makeFeedResult(1);
+      nextPage.articles[0].id = 3;
+      mockedInvoke.mockResolvedValueOnce(nextPage);
 
       await useArticleStore.getState().fetchFeed(false);
 

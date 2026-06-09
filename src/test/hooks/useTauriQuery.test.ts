@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
-import { invoke } from '@tauri-apps/api/core';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../components/common/Toast';
 import { useTauriQuery } from '../../hooks/useTauriQuery';
+import { invoke } from '../../lib/api';
+
+vi.mock('../../lib/api', () => ({ invoke: vi.fn() }));
 
 const mockedInvoke = vi.mocked(invoke);
 
@@ -21,7 +23,7 @@ describe('useTauriQuery', () => {
       wrapper,
     });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.data).toEqual([{ id: 1 }]);
     });
     expect(result.current.isLoading).toBe(false);
@@ -35,7 +37,7 @@ describe('useTauriQuery', () => {
     mockedInvoke.mockRejectedValue({ kind: 'Database', message: 'connection failed' });
     const { result } = renderHook(() => useTauriQuery('list_items'), { wrapper });
 
-    await vi.waitFor(
+    await waitFor(
       () => {
         expect(result.current.error).toBe('connection failed');
       },
@@ -48,7 +50,7 @@ describe('useTauriQuery', () => {
     mockedInvoke.mockResolvedValue([{ id: 1 }]);
     const { result } = renderHook(() => useTauriQuery('list_items'), { wrapper });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.data).toEqual([{ id: 1 }]);
     });

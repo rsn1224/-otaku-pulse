@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
-import { invoke } from '@tauri-apps/api/core';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../components/common/Toast';
 import { useTauriCommand } from '../../hooks/useTauriCommand';
+import { invoke } from '../../lib/api';
+
+vi.mock('../../lib/api', () => ({ invoke: vi.fn() }));
 
 const mockedInvoke = vi.mocked(invoke);
 
