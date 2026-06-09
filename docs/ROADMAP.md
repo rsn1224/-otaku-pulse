@@ -2,6 +2,9 @@
 
 <!-- 最終更新: 2026-03-25 -->
 
+> ⚠️ **陳腐化（superseded）**: 4 Wings / OpenAI fallback / Tauri 前提の初期計画。現行ロードマップは
+> [docs/adr/0001](adr/0001-redesign-baseline.md)（再設計13決定 + Phase）と [docs/adr/0002](adr/0002-platform-node-browser.md)（Node 移行）を参照。
+
 > OtakuPulse — オタク向け情報収集・AI要約デスクトップアプリの段階的開発計画
 
 ---

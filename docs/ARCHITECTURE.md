@@ -2,6 +2,9 @@
 
 <!-- 最終更新: 2026-03-19 -->
 
+> ⚠️ **陳腐化（superseded）**: 本書は Tauri/Rust 前提の初期設計。現行は Node/TS + ブラウザ → [docs/adr/0002](adr/0002-platform-node-browser.md)。
+> 実体のアーキテクチャは `CLAUDE.md` と `server/` を参照。本書は段階的に realign 予定。
+
 ## 概要
 
 OtakuPulse は、アニメ・マンガ・ゲーム・PC ハードウェアのニュースを自動収集し、

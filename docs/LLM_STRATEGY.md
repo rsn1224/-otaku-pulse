@@ -2,6 +2,9 @@
 
 <!-- 最終更新: 2026-03-19 -->
 
+> ⚠️ **一部陳腐化（superseded）**: 本書は Qwen2.5 + OpenAI fallback 前提。現行は **Ollama(qwen3:14b) + Perplexity Sonar**
+> （`server/src/llm/`、Ollama は `think:false` 指定）。能力ルーティング多プロバイダ + 構造化出力は [docs/adr/0001](adr/0001-redesign-baseline.md)（ADR-2/3）で Phase B 適用予定。
+
 > OtakuPulse における LLM 活用方針を定義する。
 > ローカル LLM（Ollama）優先、フォールバックとして OpenAI API、最終手段として要約スキップ。
 
