@@ -8,6 +8,7 @@ import {
   getLlmSettings,
   isRawgApiKeySet,
   setAnthropicApiKey,
+  setAnthropicModel,
 } from '../../lib/tauri-commands';
 import { useToast } from '../common/Toast';
 import { AnthropicSettings } from './AnthropicSettings';
@@ -23,6 +24,7 @@ export const ApiKeysSection: React.FC = () => {
   const [perplexityKeySet, setPerplexityKeySet] = useState(false);
   const [anthropicApiKey, setAnthropicApiKeyInput] = useState('');
   const [anthropicKeySet, setAnthropicKeySet] = useState(false);
+  const [anthropicModel, setAnthropicModelInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -48,6 +50,7 @@ export const ApiKeysSection: React.FC = () => {
     try {
       const settings = await getLlmSettings();
       setAnthropicKeySet(settings.anthropic_api_key_set);
+      setAnthropicModelInput(settings.anthropic_model);
     } catch (error) {
       logger.error({ error }, 'Failed to check Anthropic API key status');
     }
@@ -150,6 +153,21 @@ export const ApiKeysSection: React.FC = () => {
     }
   };
 
+  const handleAnthropicModelSave = async () => {
+    if (!anthropicModel.trim()) return;
+    setIsLoading(true);
+    try {
+      await setAnthropicModel(anthropicModel.trim());
+      await checkAnthropicKey();
+      showToast('success', 'Claude モデルを保存しました');
+    } catch (error) {
+      logger.error({ error }, 'Failed to save Anthropic model');
+      showToast('error', 'Claude モデルの保存に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">API キー管理</h3>
@@ -164,10 +182,13 @@ export const ApiKeysSection: React.FC = () => {
       <AnthropicSettings
         apiKey={anthropicApiKey}
         setApiKey={setAnthropicApiKeyInput}
+        model={anthropicModel}
+        setModel={setAnthropicModelInput}
         isLoading={isLoading}
         apiKeySet={anthropicKeySet}
         onSave={handleAnthropicSave}
         onClear={handleAnthropicClear}
+        onModelSave={handleAnthropicModelSave}
       />
       <RawgSettings
         apiKey={rawgApiKey}

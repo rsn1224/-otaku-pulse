@@ -6,7 +6,7 @@ export type Category = 'anime' | 'manga' | 'game' | 'pc' | 'tech' | 'all';
 // ---------------------------------------------------------------------------
 // LLM Provider
 // ---------------------------------------------------------------------------
-export type LlmProvider = 'perplexity_sonar' | 'ollama';
+export type LlmProvider = 'perplexity_sonar' | 'ollama' | 'anthropic';
 
 // ---------------------------------------------------------------------------
 // DTOs — mirrored from Rust models (camelCase)

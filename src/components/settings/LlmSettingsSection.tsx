@@ -108,6 +108,17 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
             />
             Ollama（ローカル）
           </label>
+          <label className="inline-flex items-center">
+            <input
+              type="radio"
+              value="anthropic"
+              checked={settings.provider === 'anthropic'}
+              onChange={(e) => handleProviderChange(e.target.value as LlmProvider)}
+              disabled={isLoading}
+              className="mr-2"
+            />
+            Claude（Anthropic）
+          </label>
         </div>
       </div>
 
@@ -115,13 +126,28 @@ export const LlmSettingsSection: React.FC<LlmSettingsSectionProps> = ({ onSettin
         <div className="rounded-lg border border-(--outline-variant) p-4">
           <div className="flex items-center gap-2 text-sm">
             {settings.perplexity_api_key_set ? (
-              <span className="text-green-400">✅ API キー設定済み</span>
+              <span className="text-(--primary)">API キー設定済み</span>
             ) : (
-              <span className="text-yellow-400">⚠️ API キー未設定</span>
+              <span className="text-(--on-surface-variant)">API キー未設定</span>
             )}
           </div>
           <p className="mt-2 text-xs text-(--on-surface-variant)">
             API キーは「API キー」タブで管理できます
+          </p>
+        </div>
+      )}
+
+      {settings.provider === 'anthropic' && (
+        <div className="rounded-lg border border-(--outline-variant) p-4">
+          <div className="flex items-center gap-2 text-sm">
+            {settings.anthropic_api_key_set ? (
+              <span className="text-(--primary)">API キー設定済み</span>
+            ) : (
+              <span className="text-(--on-surface-variant)">API キー未設定</span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-(--on-surface-variant)">
+            API キー・モデルは「API キー」タブで管理できます
           </p>
         </div>
       )}

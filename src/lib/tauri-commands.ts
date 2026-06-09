@@ -76,6 +76,7 @@ export interface LlmSettingsResponse {
   perplexity_api_key_set: boolean;
   anthropic_api_key_set: boolean;
   anthropic_model: string;
+  embedding_model: string;
   ollama_base_url: string;
   ollama_model: string;
   available_ollama_models: string[];
@@ -407,6 +408,10 @@ export function setLlmProvider(provider: string): Promise<void> {
 
 export function setOllamaSettings(baseUrl: string, model: string): Promise<void> {
   return invoke<void>('set_ollama_settings', { baseUrl, model });
+}
+
+export function setAnthropicModel(model: string): Promise<void> {
+  return invoke<void>('set_anthropic_model', { model });
 }
 
 // ---------------------------------------------------------------------------
