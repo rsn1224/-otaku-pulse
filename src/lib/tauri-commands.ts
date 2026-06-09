@@ -343,6 +343,10 @@ export function aiSearch(query: string): Promise<AiSearchResult> {
   return invoke<AiSearchResult>('ai_search', { query });
 }
 
+export function semanticSearch(query: string, limit?: number): Promise<DiscoverArticleDto[]> {
+  return invoke<DiscoverArticleDto[]>('semantic_search', { query, limit });
+}
+
 // ---------------------------------------------------------------------------
 // Profile
 // ---------------------------------------------------------------------------
