@@ -12,16 +12,14 @@
 
 ### Wings（画面構成）
 
-現状は **6 Wings**。再設計で 4 Wings（Pulse / Digest / Library / Profile）へ統合予定 → `docs/adr/0001-redesign-baseline.md`（ADR-10）。
+**4 Wings**（ADR-10 統合完了 → `docs/adr/0001-redesign-baseline.md`）。旧 6 Wings（Discover/Saved/Schedule を統合）。
 
-| Wing | 役割 |
-|------|------|
-| Discover | メインフィード（収集記事の閲覧・トレンド・for_you） |
-| Digest | AI 要約・カテゴリ別ダイジェスト |
-| Library | 購読フィード/ソース管理（OPML） |
-| Saved | ブックマーク記事 |
-| Schedule | 放送カレンダー（アニメ）・ゲーム発売日 |
-| Profile | ユーザー設定・詳細設定 |
+| Wing | 役割 | 内タブ |
+|------|------|--------|
+| Pulse | メインフィード（収集記事の閲覧・トレンド・for_you） | For You / Trending / Popular / Most Viewed / **Saved**（旧 Saved wing）/ カテゴリ |
+| Digest | AI 要約・カテゴリ別ダイジェスト | ダイジェスト / **カレンダー**（旧 Schedule wing：放送カレンダー・ゲーム発売日） |
+| Library | 購読フィード/ソース管理（OPML import/export・フィード状態） | ソース管理（旧 Library のブックマークは Pulse>Saved に集約） |
+| Profile | ユーザー設定・詳細設定 | プロフィール / AI 設定 / API キー / **観測**（ADR-13）/ 詳細 |
 
 ---
 

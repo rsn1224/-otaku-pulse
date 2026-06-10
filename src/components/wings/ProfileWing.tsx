@@ -1,17 +1,15 @@
 import type React from 'react';
 import { useState } from 'react';
 import { AdvancedSection } from '../profile/AdvancedSection';
-import { FeedsSection } from '../profile/FeedsSection';
 import { ObservabilitySection } from '../profile/ObservabilitySection';
 import { ProfileSection } from '../profile/ProfileSection';
 import { ApiKeysSection } from '../settings/ApiKeysSection';
 import { LlmSettingsSection } from '../settings/LlmSettingsSection';
 
-type ProfileTab = 'profile' | 'feeds' | 'ai' | 'apikeys' | 'metrics' | 'advanced';
+type ProfileTab = 'profile' | 'ai' | 'apikeys' | 'metrics' | 'advanced';
 
 const TABS: { id: ProfileTab; label: string }[] = [
   { id: 'profile', label: 'プロフィール' },
-  { id: 'feeds', label: 'フィード' },
   { id: 'ai', label: 'AI 設定' },
   { id: 'apikeys', label: 'API キー' },
   { id: 'metrics', label: '観測' },
@@ -39,7 +37,6 @@ export const ProfileWing: React.FC = () => {
       <div className="flex-1 overflow-y-auto discover-scroll">
         <div className="feed-column py-4">
           {activeTab === 'profile' && <ProfileSection />}
-          {activeTab === 'feeds' && <FeedsSection />}
           {activeTab === 'ai' && (
             <div className="discover-card">
               <LlmSettingsSection />
