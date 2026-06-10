@@ -63,7 +63,11 @@ export class AnthropicClient implements LlmClient {
       throw new AppError('rate_limit', 'レート制限中です。しばらく待ってください');
     if (!res.ok) throw new AppError('network', `Anthropic HTTP ${res.status}`);
 
-    const json = (await res.json()) as { content?: AnthropicContentBlock[]; model?: string };
+    const json = (await res.json()) as {
+      content?: AnthropicContentBlock[];
+      model?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
     const blocks = json.content ?? [];
 
     let content = '';
@@ -76,7 +80,19 @@ export class AnthropicClient implements LlmClient {
       content = text?.text ?? '';
     }
 
-    return { content, provider: 'anthropic', model: json.model ?? this.model, citations: [] };
+    return {
+      content,
+      provider: 'anthropic',
+      model: json.model ?? this.model,
+      citations: [],
+      usage:
+        json.usage !== undefined
+          ? {
+              promptTokens: json.usage.input_tokens ?? 0,
+              completionTokens: json.usage.output_tokens ?? 0,
+            }
+          : undefined,
+    };
   }
 
   provider(): LlmProvider {

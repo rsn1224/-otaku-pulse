@@ -57,6 +57,7 @@ export class PerplexityClient implements LlmClient {
       choices?: Array<{ message?: { content?: string } }>;
       model?: string;
       citations?: string[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
     const choice = json.choices?.[0];
     if (choice === undefined) throw new AppError('parse', 'Perplexity レスポンスが空です');
@@ -67,6 +68,13 @@ export class PerplexityClient implements LlmClient {
       provider: 'perplexity_sonar',
       model: json.model ?? MODEL,
       citations,
+      usage:
+        json.usage !== undefined
+          ? {
+              promptTokens: json.usage.prompt_tokens ?? 0,
+              completionTokens: json.usage.completion_tokens ?? 0,
+            }
+          : undefined,
     };
   }
 

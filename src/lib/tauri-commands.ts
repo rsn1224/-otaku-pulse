@@ -200,6 +200,55 @@ export function rescoreArticles(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Observability (ADR-13)
+// ---------------------------------------------------------------------------
+
+export interface LlmTotals {
+  calls: number;
+  promptTokens: number;
+  completionTokens: number;
+  costUsd: number;
+  avgLatencyMs: number;
+}
+
+export interface LlmModelStat {
+  provider: string;
+  model: string;
+  calls: number;
+  promptTokens: number;
+  completionTokens: number;
+  costUsd: number;
+  avgLatencyMs: number;
+}
+
+export interface LlmTaskStat {
+  task: string;
+  calls: number;
+  costUsd: number;
+  avgLatencyMs: number;
+}
+
+export interface CollectionMetrics {
+  totalArticles: number;
+  duplicates: number;
+  dedupRate: number;
+  byCategory: { category: string; count: number }[];
+}
+
+export interface ObservabilityDto {
+  llm: {
+    totals: LlmTotals;
+    byModel: LlmModelStat[];
+    byTask: LlmTaskStat[];
+  };
+  collection: CollectionMetrics;
+}
+
+export function getObservability(): Promise<ObservabilityDto> {
+  return invoke<ObservabilityDto>('get_observability');
+}
+
+// ---------------------------------------------------------------------------
 // Collection commands
 // ---------------------------------------------------------------------------
 

@@ -73,9 +73,11 @@ import {
 } from '../services/deepdive.ts';
 import { runDigestNow } from '../services/digest.ts';
 import { embedArticles, semanticSearch } from '../services/embeddings.ts';
+import { getObservability } from '../services/observability.ts';
 import { getPcStatus } from '../services/pc-status.ts';
 import { suggestPreferences } from '../services/preferences.ts';
 import { runResearchReport, runWeeklyReportNow } from '../services/reports.ts';
+import { rescoreArticles } from '../services/rescore.ts';
 import { getAiringSchedule } from '../services/schedule.ts';
 import { batchGenerateSummaries, getOrGenerateSummary } from '../services/summary.ts';
 import {
@@ -305,7 +307,8 @@ const core: Record<string, Handler> = {
     return null;
   },
   suggest_preferences: (db) => suggestPreferences(db),
-  rescore_articles: () => 0, // personal_scoring は Phase B (ADR-6 unified scoring) で移植
+  rescore_articles: (db) => rescoreArticles(db), // ADR-6 unified scoring
+  get_observability: (db) => getObservability(db), // ADR-13 観測性
 
   // Scheduler config
   get_scheduler_config: () => {

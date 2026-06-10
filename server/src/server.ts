@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { openDatabase } from './db/database.ts';
+import { initMetrics } from './db/metrics.ts';
 import { loadLlmSettings } from './llm/settings.ts';
 import { registerRoutes } from './routes/index.ts';
 import { startScheduler, stopScheduler } from './scheduler/index.ts';
@@ -12,6 +13,7 @@ const PORT = Number(process.env.PORT ?? 5180);
 const HOST = process.env.HOST ?? '127.0.0.1';
 
 const db = openDatabase();
+initMetrics(db); // ADR-13: LLM 計測 sink を設定
 loadLlmSettings(db);
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
 

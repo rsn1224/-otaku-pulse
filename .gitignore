@@ -48,3 +48,6 @@ coverage-rust/
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# Claude Code git worktrees (transient, never committed; nested biome.json breaks `biome check .`)
+.claude/worktrees/

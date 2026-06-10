@@ -34,11 +34,19 @@ export interface LlmRequest {
   format: unknown | null;
 }
 
+/** ADR-13: プロバイダ報告のトークン使用量（無い場合は呼出側で推定）。 */
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+}
+
 export interface LlmResponse {
   content: string;
   provider: LlmProvider;
   model: string;
   citations: Citation[];
+  /** プロバイダが返した場合のみ。streaming/未対応時は undefined。 */
+  usage?: TokenUsage;
 }
 
 export interface LlmClient {

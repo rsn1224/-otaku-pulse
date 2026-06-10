@@ -67,6 +67,8 @@ export class OllamaClient implements LlmClient {
         message?: { content?: string };
         model?: string;
         done?: boolean;
+        prompt_eval_count?: number;
+        eval_count?: number;
       };
       if (json.done !== true) throw new AppError('parse', 'Ollama レスポンスが不完全です');
 
@@ -75,6 +77,13 @@ export class OllamaClient implements LlmClient {
         provider: 'ollama',
         model: json.model ?? this.model,
         citations: [],
+        usage:
+          json.prompt_eval_count !== undefined || json.eval_count !== undefined
+            ? {
+                promptTokens: json.prompt_eval_count ?? 0,
+                completionTokens: json.eval_count ?? 0,
+              }
+            : undefined,
       };
     } finally {
       gate.release();
