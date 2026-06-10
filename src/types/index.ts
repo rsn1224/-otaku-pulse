@@ -109,8 +109,9 @@ export type DiscoverTab =
   | 'hardware'
   | 'tech';
 
-// ADR-10: 6→4 Wings 統合。Pulse=Discover+Saved、Saved は Pulse のタブ化。
-export type WingIdV2 = 'pulse' | 'digest' | 'library' | 'profile' | 'schedule';
+// ADR-10: 6→4 Wings 統合完了。Pulse=Discover+Saved / Digest=Digest+Schedule /
+// Library / Profile(+観測+詳細)。Saved/Schedule はそれぞれ Pulse/Digest の内タブ。
+export type WingIdV2 = 'pulse' | 'digest' | 'library' | 'profile';
 
 export type ImpactLevel = 'confirmed' | 'rumor' | 'general';
 

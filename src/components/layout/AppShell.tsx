@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
+import { BookOpen, Library, Search, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -29,7 +29,6 @@ import { DigestWing } from '../wings/DigestWing';
 import { DiscoverWing } from '../wings/DiscoverWing';
 import { LibraryWing } from '../wings/LibraryWing';
 import { ProfileWing } from '../wings/ProfileWing';
-import { ScheduleWing } from '../wings/ScheduleWing';
 import { CollectButton } from './CollectButton';
 import { TopBarSearch } from './TopBarSearch';
 import { WindowControls } from './WindowControls';
@@ -38,7 +37,6 @@ const NAV_ITEMS: { id: WingIdV2; label: string; Icon: LucideIcon }[] = [
   { id: 'pulse', label: 'Pulse', Icon: Search },
   { id: 'digest', label: 'Digest', Icon: BookOpen },
   { id: 'library', label: 'Library', Icon: Library },
-  { id: 'schedule', label: 'Schedule', Icon: CalendarDays },
   { id: 'profile', label: 'Profile', Icon: User },
 ];
 
@@ -118,8 +116,6 @@ export function AppShell(): React.JSX.Element {
         return <DigestWing />;
       case 'library':
         return <LibraryWing />;
-      case 'schedule':
-        return <ScheduleWing />;
       case 'profile':
         return <ProfileWing />;
       default:
