@@ -176,18 +176,6 @@ export function getDiscoverFeed(
   };
 }
 
-export function getLibraryArticles(db: DatabaseSync, limit = 30, offset = 0): DiscoverFeedResult {
-  const sql = `SELECT ${DISCOVER_COLS}, COALESCE(s.total_score, a.importance_score) AS total_score
-    FROM articles a JOIN feeds f ON a.feed_id = f.id
-    LEFT JOIN article_scores s ON a.id = s.article_id
-    WHERE a.is_bookmarked = 1
-    ORDER BY a.published_at DESC LIMIT ? OFFSET ?`;
-  const articles = rows(db, sql, limit, offset).map(toDiscoverArticleDto);
-  const total =
-    get<{ c: number }>(db, 'SELECT COUNT(*) c FROM articles WHERE is_bookmarked = 1')?.c ?? 0;
-  return { articles, total, hasMore: offset + limit < total };
-}
-
 export function getRelatedArticles(
   db: DatabaseSync,
   articleId: number,

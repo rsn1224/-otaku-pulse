@@ -8,22 +8,16 @@ export const springTransition: Transition = {
   damping: 30,
 };
 
-export const gentleSpring: Transition = {
-  type: 'spring',
-  stiffness: 300,
-  damping: 25,
-};
-
 const instantTransition: Transition = { duration: 0 };
 
 // === Modal ===
 
-export const modalOverlay: Variants = {
+const modalOverlay: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 };
 
-export const modalContent: Variants = {
+const modalContent: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 8 },
   visible: {
     opacity: 1,
@@ -36,7 +30,7 @@ export const modalContent: Variants = {
 
 // === Slide (ArticleReader, Sidebar) ===
 
-export const slideInRight: Variants = {
+const slideInRight: Variants = {
   hidden: { x: '100%', opacity: 0 },
   visible: {
     x: 0,
@@ -48,7 +42,7 @@ export const slideInRight: Variants = {
 
 // === Fade + Slide (general content) ===
 
-export const fadeSlideIn: Variants = {
+const fadeSlideIn: Variants = {
   hidden: { opacity: 0, y: 6 },
   visible: {
     opacity: 1,
@@ -60,7 +54,7 @@ export const fadeSlideIn: Variants = {
 
 // === Wing Transition ===
 
-export const wingTransition: Variants = {
+const wingTransition: Variants = {
   hidden: { opacity: 0, y: 8 },
   visible: {
     opacity: 1,
@@ -72,7 +66,7 @@ export const wingTransition: Variants = {
 
 // === Stagger (card lists) ===
 
-export const staggerContainer: Variants = {
+const staggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
@@ -81,7 +75,7 @@ export const staggerContainer: Variants = {
   },
 };
 
-export const staggerItem: Variants = {
+const staggerItem: Variants = {
   hidden: { opacity: 0, y: 8 },
   visible: {
     opacity: 1,
@@ -92,7 +86,7 @@ export const staggerItem: Variants = {
 
 // === Toast ===
 
-export const toastSlideIn: Variants = {
+const toastSlideIn: Variants = {
   hidden: { x: '100%', opacity: 0 },
   visible: {
     x: 0,

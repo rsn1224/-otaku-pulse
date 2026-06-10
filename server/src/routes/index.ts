@@ -2,7 +2,6 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance } from 'fastify';
 import {
   getArticleDetail,
-  getBookmarkedArticles,
   markRead,
   recordInteraction,
   toggleBookmark,
@@ -10,7 +9,6 @@ import {
 import { deleteDigest, getLatestDigest, listDigests } from '../db/digests.ts';
 import {
   getDiscoverFeed,
-  getLibraryArticles,
   getRelatedArticles,
   getUnreadCounts,
   markAllReadCategory,
@@ -121,13 +119,10 @@ const core: Record<string, Handler> = {
   // Discover / Articles
   get_discover_feed: (db, a) =>
     getDiscoverFeed(db, reqStr(a, 'tab'), optNum(a, 'limit'), optNum(a, 'offset')),
-  get_library_articles: (db, a) =>
-    getLibraryArticles(db, optNum(a, 'limit') ?? 30, optNum(a, 'offset') ?? 0),
   get_unread_counts: (db) => getUnreadCounts(db),
   mark_all_read_category: (db, a) => markAllReadCategory(db, reqStr(a, 'category')),
   get_related_articles: (db, a) => getRelatedArticles(db, reqNum(a, 'articleId')),
   get_article_detail: (db, a) => getArticleDetail(db, reqNum(a, 'articleId')),
-  get_bookmarked_articles: (db) => getBookmarkedArticles(db),
   mark_read: (db, a) => {
     markRead(db, reqNum(a, 'articleId'));
     return null;

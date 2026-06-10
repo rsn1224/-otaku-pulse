@@ -1,6 +1,6 @@
 import type React from 'react';
 
-export const CardSkeleton: React.FC = () => (
+const CardSkeleton: React.FC = () => (
   <div className="discover-card opacity-60">
     <div className="flex items-center gap-2 mb-3">
       <div className="skeleton-line h-4 w-20" />

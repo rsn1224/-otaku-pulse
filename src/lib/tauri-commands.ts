@@ -9,7 +9,6 @@ import type {
   AiringEntry,
   AiSearchResult,
   ArticleDetailDto,
-  ArticleDto,
   ChatMessage,
   Citation,
   ClusterGroup,
@@ -159,14 +158,6 @@ export function getArticleDetail(articleId: number): Promise<ArticleDetailDto> {
   return invoke<ArticleDetailDto>('get_article_detail', { articleId });
 }
 
-export function getBookmarkedArticles(): Promise<ArticleDto[]> {
-  return invoke<ArticleDto[]>('get_bookmarked_articles');
-}
-
-export function getLibraryArticles(limit: number, offset: number): Promise<DiscoverFeedResult> {
-  return invoke<DiscoverFeedResult>('get_library_articles', { limit, offset });
-}
-
 export function getRelatedArticles(articleId: number): Promise<DiscoverArticleDto[]> {
   return invoke<DiscoverArticleDto[]>('get_related_articles', { articleId });
 }
@@ -203,7 +194,7 @@ export function rescoreArticles(): Promise<void> {
 // Observability (ADR-13)
 // ---------------------------------------------------------------------------
 
-export interface LlmTotals {
+interface LlmTotals {
   calls: number;
   promptTokens: number;
   completionTokens: number;
@@ -211,7 +202,7 @@ export interface LlmTotals {
   avgLatencyMs: number;
 }
 
-export interface LlmModelStat {
+interface LlmModelStat {
   provider: string;
   model: string;
   calls: number;
@@ -221,14 +212,14 @@ export interface LlmModelStat {
   avgLatencyMs: number;
 }
 
-export interface LlmTaskStat {
+interface LlmTaskStat {
   task: string;
   calls: number;
   costUsd: number;
   avgLatencyMs: number;
 }
 
-export interface CollectionMetrics {
+interface CollectionMetrics {
   totalArticles: number;
   duplicates: number;
   dedupRate: number;
@@ -242,10 +233,6 @@ export interface ObservabilityDto {
     byTask: LlmTaskStat[];
   };
   collection: CollectionMetrics;
-}
-
-export function getObservability(): Promise<ObservabilityDto> {
-  return invoke<ObservabilityDto>('get_observability');
 }
 
 // ---------------------------------------------------------------------------
@@ -282,18 +269,6 @@ export function batchGenerateSummaries(limit: number): Promise<number> {
 
 export function getDeepDiveQuestions(articleId: number): Promise<string[]> {
   return invoke<string[]>('get_deepdive_questions', { articleId });
-}
-
-export function askDeepDive(articleId: number, question: string): Promise<DeepDiveResult> {
-  return invoke<DeepDiveResult>('ask_deepdive', { articleId, question });
-}
-
-export function askDeepDiveFollowup(
-  articleId: number,
-  question: string,
-  history: ChatMessage[],
-): Promise<DeepDiveResult> {
-  return invoke<DeepDiveResult>('ask_deepdive_followup', { articleId, question, history });
 }
 
 /**
@@ -547,10 +522,6 @@ export function getClusteredFeed(category?: string, limit?: number): Promise<Clu
   return invoke<ClusterGroup[]>('get_clustered_feed', { category, limit });
 }
 
-export function runClustering(): Promise<number> {
-  return invoke<number>('run_clustering');
-}
-
 // ---------------------------------------------------------------------------
 // v1.1: Today View
 // ---------------------------------------------------------------------------
@@ -567,10 +538,6 @@ export function getContextMemo(articleId: number): Promise<string> {
   return invoke<string>('get_context_memo', { articleId });
 }
 
-export function runWeeklyReportNow(): Promise<string> {
-  return invoke<string>('run_weekly_report_now');
-}
-
 export function runResearchReport(query: string): Promise<string> {
   return invoke<string>('run_research_report', { query });
 }
@@ -578,10 +545,6 @@ export function runResearchReport(query: string): Promise<string> {
 // ---------------------------------------------------------------------------
 // Digest
 // ---------------------------------------------------------------------------
-
-export function getDigests(category?: string): Promise<import('../types').DigestDto[]> {
-  return invoke('get_digests', { category });
-}
 
 export function getLatestDigest(category: string): Promise<import('../types').DigestDto | null> {
   return invoke('get_latest_digest', { category });

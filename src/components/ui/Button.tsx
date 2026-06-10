@@ -3,7 +3,7 @@ import type React from 'react';
 import { cn } from '../../lib/utils';
 import { Spinner } from './Spinner';
 
-export const buttonVariants = cva(
+const buttonVariants = cva(
   [
     'inline-flex items-center justify-center rounded-lg font-medium',
     'transition-all duration-150 transition-transform active:scale-95',

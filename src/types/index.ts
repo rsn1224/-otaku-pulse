@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Category
 // ---------------------------------------------------------------------------
-export type Category = 'anime' | 'manga' | 'game' | 'pc' | 'tech' | 'all';
+type Category = 'anime' | 'manga' | 'game' | 'pc' | 'tech' | 'all';
 
 // ---------------------------------------------------------------------------
 // LLM Provider
@@ -31,7 +31,7 @@ export interface FeedDto {
 // 記事ではないため article パイプラインを経由せず、get_pc_status で直接取得する。
 // ---------------------------------------------------------------------------
 
-export interface FrameworkStatusDto {
+interface FrameworkStatusDto {
   name: string;
   kind: string;
   priority: string;
@@ -84,14 +84,6 @@ export interface DigestDto {
   articleCount: number;
   modelUsed: string | null;
   generatedAt: string;
-}
-
-// ---------------------------------------------------------------------------
-// AppError — matches Rust AppError serialization
-// ---------------------------------------------------------------------------
-export interface AppError {
-  kind: string;
-  message: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,16 +149,6 @@ export interface TodayViewItem {
   article?: DiscoverArticleDto;
 }
 
-export interface AniListWatchEntry {
-  mediaId: number;
-  titleRomaji: string;
-  titleNative: string | null;
-  status: 'CURRENT' | 'PLANNING';
-  mediaType: string;
-  coverImageUrl: string | null;
-  fetchedAt: string;
-}
-
 export interface DiscoverFeedResult {
   articles: DiscoverArticleDto[];
   total: number;
@@ -227,7 +209,6 @@ export interface AiringEntry {
 }
 
 export type ScheduleViewMode = 'day' | 'week' | 'month';
-export type ScheduleTab = 'anime' | 'game';
 
 export interface GameReleaseEntry {
   id: number;

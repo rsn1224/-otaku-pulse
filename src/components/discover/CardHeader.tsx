@@ -10,7 +10,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   pc: 'ハード',
 };
 
-export const formatRelativeTime = (publishedAt: string | null): string => {
+const formatRelativeTime = (publishedAt: string | null): string => {
   if (!publishedAt) return '';
   const date = new Date(publishedAt);
   const now = new Date();
@@ -26,7 +26,7 @@ export const formatRelativeTime = (publishedAt: string | null): string => {
   return rtf.format(-Math.floor(diffHours / 24), 'day');
 };
 
-export const estimateReadTime = (text: string | null): string | null => {
+const estimateReadTime = (text: string | null): string | null => {
   if (!text) return null;
   return `${Math.max(1, Math.ceil(text.length / 500))}分`;
 };
