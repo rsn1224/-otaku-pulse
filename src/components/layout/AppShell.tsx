@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Bookmark, BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
+import { BookOpen, CalendarDays, Library, Search, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -29,23 +29,21 @@ import { DigestWing } from '../wings/DigestWing';
 import { DiscoverWing } from '../wings/DiscoverWing';
 import { LibraryWing } from '../wings/LibraryWing';
 import { ProfileWing } from '../wings/ProfileWing';
-import { SavedWing } from '../wings/SavedWing';
 import { ScheduleWing } from '../wings/ScheduleWing';
 import { CollectButton } from './CollectButton';
 import { TopBarSearch } from './TopBarSearch';
 import { WindowControls } from './WindowControls';
 
 const NAV_ITEMS: { id: WingIdV2; label: string; Icon: LucideIcon }[] = [
-  { id: 'discover', label: 'Discover', Icon: Search },
+  { id: 'pulse', label: 'Pulse', Icon: Search },
   { id: 'digest', label: 'Digest', Icon: BookOpen },
   { id: 'library', label: 'Library', Icon: Library },
-  { id: 'saved', label: 'Saved', Icon: Bookmark },
   { id: 'schedule', label: 'Schedule', Icon: CalendarDays },
   { id: 'profile', label: 'Profile', Icon: User },
 ];
 
 export function AppShell(): React.JSX.Element {
-  const [activeWing, setActiveWing] = useState<WingIdV2>('discover');
+  const [activeWing, setActiveWing] = useState<WingIdV2>('pulse');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const { variants, spring } = useMotionConfig();
@@ -113,14 +111,13 @@ export function AppShell(): React.JSX.Element {
 
   const renderWing = (): React.ReactNode => {
     switch (activeWing) {
-      case 'discover':
+      case 'pulse':
+        // ADR-10: Pulse = Discover + Saved（Saved は Pulse 内タブ）。
         return <DiscoverWing />;
       case 'digest':
         return <DigestWing />;
       case 'library':
         return <LibraryWing />;
-      case 'saved':
-        return <SavedWing />;
       case 'schedule':
         return <ScheduleWing />;
       case 'profile':

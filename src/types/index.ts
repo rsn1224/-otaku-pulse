@@ -102,13 +102,15 @@ export type DiscoverTab =
   | 'trending'
   | 'popular'
   | 'most_viewed'
+  | 'saved'
   | 'anime'
   | 'game'
   | 'manga'
   | 'hardware'
   | 'tech';
 
-export type WingIdV2 = 'discover' | 'digest' | 'library' | 'profile' | 'saved' | 'schedule';
+// ADR-10: 6→4 Wings 統合。Pulse=Discover+Saved、Saved は Pulse のタブ化。
+export type WingIdV2 = 'pulse' | 'digest' | 'library' | 'profile' | 'schedule';
 
 export type ImpactLevel = 'confirmed' | 'rumor' | 'general';
 

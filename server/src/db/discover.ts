@@ -121,6 +121,18 @@ function mostViewed(db: DatabaseSync, limit: number, offset: number): [DiscoverR
   return [rows(db, sql, limit, offset), countAll(db)];
 }
 
+// ADR-10: Saved（旧 Saved wing）は Pulse のタブとして提供。ブックマーク記事を published 降順で返す。
+function saved(db: DatabaseSync, limit: number, offset: number): [DiscoverRow[], number] {
+  const sql = `SELECT ${DISCOVER_COLS}, COALESCE(s.total_score, a.importance_score) AS total_score
+    FROM articles a JOIN feeds f ON a.feed_id = f.id
+    LEFT JOIN article_scores s ON a.id = s.article_id
+    WHERE a.is_bookmarked = 1
+    ORDER BY a.published_at DESC LIMIT ? OFFSET ?`;
+  const total =
+    get<{ c: number }>(db, 'SELECT COUNT(*) c FROM articles WHERE is_bookmarked = 1')?.c ?? 0;
+  return [rows(db, sql, limit, offset), total];
+}
+
 export function getDiscoverFeed(
   db: DatabaseSync,
   tab: string,
@@ -140,6 +152,9 @@ export function getDiscoverFeed(
       break;
     case 'most_viewed':
       result = mostViewed(db, lim, off);
+      break;
+    case 'saved':
+      result = saved(db, lim, off);
       break;
     case 'anime':
     case 'manga':

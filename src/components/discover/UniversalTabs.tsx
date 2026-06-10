@@ -8,6 +8,7 @@ const TABS: { id: DiscoverTab; label: string; countKey: string }[] = [
   { id: 'trending', label: 'Trending', countKey: 'trending' },
   { id: 'popular', label: 'Popular', countKey: 'popular' },
   { id: 'most_viewed', label: 'Most Viewed', countKey: 'mostViewed' },
+  { id: 'saved', label: 'Saved', countKey: 'saved' },
   { id: 'anime', label: 'アニメ', countKey: 'anime' },
   { id: 'game', label: 'ゲーム', countKey: 'game' },
   { id: 'manga', label: '漫画', countKey: 'manga' },
