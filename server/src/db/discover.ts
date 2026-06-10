@@ -56,16 +56,13 @@ function forYou(db: DatabaseSync, limit: number, offset: number): [DiscoverRow[]
 
 function trending(db: DatabaseSync, limit: number, offset: number): [DiscoverRow[], number] {
   const mute = muteClause(db);
-  const sql = `SELECT ${DISCOVER_COLS},
-      (COALESCE(s.total_score, a.importance_score)
-       + COALESCE(SUM(CASE WHEN ai.action = 'open' THEN 2.0
-           WHEN ai.action = 'bookmark' THEN 3.0
-           WHEN ai.action = 'deepdive' THEN 2.5 ELSE 0 END), 0)) AS total_score
+  // ADR-6: 暗黙FB は統一スコア (article_scores.total_score) に集約済みのため live 加算しない
+  // (二重計上回避)。trending は「直近 12h × 統一スコア」を identity とする。
+  const sql = `SELECT ${DISCOVER_COLS}, COALESCE(s.total_score, a.importance_score) AS total_score
     FROM articles a JOIN feeds f ON a.feed_id = f.id
     LEFT JOIN article_scores s ON a.id = s.article_id
-    LEFT JOIN article_interactions ai ON a.id = ai.article_id AND ai.created_at >= ${INTERACTION_WINDOW}
     WHERE a.is_duplicate = 0 AND a.published_at >= datetime('now', '-12 hours')${mute}
-    GROUP BY a.id ORDER BY total_score DESC, a.published_at DESC LIMIT ? OFFSET ?`;
+    ORDER BY total_score DESC, a.published_at DESC LIMIT ? OFFSET ?`;
   const total =
     get<{ c: number }>(
       db,
@@ -97,8 +94,10 @@ function byCategory(
 
 function popular(db: DatabaseSync, limit: number, offset: number): [DiscoverRow[], number] {
   const mute = muteClause(db);
-  const sql = `SELECT ${DISCOVER_COLS},
-      (COALESCE(s.total_score, a.importance_score) + COALESCE(ai.eng, 0)) AS total_score
+  // ADR-6: engagement を total_score に「加算」せず「ソートキー」にする (二重計上回避)。
+  // popular = 「最も engage された記事」、tie-break は統一スコア。engagement が無い間は
+  // total_score 順に degrade するため空にならない。表示用 total_score は統一スコアのまま。
+  const sql = `SELECT ${DISCOVER_COLS}, COALESCE(s.total_score, a.importance_score) AS total_score
     FROM articles a JOIN feeds f ON a.feed_id = f.id
     LEFT JOIN article_scores s ON a.id = s.article_id
     LEFT JOIN (SELECT article_id, SUM(CASE WHEN action='bookmark' THEN 3.0
@@ -106,7 +105,7 @@ function popular(db: DatabaseSync, limit: number, offset: number): [DiscoverRow[
         FROM article_interactions WHERE created_at >= ${INTERACTION_WINDOW}
         GROUP BY article_id) ai ON ai.article_id = a.id
     WHERE a.is_duplicate = 0${mute}
-    ORDER BY total_score DESC, a.published_at DESC LIMIT ? OFFSET ?`;
+    ORDER BY COALESCE(ai.eng, 0) DESC, total_score DESC, a.published_at DESC LIMIT ? OFFSET ?`;
   return [rows(db, sql, limit, offset), countAll(db)];
 }
 
