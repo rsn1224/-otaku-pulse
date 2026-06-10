@@ -2,7 +2,8 @@ import type { DatabaseSync } from 'node:sqlite';
 import { insertDigest } from '../db/digests.ts';
 import { all } from '../db/query.ts';
 import { tryRouteFor } from '../llm/router.ts';
-import type { LlmRequest } from '../llm/types.ts';
+import { researchReportPrompt, weeklyReportPrompt } from './prompts/registry.ts';
+import { buildRequest } from './prompts/types.ts';
 
 // commands/digest.rs の run_weekly_report_now / run_research_report 移植 + ADR-2 ルーティング。
 // Deep research は web 検索が要るため web grounding 可能な provider（Perplexity）必須。
@@ -14,16 +15,7 @@ export async function runResearchReport(db: DatabaseSync, query: string): Promis
   const client = tryRouteFor('research');
   if (client === null || !client.supportsWebSearch()) return WEB_REQUIRED;
 
-  const req: LlmRequest = {
-    systemPrompt:
-      'あなたは調査アシスタントです。与えられたトピックについて web を調査し、日本語で構造化された調査レポート（Markdown）を作成してください。',
-    userPrompt: query,
-    maxTokens: 1500,
-    webSearch: true,
-    conversation: null,
-    format: null,
-  };
-  const resp = await client.complete(req);
+  const resp = await client.complete(buildRequest(researchReportPrompt, { query }));
   const title = `調査: ${query}`;
   insertDigest(db, {
     category: 'weekly_report',
@@ -49,16 +41,7 @@ export async function runWeeklyReportNow(db: DatabaseSync): Promise<string> {
   ).map((r) => r.title);
   if (titles.length === 0) return 'スキップ: 対象記事がありません';
 
-  const req: LlmRequest = {
-    systemPrompt:
-      '過去1週間のオタクニュースを俯瞰し、重要トピックを web 調査で補強した週次レポート（Markdown）を日本語で作成してください。',
-    userPrompt: `今週の主な記事:\n${titles.join('\n')}`,
-    maxTokens: 1500,
-    webSearch: true,
-    conversation: null,
-    format: null,
-  };
-  const resp = await client.complete(req);
+  const resp = await client.complete(buildRequest(weeklyReportPrompt, { titles }));
   insertDigest(db, {
     category: 'weekly_report',
     title: '週次レポート',

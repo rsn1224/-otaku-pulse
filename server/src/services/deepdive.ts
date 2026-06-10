@@ -13,15 +13,20 @@ import {
   type LlmRequest,
   type LlmResponse,
   providerDebugName,
-  structuredRequest,
 } from '../llm/types.ts';
 import { type RetrievedContext, retrieveRelated } from './embeddings.ts';
+import {
+  DEEPDIVE_ANSWER_SCHEMA,
+  deepdiveAnswerPrompt,
+  deepdiveQuestionsPrompt,
+  deepdiveStreamPrompt,
+} from './prompts/registry.ts';
+import { buildRequest, resolveSystem } from './prompts/types.ts';
 
 type Citation = { url: string; title: string | null };
 
-// ADR-5: ストリーミング用 delimiter prompt（free-text。逐次配信向け。followUps は末尾 ---FOLLOWUP---）。
-const STREAM_SYSTEM_PROMPT =
-  'あなたはアニメ・ゲーム・漫画に詳しい情報アシスタントです。質問に対して、正確で簡潔な回答を日本語（Markdown、200文字以内）で提供してください。回答は必ず「元の記事」を主題とすること。「関連する収集済み記事」は背景知識・補足としてのみ参考にし、元の記事と無関係なものは無視すること。回答の最後に、関連する追加質問を2つ提案してください。形式:\n回答本文\n\n---FOLLOWUP---\n["追加質問1", "追加質問2"]';
+// ADR-4: プロンプトは registry（services/prompts）が SSOT。ここでは参照のみ。
+const STREAM_SYSTEM_PROMPT = resolveSystem(deepdiveStreamPrompt, undefined);
 
 // deepdive_service.rs の移植。
 
@@ -33,18 +38,9 @@ export interface DeepDiveResult {
   citations: Array<{ url: string; title: string | null }>;
 }
 
-// ADR-3: 構造化出力。脆い ---FOLLOWUP--- delimiter を撤廃し JSON schema で拘束する。
-const SYSTEM_PROMPT =
-  'あなたはアニメ・ゲーム・漫画に詳しい情報アシスタントです。質問に対して、正確で簡潔な回答を日本語（Markdown、200文字以内）で作成し、関連する追加質問を2つ提案してください。回答は必ず「元の記事」を主題とすること。「関連する収集済み記事」は背景知識・補足としてのみ参考にし、元の記事と無関係なものは無視すること。JSON {"answer": "回答本文", "followUps": ["追加質問1", "追加質問2"]} で返してください。';
-
-const ANSWER_SCHEMA = {
-  type: 'object',
-  properties: {
-    answer: { type: 'string' },
-    followUps: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['answer', 'followUps'],
-};
+// ADR-3: 構造化出力。脆い ---FOLLOWUP--- delimiter を撤廃し JSON schema で拘束する（registry 参照）。
+const SYSTEM_PROMPT = resolveSystem(deepdiveAnswerPrompt, undefined);
+const ANSWER_SCHEMA = DEEPDIVE_ANSWER_SCHEMA;
 
 /** 構造化出力 {answer, followUps} をパース。非対応 provider 向けに ---FOLLOWUP--- フォールバック。 */
 function parseStructuredAnswer(content: string): [string, string[]] {
@@ -174,17 +170,10 @@ export async function generateQuestions(
   llm: LlmClient,
 ): Promise<string[]> {
   const row = articleOrThrow(db, articleId);
-  const schema = {
-    type: 'object',
-    properties: { questions: { type: 'array', items: { type: 'string' } } },
-    required: ['questions'],
-  };
-  const req = structuredRequest(
-    'あなたはオタク向けニュースの質問生成AIです。記事について、ユーザーが気になりそうな具体的な質問を3つ (各25文字以内) 生成し、JSON {"questions": ["質問1", "質問2", "質問3"]} で返してください。',
-    `タイトル: ${row.title}\nサマリー: ${articleContext(row)}`,
-    200,
-    schema,
-  );
+  const req = buildRequest(deepdiveQuestionsPrompt, {
+    title: row.title,
+    context: articleContext(row),
+  });
   const response = await llm.complete(req);
   return (
     parseStringArrayField(response.content, 'questions') ?? parseQuestionArray(response.content)

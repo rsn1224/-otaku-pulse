@@ -1,7 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { getInteractionStats, getTopInteractionTitles } from '../db/profile.ts';
 import { routeFor } from '../llm/router.ts';
-import { simpleRequest } from '../llm/types.ts';
+import { preferencesPrompt } from './prompts/registry.ts';
+import { buildRequest } from './prompts/types.ts';
 
 // discover_profile.rs の suggest_preferences 移植。
 
@@ -26,11 +27,7 @@ export async function suggestPreferences(db: DatabaseSync): Promise<PreferenceSu
   }
 
   const statsText = stats.map((s) => `${s.category}: ${s.cnt}件`).join(', ');
-  const req = simpleRequest(
-    'ユーザーの閲覧行動データから趣味嗜好を推定してください。JSON形式で返してください:\n{"titles": ["作品名1"], "genres": ["ジャンル1"], "creators": ["クリエイター名1"], "reason": "推定理由"}\n各配列は3件以内。reason は20文字以内。',
-    `カテゴリ別閲覧数: ${statsText}\n\nブックマーク/深堀りした記事:\n${topTitles.join('\n')}`,
-    300,
-  );
+  const req = buildRequest(preferencesPrompt, { statsText, topTitles });
 
   try {
     const resp = await routeFor('summary').complete(req);

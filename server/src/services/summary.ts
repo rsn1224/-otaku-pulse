@@ -1,7 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { all, get, run } from '../db/query.ts';
 import { AppError } from '../error.ts';
-import { type LlmClient, simpleRequest } from '../llm/types.ts';
+import type { LlmClient } from '../llm/types.ts';
+import { batchSummaryPrompt, summaryPrompt } from './prompts/registry.ts';
+import { buildRequest } from './prompts/types.ts';
 
 // summary_service.rs + highlights_service::batch_generate_summaries の移植。
 
@@ -36,11 +38,7 @@ export async function getOrGenerateSummary(
     return fallback;
   }
 
-  const req = simpleRequest(
-    'あなたはニュース記事の要約者です。与えられたテキストの内容だけを要約すること。外部検索は使わないこと。日本語で2〜3文の簡潔な要約を生成すること。謝罪や注釈は絶対に書かないこと。',
-    `以下の記事を要約してください。\n\nタイトル: ${row.title}\n\n本文: ${sourceText.slice(0, 1500)}`,
-    200,
-  );
+  const req = buildRequest(summaryPrompt, { title: row.title, sourceText });
   const response = await llm.complete(req);
   const aiSummary = response.content.trim();
 
@@ -72,11 +70,7 @@ export async function batchGenerateSummaries(
   for (const r of rows) {
     const sourceText = r.content ?? r.summary ?? '';
     if (sourceText === '') continue;
-    const req = simpleRequest(
-      '与えられたテキストだけを使って日本語で2文の要約を書いてください。外部検索は使わないこと。謝罪や注釈は書かないこと。',
-      `タイトル: ${r.title}\n\n本文: ${sourceText.slice(0, 1200)}`,
-      150,
-    );
+    const req = buildRequest(batchSummaryPrompt, { title: r.title, sourceText });
     try {
       const response = await llm.complete(req);
       run(

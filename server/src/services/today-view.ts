@@ -1,6 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { all, run } from '../db/query.ts';
-import { type LlmClient, structuredRequest } from '../llm/types.ts';
+import type { LlmClient } from '../llm/types.ts';
+import { todayViewPrompt } from './prompts/registry.ts';
+import { buildRequest } from './prompts/types.ts';
 
 // today_view_service.rs の移植。スコア上位記事を LLM で3点見出し化、3hキャッシュ。
 
@@ -45,31 +47,7 @@ async function generateWithLlm(
   llm: LlmClient,
   articles: ScoredArticle[],
 ): Promise<TodayViewItem[]> {
-  const titlesList = articles.map((a, i) => `${i + 1}. ${a.title}`).join('\n');
-  const schema = {
-    type: 'object',
-    properties: {
-      items: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            rank: { type: 'integer' },
-            article_index: { type: 'integer' },
-            headline: { type: 'string' },
-          },
-          required: ['rank', 'article_index', 'headline'],
-        },
-      },
-    },
-    required: ['items'],
-  };
-  const req = structuredRequest(
-    'あなたはアニメ・マンガ・ゲームニュースのキュレーターです。',
-    `以下の記事タイトルから、今日最も重要な3件を選び、それぞれ20文字以内の見出しを作ってください。次の JSON で重要度順に返してください: {"items": [{"rank": 1, "article_index": <元のリスト番号>, "headline": "見出し"}]}\n\n記事一覧:\n${titlesList}`,
-    300,
-    schema,
-  );
+  const req = buildRequest(todayViewPrompt, { articles });
   const resp = await llm.complete(req);
 
   let parsed: { items?: Array<{ rank?: number; article_index?: number; headline?: string }> };

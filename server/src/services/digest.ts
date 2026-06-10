@@ -1,7 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { insertDigest, unsummarizedArticles } from '../db/digests.ts';
 import { routeFor } from '../llm/router.ts';
-import { type LlmClient, providerDebugName, simpleRequest } from '../llm/types.ts';
+import { type LlmClient, providerDebugName } from '../llm/types.ts';
+import { digestPrompt } from './prompts/registry.ts';
+import { buildRequest } from './prompts/types.ts';
 
 // digest_generator.rs + scheduler::run_digest_now の移植。FE DigestResult は snake_case。
 
@@ -49,13 +51,8 @@ export async function generateDigest(
   const articles = unsummarizedArticles(db, category, 10);
   if (articles.length === 0) return stubDigest(category, 0, '記事がありません');
 
-  const systemPrompt = `あなたはアニメ・ゲーム情報のキュレーターです。提供されたニュース記事のタイトルとサマリーを読み、日本語で簡潔なダイジェストを生成してください。カテゴリ: ${category}。箇条書きで上位3〜5件の重要ニュースをまとめてください。各項目は「・タイトル: 内容の要点」の形式で記述してください。`;
-  const userPrompt = articles
-    .map((a) => (a.summary !== null ? `・${a.title}: ${a.summary}` : `・${a.title}`))
-    .join('\n');
-
   try {
-    const resp = await client.complete(simpleRequest(systemPrompt, userPrompt, 1000));
+    const resp = await client.complete(buildRequest(digestPrompt, { category, articles }));
     return {
       category,
       summary: resp.content,
